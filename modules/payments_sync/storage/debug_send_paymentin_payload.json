@@ -1,0 +1,102 @@
+[
+    {
+        "externalCode": "COIIQ3EY0JFL6XP14032026175800",
+        "name": "1773513300",
+        "moment": "2026-03-14 17:58:00",
+        "sum": 18300,
+        "applicable": false,
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata\/states\/4e5eaa29-751f-11ec-0a80-00670008f611",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "description": "5169 **** **** 3902 14.03.2026 12:00:05 Зарахування переказу: TARAS BILETSKYI\nname: розрахунки за картами (С+, ACQ1) карти ПБ\nedrpou: 14360570",
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/565176ae-920a-11eb-0a80-042f000cdb9f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/metadata",
+                "type": "counterparty",
+                "mediaType": "application\/json"
+            }
+        }
+    },
+    {
+        "externalCode": "JBKLQ3EODF7JEF114032026174400",
+        "name": "1773513300",
+        "moment": "2026-03-14 17:44:00",
+        "sum": 10000,
+        "applicable": true,
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata\/states\/4e5eaa29-751f-11ec-0a80-00670008f611",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "description": "ОПЛАТА ЗА ТОВАР\nname: ГЛЬОНДЕР В.В. ФОП\nedrpou: 2723216373",
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/8d746f11-1f8e-11f1-0a80-082d0037d3a7",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json"
+            }
+        },
+        "attributes": [
+            {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata\/attributes\/3e58b958-92f0-11eb-0a80-00da000a0e6a",
+                    "type": "attributemetadata",
+                    "mediaType": "application\/json"
+                },
+                "id": "3e58b958-92f0-11eb-0a80-00da000a0e6a",
+                "value": true
+            }
+        ],
+        "operations": [
+            {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/customerorder\/8e0e58ed-1f8e-11f1-0a80-082d0037d3ba",
+                    "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/customerorder\/metadata",
+                    "type": "customerorder",
+                    "mediaType": "application\/json"
+                },
+                "linkedSum": 10000
+            }
+        ]
+    }
+]

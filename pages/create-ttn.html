@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>ОфісТорг Чат</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="Інтранет компанії Офісторг - система CRM, облік, логістика " name="description"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="/assets/images/favicon.ico">
+
+    <!-- C3 Chart css -->
+    <link href="/assets/libs/c3/c3.min.css" rel="stylesheet" type="text/css"/>
+
+
+<!--    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">-->
+
+
+    <!-- App css -->
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" id="bootstrap-stylesheet"/>
+    <link href="/assets/css/icons.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-stylesheet"/>
+    <link href="/assets/css/papir.css" rel="stylesheet" type="text/css" id="papir-stylesheet"/>
+
+    <script src="assets/js/vendor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.mask/1.14.16/jquery.mask.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div id="wrapper">
+    <div id="navbar-left">
+        <div class="left-side-menu">
+            <div class="slimscroll-menu">
+                <!--- Sidemenu -->
+                <div id="sidebar-menu">
+                    <ul class="metismenu" id="side-menu">
+                        <li class="menu-title"></li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-airplay"></i>
+                                <span> Аналітика </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="analitics.html">Dashboard</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-file-plus"></i>
+                                <span> Замовлення </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="orders.html">Реєстр замовлень</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-file-plus"></i>
+                                <span> Логістика </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="create-ttn.html">Створити ТТН</a></li>
+                                <li><a href="analitics.html">НП Відправлення</a></li>
+                                <li><a href="analitics.html">УП Відправлення</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Комунікації </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="page-chat.html">Чат</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-file-plus"></i>
+                                <span> Гроші </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false"></ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Контрагенти </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="page-chat.html">Список контрагентів</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Товари </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="page-chat.html">Список товарів</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Закупівля </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="email-inbox.html">Реестр замовлень</a></li>
+                                <li><a href="email-read.html">Надходження</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                </div>
+                <!-- End Sidebar -->
+                <div class="clearfix"></div>
+            </div>
+            <!-- Sidebar -left -->
+        </div>
+
+    </div>
+    <div class="navbar-custom">
+        <ul class="list-unstyled topnav-menu float-right mb-0">
+            <li class="dropdown notification-list">
+                <a class="nav-link dropdown-toggle  waves-effect waves-light" data-toggle="dropdown" href="#"
+                   role="button" aria-haspopup="false" aria-expanded="false">
+                    <i class="dripicons-bell noti-icon"></i>
+                    <span class="badge badge-pink rounded-circle noti-icon-badge">3</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right dropdown-lg">
+                    <div class="dropdown-header noti-title">
+                        <h5 class="text-overflow m-0"><span class="float-right">
+						<span class="badge badge-danger float-right">3</span>
+						</span>Повідомлення</h5>
+                    </div>
+                    <div class="slimscroll noti-scroll"></div>
+                    <!-- All-->
+                    <a href="javascript:void(0);" class="dropdown-item text-center text-primary notify-item notify-all">
+                        Дивитись усі
+                        <i class="fi-arrow-right"></i>
+                    </a>
+                </div>
+            </li>
+            <li class="dropdown notification-list">
+                <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect waves-light" data-toggle="dropdown"
+                   href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                    <img src="assets/images/users/avatar-1.jpg" alt="user-image" class="rounded-circle">
+                    <span class="pro-user-name ml-1">
+					Адмін  <i class="mdi mdi-chevron-down"></i>
+				</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right profile-dropdown ">
+                    <!-- item-->
+                    <div class="dropdown-header noti-title">
+                        <h6 class="text-overflow m-0">Вітаю !</h6>
+                    </div>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-user"></i>
+                        <span>Профіль</span>
+                    </a>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-settings"></i>
+                        <span>Налаштування</span>
+                    </a>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-lock"></i>
+                        <span>Lock Screen</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-log-out"></i>
+                        <span>Вийти</span>
+                    </a>
+                </div>
+            </li>
+            <li class="dropdown notification-list">
+                <a href="javascript:void(0);" class="nav-link right-bar-toggle waves-effect waves-light">
+                    <i class="fe-settings noti-icon"></i>
+                </a>
+            </li>
+        </ul>
+
+        <!-- LOGO -->
+        <div class="logo-box">
+            <a href="index.html" class="logo text-center">
+			<span class="logo-lg">
+				<img src="assets/images/logo-light.png" alt="" height="25">
+                <!-- <span class="logo-lg-text-light">UBold</span> -->
+			</span>
+                <span class="logo-sm">
+				<!-- <span class="logo-sm-text-dark">U</span> -->
+				<img src="assets/images/logo-sm.png" alt="" height="28">
+			</span>
+            </a>
+        </div>
+        <ul class="list-unstyled topnav-menu topnav-menu-left m-0">
+            <li>
+                <button class="button-menu-mobile waves-effect waves-light" id="mobile-menu-toggle">
+                    <i class="fe-menu"></i>
+                </button>
+            </li>
+            <li class="d-none d-sm-block">
+                <form class="app-search">
+                    <div class="app-search-box">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search...">
+                            <div class="input-group-append">
+                                <button class="btn" type="submit">
+                                    <i class="fe-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </li>
+        </ul>
+
+    </div>
+    <footer class="footer"></footer>
+</div>
+<div class="right-bar"></div>
+<div class="rightbar-overlay"></div>
+
+<div class="content-page">
+    <div class="content">
+        <div class="row justify-content-center">
+            <div class="col-md-4">
+                <div class="card-body">
+                    <h4 class="header-title mb-4  text-center">Створити відправлення</h4>
+                    <ul class="nav nav-pills navtab-bg nav-justified">
+                        <li class="nav-item">
+                            <a href="#recipient" data-toggle="tab" aria-expanded="true" class="nav-link active">
+                                <span class="d-block d-sm-none"><i class="mdi mdi-home-variant"></i></span>
+                                <span class="d-none d-sm-block">Отримувач</span>
+                            </a>
+                        <li class="nav-item">
+                            <a href="#parametrs" data-toggle="tab" aria-expanded="true" class="nav-link">
+                                <span class="d-block d-sm-none"><i class="mdi mdi-home-variant"></i></span>
+                                <span class="d-none d-sm-block">Параметри</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#sender" data-toggle="tab" aria-expanded="true" class="nav-link">
+                                <span class="d-block d-sm-none"><i class="mdi mdi-home-variant"></i></span>
+                                <span class="d-none d-sm-block">Відправник</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    <div class="tab-pane show active" id="recipient">
+                        <div style="margin-top: 20px;"></div>
+                        <form id="recipient-form">
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="TtnNumber">ТТН:</label>
+                                    <input type="text" class="form-control" id="TtnNumber" name="TtnNumber" readonly
+                                           style="background-color: #f2f2f2; cursor: not-allowed;">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="TtnActiv">Дія:</label>
+                                    <select class="form-control" id="TtnActiv" name="TtnActiv">
+                                        <option value="створити">створити</option>
+                                        <option value="редагувати">редагувати</option>
+                                        <option value="відстежити">відстежити</option>
+                                        <option value="додати">додати</option>
+                                        <option value="видалити">видалити</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="StatusTtn">Статус:</label>
+                                    <input type="text" class="form-control" id="StatusTtn" name="StatusTtn" readonly
+                                           style="background-color: #f2f2f2; cursor: not-allowed;">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="Cargo">Перевізник:</label>
+                                    <select class="form-control" id="Cargo" name="Cargo">
+                                        <option value="Нова пошта">Нова пошта</option>
+                                        <option value="Укрпошта">Укрпошта</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4" id="typeUkrposhta" style="display: none;">
+                                    <label for="recipientType">Тип Укрпошта:</label>
+                                    <select class="form-control" id="typeUkrposhtaChange" name="recipientType">
+                                        <option value="Стандарт">Стандарт</option>
+                                        <option value="Експресс">Експресс</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="recipientType">Тип відправки:</label>
+                                    <select class="form-control" id="TypeCargo" name="TypeCargo">
+                                        <option value="W2W">відділення/відділення</option>
+                                        <option value="W2D">відділення/адреса</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row" id="recipientParametrs">
+                                <div class="form-group col-md-6">
+                                    <label for="recipientType">Тип отримувача:</label>
+                                    <select class="form-control" id="recipientType" name="recipientType">
+                                        <option value="Приватна особа">Приватна особа</option>
+                                        <option value="Підприємство">Підприємство</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="recipientPhone">Телефон:</label>
+                                    <input type="text" class="form-control recipient-input" id="recipientPhone"
+                                           name="recipientPhone" required style="color: blue">
+                                    <div id="recipientPhonesuggestions" class="suggestions-list-container"></div>
+                                    <div id="phoneError" class="error-message" style="color: red;"></div>
+                                </div>
+                            </div>
+                            <div class="form-row" id="Counterparty" style="display: none;">
+                                <div class="form-group col-md-3" id="edrpouContainer">
+                                    <label for="edrpou">Код ЄДРПОУ:</label>
+                                    <input type="text" class="form-control" id="edrpou" name="edrpou">
+                                </div>
+                                <div class="form-group col-md-9" id="nameCounterparty">
+                                    <label for="nameCounterparty">Найменування контрагента:</label>
+                                    <input type="text" class="form-control" id="nameсounterparty"
+                                           name="nameсounterparty" readonly
+                                           style="background-color: #f2f2f2; cursor: not-allowed;">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-4">
+                                    <label for="recipientFirstName">Ім'я:</label>
+                                    <input type="text" class="form-control" id="recipientFirstName"
+                                           name="recipientFirstName" required style="color: blue">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="recipientLastName">Фамілія:</label>
+                                    <input type="text" class="form-control" id="recipientLastName"
+                                           name="recipientLastName" required style="color: blue">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="recipientMiddleName">По-батькові:</label>
+                                    <input type="text" class="form-control" id="recipientMiddleName"
+                                           name="recipientMiddleName" style="color: blue">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label for="recipientCity">Місто:</label>
+                                    <input type="text" class="form-control recipient-input" id="recipientCity"
+                                           name="recipientCity" required style="color: blue">
+                                    <div id="citySuggestions" class="suggestions-list-container"></div>
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label for="recipientWarehouse">Відділення:</label>
+                                    <input type="text" class="form-control" id="recipientWarehouse"
+                                           name="recipientWarehouse" required style="color: blue">
+                                </div>
+                            </div>
+                            <div class="form-row" id="Adresses" style="display: none;">
+                                <div class="form-group col-md-8">
+                                    <label for="recipientStreet">Вулиця:</label>
+                                    <input type="text" class="form-control" id="recipientStreet" name="recipientStreet"
+                                           style="color: blue">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="recipientHouse">Дім:</label>
+                                    <input type="text" class="form-control" id="recipientHouse" name="recipientHouse"
+                                           style="color: blue">
+                                </div>
+                                <div class="form-group col-md-2">
+                                    <label for="recipientFlat">Квартира:</label>
+                                    <input type="text" class="form-control" id="recipientFlat" name="recipientFlat"
+                                           style="color: blue">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="DescriptionAdress">Коментар до адреси:</label>
+                                <input type="text" class="form-control" id="DescriptionAdress" name="DescriptionAdress"
+                                       style="color: blue">
+                            </div>
+                            <div class="form-row" id="Paid">
+                                <div class="form-group col-md-4">
+                                    <label for="paidside">Платник доставки:</label>
+                                    <select class="form-control" id="paidside" name="paidside">
+                                        <option value="Отримувач">Отримувач</option>
+                                        <option value="Відправник">Відправник</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4" id="typesPaid" style="display: none;">
+                                    <label for="typePaid">Форма оплати:</label>
+                                    <select class="form-control" id="typePaid" name="typePaid">
+                                        <option value="Готівка">Готівка</option>
+                                        <option value="Безготівка">Безготівка</option>
+                                    </select>
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="WageInput">Загальна вага:</label>
+                                    <input type="text" class="form-control" id="WageInput" name="WageInput" required
+                                           style="color: blue">
+                                </div>
+                            </div>
+                            <div class="form-row d-flex align-items-center" id="Sum">
+                                <div class="form-group col-md-4">
+                                    <label for="CostInput">Вартість посилки:</label>
+                                    <input type="text" class="form-control" id="CostInput" name="CostInput" required
+                                           style="color: blue">
+                                </div>
+                                <div class="form-group col-md-4" id="sumReturn" style="display: none">
+                                    <label for="sumReturn">Сума платежу:</label>
+                                    <input type="text" class="form-control sumReturnInput" id="sumReturnInput"
+                                           name="sumReturnInput" style="color: blue">
+                                </div>
+                                <div class="form-group col-md-4">
+                                    <label for="returnMoney">Накладений платіж:</label>
+                                    <select class="form-control" id="returnMoney" name="returnMoney"
+                                            style="color: blue">
+                                        <option value="Ні">Ні</option>
+                                        <option value="Так">Так</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="mdi mdi-send"></i> Відправити
+                            </button>
+                        </form>
+                    </div>
+                    <div class="tab-pane" id="parametrs">
+                        <form id="sender-form">
+                            <div class="form-group">
+                                <label for="recipientFName">Відправник:</label>
+                                <input type="text" class="form-control" id="recipientFName" name="recipientFName"
+                                       required
+                                       style="color: blue">
+                            </div>
+                            <div class="form-group">
+                                <label for="recipientLName">Контакт відправника:</label>
+                                <input type="text" class="form-control" id="recipientLName" name="recipientLName"
+                                       required
+                                       style="color: blue">
+                            </div>
+                            <div class="form-group">
+                                <label for="recipientMName">Місто відправки:</label>
+                                <input type="text" class="form-control" id="recipientMName" name="recipientMName"
+                                       required
+                                       style="color: blue">
+                            </div>
+
+                        </form>
+
+                    </div>
+                    <div class="tab-pane" id="sender">
+                        <form id="senders-form">
+
+                        </form>
+
+                    </div>
+
+
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card-body">
+                    <h4 class="header-title mb-4  text-center">Відвантаження</h4>
+
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card-body">
+                    <h4 class="header-title mb-4  text-center">Реєстр ТТН</h4>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<script src="assets/js/create_ttn.js"></script>
+<script src="assets/js/app.min.js"></script>
+</body>
+</html>

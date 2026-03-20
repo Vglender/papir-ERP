@@ -1,0 +1,12 @@
+.nav-pills .nav-item {
+    flex: 1;
+}
+
+.nav-pills .nav-link {
+    width: 100%;
+    text-align: center;
+}
+
+.nav-pills .nav-link.active {
+    border-bottom: 2px solid #007bff; /* Цвет подчеркивания активной вкладки (можете изменить под свой дизайн) */
+}

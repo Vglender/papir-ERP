@@ -1,0 +1,107 @@
+[
+    {
+        "meta": {
+            "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/89784867-1fd4-11f1-0a80-03c400448a26",
+            "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+            "type": "paymentin",
+            "mediaType": "application\/json",
+            "uuidHref": "https:\/\/online.moysklad.ru\/app\/#paymentin\/edit?id=89784867-1fd4-11f1-0a80-03c400448a26"
+        },
+        "id": "89784867-1fd4-11f1-0a80-03c400448a26",
+        "accountId": "41980b61-d29a-11ea-0a80-051900006d1e",
+        "owner": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/41a992d2-d29a-11ea-0a80-0517000f0ce9",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/metadata",
+                "type": "employee",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#employee\/edit?id=41a992d2-d29a-11ea-0a80-0517000f0ce9"
+            }
+        },
+        "shared": false,
+        "group": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/4198537e-d29a-11ea-0a80-051900006d1f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/metadata",
+                "type": "group",
+                "mediaType": "application\/json"
+            }
+        },
+        "updated": "2026-03-14 21:35:12.508",
+        "name": "1773513300",
+        "description": "5169 **** **** 3902 14.03.2026 12:00:05 Зарахування переказу: TARAS BILETSKYI\nname: розрахунки за картами (С+, ACQ1) карти ПБ\nedrpou: 14360570",
+        "externalCode": "COIIQ3EY0JFL6XP14032026175800",
+        "moment": "2026-03-14 17:58:00.000",
+        "applicable": false,
+        "rate": {
+            "currency": {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/41b7ab2b-d29a-11ea-0a80-0517000f0d2c",
+                    "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/metadata",
+                    "type": "currency",
+                    "mediaType": "application\/json",
+                    "uuidHref": "https:\/\/online.moysklad.ru\/app\/#currency\/edit?id=41b7ab2b-d29a-11ea-0a80-0517000f0d2c"
+                }
+            }
+        },
+        "sum": 18300,
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/565176ae-920a-11eb-0a80-042f000cdb9f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/metadata",
+                "type": "counterparty",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#company\/edit?id=565176ae-920a-11eb-0a80-042f000cdb9f"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#mycompany\/edit?id=2aac93f7-1edf-11f0-0a80-18810000bd68"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata\/states\/4e5eaa29-751f-11ec-0a80-00670008f611",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "created": "2026-03-14 21:35:12.528",
+        "printed": false,
+        "published": false,
+        "files": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/89784867-1fd4-11f1-0a80-03c400448a26\/files",
+                "type": "files",
+                "mediaType": "application\/json",
+                "size": 0,
+                "limit": 1000,
+                "offset": 0
+            }
+        },
+        "vatSum": 0
+    },
+    {
+        "errors": [
+            {
+                "error": "Объект с типом 'organization' и идентификатором '8d746f11-1f8e-11f1-0a80-082d0037d3a7' не найден",
+                "code": 1021,
+                "moreInfo": "https:\/\/dev.moysklad.ru\/doc\/api\/remap\/1.2\/#\/errors#error_1021",
+                "line": 1,
+                "column": 2770
+            }
+        ]
+    }
+]

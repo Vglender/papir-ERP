@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>ОфісТорг</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta content="Інтранет компанії Офісторг - система CRM, облік, логістика " name="description"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <!-- App favicon -->
+    <link rel="shortcut icon" href="/assets/images/favicon.ico">
+
+    <link href="/assets/libs/custombox/custombox.min.css" rel="stylesheet" type="text/css">
+
+    <!-- App css -->
+    <link href="/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" id="bootstrap-stylesheet"/>
+    <link href="/assets/css/icons.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css" id="app-stylesheet"/>
+
+</head>
+<body>
+<div id="wrapper">
+    <div class="navbar-custom">
+        <ul class="list-unstyled topnav-menu float-right mb-0">
+            <li class="dropdown notification-list">
+                <a class="nav-link dropdown-toggle  waves-effect waves-light" data-toggle="dropdown" href="#"
+                   role="button" aria-haspopup="false" aria-expanded="false">
+                    <i class="dripicons-bell noti-icon"></i>
+                    <span class="badge badge-pink rounded-circle noti-icon-badge">3</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right dropdown-lg">
+                    <div class="dropdown-header noti-title">
+                        <h5 class="text-overflow m-0"><span class="float-right">
+						<span class="badge badge-danger float-right">3</span>
+						</span>Повідомлення</h5>
+                    </div>
+                    <div class="slimscroll noti-scroll"></div>
+                    <!-- All-->
+                    <a href="javascript:void(0);" class="dropdown-item text-center text-primary notify-item notify-all">
+                        Дивитись усі
+                        <i class="fi-arrow-right"></i>
+                    </a>
+                </div>
+            </li>
+            <li class="dropdown notification-list">
+                <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect waves-light" data-toggle="dropdown"
+                   href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                    <img src="assets/images/users/avatar-1.jpg" alt="user-image" class="rounded-circle">
+                    <span class="pro-user-name ml-1">
+					Адмін  <i class="mdi mdi-chevron-down"></i>
+				</span>
+                </a>
+                <div class="dropdown-menu dropdown-menu-right profile-dropdown ">
+                    <!-- item-->
+                    <div class="dropdown-header noti-title">
+                        <h6 class="text-overflow m-0">Вітаю !</h6>
+                    </div>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-user"></i>
+                        <span>Профіль</span>
+                    </a>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-settings"></i>
+                        <span>Налаштування</span>
+                    </a>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-lock"></i>
+                        <span>Lock Screen</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <!-- item-->
+                    <a href="javascript:void(0);" class="dropdown-item notify-item">
+                        <i class="fe-log-out"></i>
+                        <span>Вийти</span>
+                    </a>
+                </div>
+            </li>
+            <li class="dropdown notification-list">
+                <a href="javascript:void(0);" class="nav-link right-bar-toggle waves-effect waves-light">
+                    <i class="fe-settings noti-icon"></i>
+                </a>
+            </li>
+        </ul>
+
+        <!-- LOGO -->
+        <div class="logo-box">
+            <a href="index.html" class="logo text-center">
+			<span class="logo-lg">
+				<img src="assets/images/logo-light.png" alt="" height="25">
+                <!-- <span class="logo-lg-text-light">UBold</span> -->
+			</span>
+                <span class="logo-sm">
+				<!-- <span class="logo-sm-text-dark">U</span> -->
+				<img src="assets/images/logo-sm.png" alt="" height="28">
+			</span>
+            </a>
+        </div>
+        <ul class="list-unstyled topnav-menu topnav-menu-left m-0">
+            <li>
+                <button class="button-menu-mobile waves-effect waves-light" id="mobile-menu-toggle">
+                    <i class="fe-menu"></i>
+                </button>
+            </li>
+            <li class="d-none d-sm-block">
+                <form class="app-search">
+                    <div class="app-search-box">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search...">
+                            <div class="input-group-append">
+                                <button class="btn" type="submit">
+                                    <i class="fe-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </li>
+        </ul>
+
+    </div>
+    <div id="navbar-left">
+        <div class="left-side-menu">
+            <div class="slimscroll-menu">
+                <!--- Sidemenu -->
+                <div id="sidebar-menu">
+                    <ul class="metismenu" id="side-menu">
+                        <li class="menu-title"></li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-airplay"></i>
+                                <span> Аналітика </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="analitics.html">Dashboard</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-file-plus"></i>
+                                <span> Продажі </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="orders.html">Замовлення</a></li>
+                                <li><a href="demand.html">Відвантаження</a></li>
+                            </ul>
+
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-file-plus"></i>
+                                <span> Логістика </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="create-ttn.html">Створити ТТН</a></li>
+                                <li><a href="analitics.html">НП Відправлення</a></li>
+                                <li><a href="analitics.html">УП Відправлення</a></li>
+                                <li><a href="warehoses-np.html">Віділення НП</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Комунікації </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="page-chat.html">Чат</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-file-plus"></i>
+                                <span> Гроші </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false"></ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Контрагенти </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="page-chat.html">Список контрагентів</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Товари </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="page-chat.html">Список товарів</a></li>
+                            </ul>
+                        </li>
+                        <li>
+                            <a href="javascript: void(0);">
+                                <i class="fe-mail"></i>
+                                <span> Закупівля </span>
+                                <span class="menu-arrow"></span>
+                            </a>
+                            <ul class="nav-second-level" aria-expanded="false">
+                                <li><a href="email-inbox.html">Реестр замовлень</a></li>
+                                <li><a href="email-read.html">Надходження</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+                <!-- End Sidebar -->
+                <div class="clearfix"></div>
+            </div>
+            <!-- Sidebar -left -->
+        </div>
+    </div>
+    <footer class="footer"></footer>
+    <div class="right-bar"></div>
+    <div class="rightbar-overlay"></div>
+    <div class="content-page">
+        <div class="content">
+            <!-- Start Content-->
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card-box">
+                            <div class="button-list" id="button-login">
+                                <button type="button" class="btn btn-primary waves-effect waves-light"
+                                        data-toggle="modal" data-target="#signup-modal">Sign Up Modal
+                                </button>
+                                <button type="button" class="btn btn-info waves-effect waves-light" data-toggle="modal"
+                                        data-target="#login-modal">Log in Modal
+                                </button>
+                            </div>
+                            <div id="login-modal" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true"
+                                 style="display: none;">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-body p-3">
+                                            <div class="text-center mb-3">
+                                                <a href="index.html">
+                                                    <img src="assets/images/logo-dark.png" alt="" height="30">
+                                                </a>
+                                            </div>
+                                            <form class="form-horizontal" action="#">
+                                                <div class="form-group row">
+                                                    <div class="col-12">
+                                                        <label for="emailaddress1">Email address</label>
+                                                        <input class="form-control" type="email" id="emailaddress1"
+                                                               required="" placeholder="john@deo.com">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group row">
+                                                    <div class="col-12">
+                                                        <a href="page-recoverpw.html"
+                                                           class="text-muted float-right font-12">Forgot your
+                                                            password?</a>
+                                                        <label for="password1">Password</label>
+                                                        <input class="form-control" type="password" required=""
+                                                               id="password1" placeholder="Enter your password">
+                                                    </div>
+                                                </div>
+                                                <div class="form-group row">
+                                                    <div class="col-12">
+                                                        <div class="checkbox checkbox-primary">
+                                                            <input id="checkbox12" type="checkbox" checked>
+                                                            <label for="checkbox12">
+                                                                Remember me
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group account-btn row text-center mb-0">
+                                                    <div class="col-12">
+                                                        <button class="btn width-lg btn-rounded btn-lg btn-primary waves-effect waves-light"
+                                                                type="submit">Sign In
+                                                        </button>
+                                                    </div>
+                                                </div>
+
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div><!-- /.modal-content -->
+                            </div><!-- /.modal-dialog -->
+                        </div><!-- /.modal -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vendor js -->
+<script src="assets/js/vendor.min.js"></script>
+
+<script src="assets/libs/custombox/custombox.min.js"></script>
+
+<!-- App js -->
+<script src="assets/js/app.min.js"></script>
+
+</body>
+</html>

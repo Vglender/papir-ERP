@@ -1,0 +1,105 @@
+[
+    {
+        "meta": {
+            "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/89b14cdc-1fd4-11f1-0a80-03c400448a30",
+            "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/metadata",
+            "type": "paymentout",
+            "mediaType": "application\/json",
+            "uuidHref": "https:\/\/online.moysklad.ru\/app\/#paymentout\/edit?id=89b14cdc-1fd4-11f1-0a80-03c400448a30"
+        },
+        "id": "89b14cdc-1fd4-11f1-0a80-03c400448a30",
+        "accountId": "41980b61-d29a-11ea-0a80-051900006d1e",
+        "owner": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/41a992d2-d29a-11ea-0a80-0517000f0ce9",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/metadata",
+                "type": "employee",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#employee\/edit?id=41a992d2-d29a-11ea-0a80-0517000f0ce9"
+            }
+        },
+        "shared": false,
+        "group": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/4198537e-d29a-11ea-0a80-051900006d1f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/metadata",
+                "type": "group",
+                "mediaType": "application\/json"
+            }
+        },
+        "updated": "2026-03-14 21:35:12.879",
+        "name": "1773513300",
+        "description": "КОМІСІЯ ЗА ЗНЯТТЯ ГОТІВКИ 13.03.2026 17:04:25 ПО КАРТЦІ 5169330532563902\nname: Комісія за зняття готівки з бізнес-кар\nedrpou: 14360570",
+        "externalCode": "COIIQ3EY0JG5SN114032026175600",
+        "moment": "2026-03-14 17:56:00.000",
+        "applicable": true,
+        "rate": {
+            "currency": {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/41b7ab2b-d29a-11ea-0a80-0517000f0d2c",
+                    "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/metadata",
+                    "type": "currency",
+                    "mediaType": "application\/json",
+                    "uuidHref": "https:\/\/online.moysklad.ru\/app\/#currency\/edit?id=41b7ab2b-d29a-11ea-0a80-0517000f0d2c"
+                }
+            }
+        },
+        "sum": 11000,
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/565176ae-920a-11eb-0a80-042f000cdb9f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/metadata",
+                "type": "counterparty",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#company\/edit?id=565176ae-920a-11eb-0a80-042f000cdb9f"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#mycompany\/edit?id=2aac93f7-1edf-11f0-0a80-18810000bd68"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/metadata\/states\/d1451432-842a-11ec-0a80-02f9000ebb6b",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "created": "2026-03-14 21:35:12.901",
+        "printed": false,
+        "published": false,
+        "files": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/89b14cdc-1fd4-11f1-0a80-03c400448a30\/files",
+                "type": "files",
+                "mediaType": "application\/json",
+                "size": 0,
+                "limit": 1000,
+                "offset": 0
+            }
+        },
+        "vatSum": 0,
+        "noClosingDocs": false,
+        "expenseItem": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/expenseitem\/8dcf5b24-0a01-11e4-bb69-002590a32f46",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/expenseitem\/metadata",
+                "type": "expenseitem",
+                "mediaType": "application\/json"
+            }
+        }
+    }
+]

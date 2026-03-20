@@ -1,0 +1,49 @@
+[
+    {
+        "externalCode": "COIIQ3EY0JG5SN114032026175600",
+        "name": "1773513300",
+        "moment": "2026-03-14 17:56:00",
+        "sum": 11000,
+        "applicable": true,
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/metadata\/states\/d1451432-842a-11ec-0a80-02f9000ebb6b",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentout\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "description": "КОМІСІЯ ЗА ЗНЯТТЯ ГОТІВКИ 13.03.2026 17:04:25 ПО КАРТЦІ 5169330532563902\nname: Комісія за зняття готівки з бізнес-кар\nedrpou: 14360570",
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/565176ae-920a-11eb-0a80-042f000cdb9f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/metadata",
+                "type": "counterparty",
+                "mediaType": "application\/json"
+            }
+        },
+        "expenseItem": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/expenseitem\/8dcf5b24-0a01-11e4-bb69-002590a32f46",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/expenseitem\/metadata",
+                "type": "expenseitem",
+                "mediaType": "application\/json"
+            }
+        }
+    }
+]

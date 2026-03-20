@@ -1,0 +1,169 @@
+.suggestions-list-container {
+    position: relative;
+}
+
+.suggestions-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+}
+
+.suggestions-list li {
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.suggestions-list li:hover {
+    background-color: #f0f0f0;
+}
+
+.suggestions-list li.active {
+    background-color: #007BFF; /* Голубой цвет */
+    font-weight: bold;
+    color: #fff; /* Белый цвет текста */
+}
+.suggestions-list {
+    /* Другие стили */
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.suggestions-list {
+    list-style-type: none; /* Убирает маркеры (bullet points) перед значениями */
+    padding: 0; /* Убирает внутренний отступ у списка */
+}
+
+#Sum .form-group label {
+    height: 40px; /* Задайте необходимую высоту */
+    display: flex;
+    align-items: center; /* Выровняет текст по центру */
+}
+
+
+.error-message {
+    color: red;
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+
+/* Стили для блока "Сума накладенного платежу" */
+#sumReturn {
+    display: none;
+    flex: 1; /* Распределение доступной ширины между элементами */
+	margin-top: 8px;
+}
+
+
+
+
+/* Стили для заголовков столбцов */
+
+/* 
+/* Стили для каждого столбца */
+.chaing {
+    width: 2%;
+}
+
+#name-order-table {
+    width: 5%;
+}
+
+#moment-order-table {
+    width: 10%;
+}
+
+#organzation-order-table {
+    width: 10%;
+}
+
+#counterparty-order-table {
+    width: 15%;
+}
+
+#sum-order-table {
+    width: 5%;
+}
+
+#paid-order-table {
+    width: 5%;
+}
+
+#shipped-order-table {
+    width: 5%;
+}
+
+#owner-order-table {
+    width: 10%;
+}
+
+#state-order-table {
+    width: 10%;
+}
+
+/* Уменьшить отступ между элементами управления таблицей */
+.dataTables_length,
+.dataTables_buttons {
+    margin-right: 10px; /* Установите желаемое значение отступа */
+}
+
+th.hidden {
+    display: none;
+}
+
+
+/* Удалить границу кнопки */
+.dripicons-menu {
+    border: none;
+    background: none;
+    padding: 0; /* Удалить внутренний отступ */
+}
+
+/* Установить размер иконки */
+.dripicons-menu::before {
+    font-size: 18px; /* Задайте желаемый размер иконки */
+    /* Другие стили, если необходимо */
+}
+
+#Ukrposhta thead th , #datatable thead th {
+    border-right: none;
+}
+
+/* Убираем вертикальные границы между столбцами в строках данных таблицы */
+#Ukrposhta tbody td , #datatable tbody td {
+    border-right: none;
+}
+
+/* Сохраняем горизонтальные и нижние границы в хедере таблицы */
+#Ukrposhta thead th , #datatable thead th{
+    border-bottom: 1px solid #ccc; /* Пример стиля для нижних границ */
+}
+
+/* Сохраняем горизонтальные границы в строках данных таблицы */
+#Ukrposhta tbody td ,#datatable tbody td {
+    border-bottom: 1px solid #ccc; /* Пример стиля для нижних границ */
+}
+
+.table-container {
+  max-height: 70vh; /* Укажите максимальную высоту контейнера таблицы, при которой будет происходить прокрутка */
+  width: 100%;
+  overflow-y: auto; /* Разрешаем вертикальную прокрутку */
+}
+
+#Ukrposhta thead , #datatable thead {
+  position: sticky; /* Закрепляем хедер */
+  top: 0; /* Верхний край хедера будет прикреплен к верху контейнера */
+  background-color: #fff; /* Фон хедера */
+  z-index: 1; /* Устанавливаем z-index, чтобы хедер был выше строк таблицы */
+}
+
+#Ukrposhta_wrapper , #datatable_wrapper {
+  overflow-x: auto;
+}
+

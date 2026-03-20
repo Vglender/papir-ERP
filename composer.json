@@ -1,0 +1,17 @@
+{
+    "name": "papir/crm",
+    "description": "CRM frontend project for managing customer interactions",
+    "type": "project",
+    "license": "proprietary",
+    "autoload": {
+        "psr-4": {
+            "Papir\\Crm\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "vglender"
+        }
+    ],
+    "minimum-stability": "stable"
+}

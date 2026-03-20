@@ -1,0 +1,202 @@
+[
+    {
+        "meta": {
+            "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/68e4f60a-1fdc-11f1-0a80-15fc0045027c",
+            "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+            "type": "paymentin",
+            "mediaType": "application\/json",
+            "uuidHref": "https:\/\/online.moysklad.ru\/app\/#paymentin\/edit?id=68e4f60a-1fdc-11f1-0a80-15fc0045027c"
+        },
+        "id": "68e4f60a-1fdc-11f1-0a80-15fc0045027c",
+        "accountId": "41980b61-d29a-11ea-0a80-051900006d1e",
+        "owner": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/41a992d2-d29a-11ea-0a80-0517000f0ce9",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/metadata",
+                "type": "employee",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#employee\/edit?id=41a992d2-d29a-11ea-0a80-0517000f0ce9"
+            }
+        },
+        "shared": false,
+        "group": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/4198537e-d29a-11ea-0a80-051900006d1f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/metadata",
+                "type": "group",
+                "mediaType": "application\/json"
+            }
+        },
+        "updated": "2026-03-14 22:31:33.795",
+        "name": "1773503890",
+        "description": "LIQPAY ID 2818476810 SOID 97635 PBK i82261156247 DATE 2026-03-14 TYPE acquiring\nname: Плат.iнтер-еквайринг через LiqPay\nedrpou: 14360570",
+        "externalCode": "SAMBQ3EC0DZUBCP14032026175800",
+        "moment": "2026-03-14 17:58:00.000",
+        "applicable": true,
+        "rate": {
+            "currency": {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/41b7ab2b-d29a-11ea-0a80-0517000f0d2c",
+                    "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/metadata",
+                    "type": "currency",
+                    "mediaType": "application\/json",
+                    "uuidHref": "https:\/\/online.moysklad.ru\/app\/#currency\/edit?id=41b7ab2b-d29a-11ea-0a80-0517000f0d2c"
+                }
+            }
+        },
+        "sum": 39026,
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/bcb624e6-1fbe-11f1-0a80-1a9200409223",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/metadata",
+                "type": "counterparty",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#company\/edit?id=bcb624e6-1fbe-11f1-0a80-1a9200409223"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#mycompany\/edit?id=2aac93f7-1edf-11f0-0a80-18810000bd68"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata\/states\/4e5eaa29-751f-11ec-0a80-00670008f611",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "created": "2026-03-14 22:31:33.825",
+        "printed": false,
+        "published": false,
+        "files": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/68e4f60a-1fdc-11f1-0a80-15fc0045027c\/files",
+                "type": "files",
+                "mediaType": "application\/json",
+                "size": 0,
+                "limit": 1000,
+                "offset": 0
+            }
+        },
+        "vatSum": 0,
+        "operations": [
+            {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/customerorder\/1f04e0d0-1fc7-11f1-0a80-0eb90043184d",
+                    "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/customerorder\/metadata",
+                    "type": "customerorder",
+                    "mediaType": "application\/json",
+                    "uuidHref": "https:\/\/online.moysklad.ru\/app\/#customerorder\/edit?id=1f04e0d0-1fc7-11f1-0a80-0eb90043184d"
+                },
+                "linkedSum": 39026
+            }
+        ]
+    },
+    {
+        "meta": {
+            "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/690039c4-1fdc-11f1-0a80-15fc00450282",
+            "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+            "type": "paymentin",
+            "mediaType": "application\/json",
+            "uuidHref": "https:\/\/online.moysklad.ru\/app\/#paymentin\/edit?id=690039c4-1fdc-11f1-0a80-15fc00450282"
+        },
+        "id": "690039c4-1fdc-11f1-0a80-15fc00450282",
+        "accountId": "41980b61-d29a-11ea-0a80-051900006d1e",
+        "owner": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/41a992d2-d29a-11ea-0a80-0517000f0ce9",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/employee\/metadata",
+                "type": "employee",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#employee\/edit?id=41a992d2-d29a-11ea-0a80-0517000f0ce9"
+            }
+        },
+        "shared": false,
+        "group": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/4198537e-d29a-11ea-0a80-051900006d1f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/group\/metadata",
+                "type": "group",
+                "mediaType": "application\/json"
+            }
+        },
+        "updated": "2026-03-14 22:31:33.985",
+        "name": "1773503891",
+        "description": "5169 **** **** 3902 14.03.2026 12:00:05 Зарахування переказу: TARAS BILETSKYI\nname: розрахунки за картами (С+, ACQ1) карти ПБ\nedrpou: 14360570",
+        "externalCode": "COIIQ3EY0JFL6XP14032026175800",
+        "moment": "2026-03-14 17:58:00.000",
+        "applicable": false,
+        "rate": {
+            "currency": {
+                "meta": {
+                    "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/41b7ab2b-d29a-11ea-0a80-0517000f0d2c",
+                    "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/currency\/metadata",
+                    "type": "currency",
+                    "mediaType": "application\/json",
+                    "uuidHref": "https:\/\/online.moysklad.ru\/app\/#currency\/edit?id=41b7ab2b-d29a-11ea-0a80-0517000f0d2c"
+                }
+            }
+        },
+        "sum": 18300,
+        "agent": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/565176ae-920a-11eb-0a80-042f000cdb9f",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/counterparty\/metadata",
+                "type": "counterparty",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#company\/edit?id=565176ae-920a-11eb-0a80-042f000cdb9f"
+            }
+        },
+        "organization": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/metadata",
+                "type": "organization",
+                "mediaType": "application\/json",
+                "uuidHref": "https:\/\/online.moysklad.ru\/app\/#mycompany\/edit?id=2aac93f7-1edf-11f0-0a80-18810000bd68"
+            }
+        },
+        "organizationAccount": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/organization\/2aac93f7-1edf-11f0-0a80-18810000bd68\/accounts\/2aac9cf8-1edf-11f0-0a80-18810000bd69",
+                "type": "account",
+                "mediaType": "application\/json"
+            }
+        },
+        "state": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata\/states\/4e5eaa29-751f-11ec-0a80-00670008f611",
+                "metadataHref": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/metadata",
+                "type": "state",
+                "mediaType": "application\/json"
+            }
+        },
+        "created": "2026-03-14 22:31:34.003",
+        "printed": false,
+        "published": false,
+        "files": {
+            "meta": {
+                "href": "https:\/\/api.moysklad.ru\/api\/remap\/1.2\/entity\/paymentin\/690039c4-1fdc-11f1-0a80-15fc00450282\/files",
+                "type": "files",
+                "mediaType": "application\/json",
+                "size": 0,
+                "limit": 1000,
+                "offset": 0
+            }
+        },
+        "vatSum": 0
+    }
+]

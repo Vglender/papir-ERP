@@ -1,0 +1,15 @@
+/vendor/
+/node_modules/
+/.env
+.env.*
+/storage/logs/
+/storage/cache/
+/tmp/
+/*.log
+/.idea/
+/docker/mysql/data/
+/modules/bank_monobank/storage/
+/modules/bank_privat/storage/
+/modules/bank_ukrsib/storage/
+/modules/database/config/
+/modules/moysklad/storage/

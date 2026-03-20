@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>ОфісТорг</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta content="Інтранет компанії Офісторг - система CRM, облік, логістика " name="description" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <!-- App favicon -->
+  <link rel="shortcut icon" href="/assets/images/prm.ico">
+
+  <!-- C3 Chart css -->
+  <link href="/assets/libs/c3/c3.min.css" rel="stylesheet" type="text/css" />
+
+  <link href="/assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />
+  <link href="/assets/libs/clockpicker/bootstrap-clockpicker.min.css" rel="stylesheet">
+  <link href="/assets/libs/bootstrap-timepicker/bootstrap-timepicker.min.css" rel="stylesheet" type="text/css" />
+  <link href="/assets/libs/bootstrap-daterangepicker/daterangepicker.css" rel="stylesheet">
+  <link href="/assets/libs/bootstrap-datepicker/bootstrap-datepicker.min.css" rel="stylesheet" type="text/css" />
+
+  <!-- App css -->
+  <link href="/assets/css/bootstrap.min.css" rel="stylesheet" type="text/css" id="bootstrap-stylesheet" />
+  <link href="/assets/css/icons.min.css" rel="stylesheet" type="text/css" />
+  <link href="/assets/css/app.min.css" rel="stylesheet" type="text/css"  id="app-stylesheet" />
+
+  <script src="assets/js/vendor.min.js"></script>
+  <!-- 		<script src="assets/js/load.js" defer></script> -->
+
+
+</head>
+
+<body>
+<div id="wrapper">
+  <div class="navbar-custom">
+    <ul class="list-unstyled topnav-menu float-right mb-0">
+      <li class="dropdown notification-list">
+        <a class="nav-link dropdown-toggle  waves-effect waves-light" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+          <i class="dripicons-bell noti-icon"></i>
+          <span class="badge badge-pink rounded-circle noti-icon-badge">3</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right dropdown-lg">
+          <div class="dropdown-header noti-title">
+            <h5 class="text-overflow m-0"><span class="float-right">
+						<span class="badge badge-danger float-right">3</span>
+						</span>Повідомлення</h5>
+          </div>
+          <div class="slimscroll noti-scroll"></div>
+          <!-- All-->
+          <a href="javascript:void(0);" class="dropdown-item text-center text-primary notify-item notify-all">
+            Дивитись усі
+            <i class="fi-arrow-right"></i>
+          </a>
+        </div>
+      </li>
+      <li class="dropdown notification-list">
+        <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect waves-light" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+          <img src="assets/images/users/avatar-1.jpg" alt="user-image" class="rounded-circle">
+          <span class="pro-user-name ml-1">
+					Адмін  <i class="mdi mdi-chevron-down"></i>
+				</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-right profile-dropdown ">
+          <!-- item-->
+          <div class="dropdown-header noti-title">
+            <h6 class="text-overflow m-0">Вітаю !</h6>
+          </div>
+          <!-- item-->
+          <a href="javascript:void(0);" class="dropdown-item notify-item">
+            <i class="fe-user"></i>
+            <span>Профіль</span>
+          </a>
+          <!-- item-->
+          <a href="javascript:void(0);" class="dropdown-item notify-item">
+            <i class="fe-settings"></i>
+            <span>Налаштування</span>
+          </a>
+          <!-- item-->
+          <a href="javascript:void(0);" class="dropdown-item notify-item">
+            <i class="fe-lock"></i>
+            <span>Lock Screen</span>
+          </a>
+          <div class="dropdown-divider"></div>
+          <!-- item-->
+          <a href="javascript:void(0);" class="dropdown-item notify-item">
+            <i class="fe-log-out"></i>
+            <span>Вийти</span>
+          </a>
+        </div>
+      </li>
+      <li class="dropdown notification-list">
+        <a href="javascript:void(0);" class="nav-link right-bar-toggle waves-effect waves-light">
+          <i class="fe-settings noti-icon"></i>
+        </a>
+      </li>
+    </ul>
+
+    <!-- LOGO -->
+    <div class="logo-box">
+      <a href="index.html" class="logo text-center">
+			<span class="logo-lg">
+				<img src="assets/images/logo-light.png" alt="" height="25">
+              <!-- <span class="logo-lg-text-light">UBold</span> -->
+			</span>
+        <span class="logo-sm">
+				<!-- <span class="logo-sm-text-dark">U</span> -->
+				<img src="assets/images/logo-sm.png" alt="" height="28">
+			</span>
+      </a>
+    </div>
+    <ul class="list-unstyled topnav-menu topnav-menu-left m-0">
+      <li>
+        <button class="button-menu-mobile waves-effect waves-light" id="mobile-menu-toggle">
+          <i class="fe-menu"></i>
+        </button>
+      </li>
+      <li class="d-none d-sm-block">
+        <form class="app-search">
+          <div class="app-search-box">
+            <div class="input-group">
+              <input type="text" class="form-control" placeholder="Search...">
+              <div class="input-group-append">
+                <button class="btn" type="submit">
+                  <i class="fe-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </li>
+    </ul>
+
+  </div>
+  <div id="navbar-left">
+    <div class="left-side-menu">
+      <div class="slimscroll-menu">
+        <!--- Sidemenu -->
+        <div id="sidebar-menu">
+          <ul class="metismenu" id="side-menu">
+            <li class="menu-title"></li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-airplay"></i>
+                <span> Аналітика </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="analitics.html">Dashboard</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-file-plus"></i>
+                <span> Продаж </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="orders.html">Реєстр замовлень</a></li>
+              </ul>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="demand.html">Відвантаження</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-file-plus"></i>
+                <span> Логістика </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="create-ttn.html">Створити ТТН</a></li>
+                <li><a href="analitics.html">НП Відправлення</a></li>
+                <li><a href="ttn-ukr.html">УП Відправлення</a></li>
+                <li><a href="shiplist-ukr.html">УП Реєстри</a></li>
+<li><a href="shiplist-ukr.html">УП Реєстри</a></li>               <li><a href="warehoses-np.html">Віділення НП</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-mail"></i>
+                <span> Комунікації </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="page-chat.html">Чат</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-file-plus"></i>
+                <span> Гроші </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false"></ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-mail"></i>
+                <span> Контрагенти </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="page-chat.html">Список контрагентів</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-mail"></i>
+                <span> Товари </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+               <li><a href="/action">Список товарів</a></li>
+              </ul>
+            </li>
+            <li>
+              <a href="javascript: void(0);">
+                <i class="fe-mail"></i>
+                <span> Закупівля </span>
+                <span class="menu-arrow"></span>
+              </a>
+              <ul class="nav-second-level" aria-expanded="false">
+                <li><a href="email-inbox.html">Реестр замовлень</a></li>
+                <li><a href="email-read.html">Надходження</a></li>
+              </ul>
+            </li>
+          </ul>
+
+        </div>
+        <!-- End Sidebar -->
+        <div class="clearfix"></div>
+      </div>
+      <!-- Sidebar -left -->
+    </div>
+
+  </div>
+  <footer class="footer"></footer>
+</div>
+<div class="right-bar"></div>
+<div class="rightbar-overlay"></div>
+
+<div class="content-page">
+  <div class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div id = "order" class="col-xl-3 col-sm-6">
+          <div class="card-box widget-box-two widget-two-custom">
+            <div class="media">
+              <div class="avatar-lg rounded-circle bg-primary widget-two-icon align-self-center">
+                <i class="mdi mdi-currency-usd avatar-title font-30 text-white"></i>
+              </div>
+
+              <div class="wigdet-two-content media-body">
+                <p class="m-0 text-uppercase font-weight-medium text-truncate" title="Orders">Замовлення</p>
+                <h3 class="font-weight-medium my-2">₴ <span data-plugin="ordersum"></span></h3>
+                <p class="m-0" data-plugin="MonthYear" ></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id = "demand" class="col-xl-3 col-sm-6">
+          <div class="card-box widget-box-two widget-two-custom">
+            <div class="media">
+              <div class="avatar-lg rounded-circle bg-primary widget-two-icon align-self-center">
+                <i class="mdi mdi-currency-usd avatar-title font-30 text-white"></i>
+              </div>
+
+              <div class="wigdet-two-content media-body">
+                <p class="m-0 text-uppercase font-weight-medium text-truncate" title="Demands">Відвантаження</p>
+                <h3 class="font-weight-medium my-2">₴ <span data-plugin="demandsum"></span></h3>
+                <p class="m-0" data-plugin="MonthYear"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id = "payment" class="col-xl-3 col-sm-6">
+          <div class="card-box widget-box-two widget-two-custom">
+            <div class="media">
+              <div class="avatar-lg rounded-circle bg-primary widget-two-icon align-self-center">
+                <i class="mdi mdi-currency-usd avatar-title font-30 text-white"></i>
+              </div>
+
+              <div class="wigdet-two-content media-body">
+                <p class="m-0 text-uppercase font-weight-medium text-truncate" title="Statistics">Гроші</p>
+                <h3 class="font-weight-medium my-2">₴ <span data-plugin="paidsum"></span></h3>
+                <p class="m-0" data-plugin="MonthYear"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id = "profit" class="col-xl-3 col-sm-6">
+          <div class="card-box widget-box-two widget-two-custom">
+            <div class="media">
+              <div class="avatar-lg rounded-circle bg-primary widget-two-icon align-self-center">
+                <i class="mdi mdi-currency-usd avatar-title font-30 text-white"></i>
+              </div>
+
+              <div class="wigdet-two-content media-body">
+                <p class="m-0 text-uppercase font-weight-medium text-truncate" title="Statistics">Прибуток</p>
+                <h3 class="font-weight-medium my-2">₴ <span data-plugin="profitsum"></span></h3>
+                <p class="m-0" data-plugin="MonthYear"></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div id= "modal" class="modal fade bs-example-modal-center" tabindex="-1" role="dialog" aria-labelledby="mySmallModalLabel" aria-hidden="true">
+
+        <div class="modal-dialog modal-dialog-centered">
+          <div class="modal-content">
+            <div class="card-header bg-blue text-white">
+              <div class="card-widgets">
+                <!--                       		<a href="javascript:;" data-toggle="reload"><i class="mdi mdi-refresh"></i></a>  -->
+                <a id = 'closemodal' href="#"  data-dismiss="modal"  aria-hidden="true"> <i class="mdi mdi-close"></i></a>
+              </div>
+              <h5 class="card-title mb-0 text-white">Детальні показники</h5>
+            </div>
+            <ul class="nav nav-tabs tabs-bordered nav-justified">
+              <li class="nav-item">
+                <a id = "tabday" href="" data-toggle="tab" aria-expanded="false" class="nav-link">
+                  <span class="d-block d-sm-none">Сьог</span>
+                  <span class="d-none d-sm-block">Сьогодні</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a id = "tabweek" href="" data-toggle="tab" aria-expanded="false" class="nav-link">
+                  <span class="d-block d-sm-none">Тижд</span>
+                  <span class="d-none d-sm-block">Тиждень</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a id = "tabmonth" href="" data-toggle="tab" aria-expanded="false" class="nav-link">
+                  <span class="d-block d-sm-none">М-ць</span>
+                  <span class="d-none d-sm-block">Місяць</span>
+                </a>
+              </li>
+              <li class="nav-item">
+                <a  id = "tabyear" href="" data-toggle="tab" aria-expanded="false" class="nav-link">
+                  <span class="d-block d-sm-none">Рік</span>
+                  <span class="d-none d-sm-block">Рік</span>
+                </a>
+              </li>
+
+            </ul>
+            <div>
+              <div id = "modalcontent"  class="wigdet-two-content media-body">
+              </div>
+            </div>
+          </div><!-- /.modal-dialog -->
+        </div><!-- /.modal -->
+      </div>
+    </div> <!-- end container-fluid -->
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-lg-6">
+          <div id = "report_result" class="card-box">
+            <h4 class="header-title">Аналіз показників</h4>
+            <p class="sub-header">
+              Можна провести аналіз по різним показникам за вказанний період
+            </p>
+            <form id = "period-analiz">
+              <div class="form-group">
+                <label>Виберіть період</label>
+                <input type="text" id="reportrange" class="form-control"/>
+              </div>
+            </form>
+          </div> <!-- end card-box -->
+        </div>
+      </div>
+    </div>
+  </div> <!-- end content -->
+</div>
+
+
+<!-- Vendor js -->
+<script src="/assets/js/config.js"></script>
+<script src="assets/js/analiz.js"></script>
+
+
+
+<!--C3 Chart-->
+<script src="assets/libs/d3/d3.min.js"></script>
+<script src="assets/libs/c3/c3.min.js"></script>
+<script src="assets/js/app.min.js"></script>
+
+<script src="assets/libs/moment/moment.min.js"></script>
+<script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>
+<script src="assets/libs/bootstrap-timepicker/bootstrap-timepicker.min.js"></script>
+<script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>
+<script src="assets/libs/bootstrap-datepicker/bootstrap-datepicker.min.js"></script>
+<script src="assets/libs/bootstrap-daterangepicker/daterangepicker.js"></script>
+<script src="assets/js/pages/form-pickers1.init.js"></script>
+
+</body>
+</html>
