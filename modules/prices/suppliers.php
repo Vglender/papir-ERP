@@ -14,11 +14,19 @@ $matchFilter  = Request::getString('match_filter', 'all');
 $search       = Request::getString('search', '');
 $page         = max(1, Request::getInt('page', 1));
 $perPage      = 50;
+$showAll      = Request::getInt('show_all', 0);
 
 $allowedFilters = array('all', 'matched', 'unmatched', 'ignored');
 if (!in_array($matchFilter, $allowedFilters)) $matchFilter = 'all';
 
 $suppliers = $pricelistRepo->getAllGroupedBySupplier();
+
+$activePlIds = array();
+foreach ($suppliers as $sup) {
+    foreach ($sup['pricelists'] as $pl) {
+        if (!empty($pl['is_active'])) $activePlIds[] = (int)$pl['id'];
+    }
+}
 
 // Если выбран прайс-лист — показываем его строки
 $pricelist    = null;
@@ -27,7 +35,14 @@ $totalItems   = 0;
 $totalPages   = 1;
 $offset       = 0;
 
-if ($pricelistId > 0) {
+if ($showAll) {
+    $offset = ($page - 1) * $perPage;
+    $result = $itemRepo->getAllMatchedItems($search, $offset, $perPage);
+    $items = $result['rows'];
+    $totalItems = $result['total'];
+    $totalPages = max(1, (int)ceil($totalItems / $perPage));
+    if ($page > $totalPages) { $page = $totalPages; $offset = ($page - 1) * $perPage; }
+} else if ($pricelistId > 0) {
     $pricelist = $pricelistRepo->getById($pricelistId);
     if ($pricelist) {
         $offset     = ($page - 1) * $perPage;

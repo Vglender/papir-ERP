@@ -31,3 +31,5 @@ require_once __DIR__ . '/services/DiscountProfileBuilder.php';
 require_once __DIR__ . '/services/PriceStrategyAutoSelector.php';
 require_once __DIR__ . '/services/MoySkladPriceSync.php';
 require_once __DIR__ . '/services/GoogleSheetsPriceSync.php';
+require_once __DIR__ . '/services/OpenCartPriceExport.php';
+require_once __DIR__ . '/services/MoySkladPriceExport.php';

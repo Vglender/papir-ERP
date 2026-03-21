@@ -83,7 +83,7 @@ if (!function_exists('logInfo')) {
     }
 }
 
-function updateStockFromMs($writeExcel = true) {
+function updateStockFromMs($writeExcel = true, $silent = false) {
 
     $start = microtime(true);
     $now = date('Y-m-d H:i:s');
@@ -203,6 +203,10 @@ function updateStockFromMs($writeExcel = true) {
 
         logSuccess('Table ms.stock_ updated successfully.');
 
+        Database::query('Papir', "DELETE FROM `product_stock`");
+        Database::query('Papir', "INSERT INTO `product_stock` (model,sku,externalCode,quantity,reserve,inTransit,stock,price,salePrice,stockDays,id_ms,date,outcome,name) SELECT model,sku,externalCode,quantity,reserve,inTransit,stock,price,salePrice,stockDays,id_ms,date,outcome,name FROM ms.stock_");
+        logSuccess('Table Papir.product_stock synced from ms.stock_.');
+
         if ($writeExcel && class_exists('XLSXWriter')) {
             $writer = new XLSXWriter();
             $writer->writeSheet($stock_jump);
@@ -221,6 +225,66 @@ function updateStockFromMs($writeExcel = true) {
         'sum' => number_format($all_stock, 2, '.', ''),
         'time' => round(microtime(true) - $start, 4)
     );
+}
+
+
+function syncVirtualStock() {
+    $sql = "UPDATE price_supplier_items psi
+            JOIN price_supplier_pricelists pl ON pl.id = psi.pricelist_id AND pl.supplier_id = 2
+            JOIN product_papir pp ON pp.product_id = psi.product_id
+            JOIN ms.virtual v ON v.product_id = pp.id_off
+            SET psi.stock = v.stock
+            WHERE psi.match_type != 'ignored'";
+    $r = Database::query('Papir', $sql);
+    if (!$r['ok']) {
+        return 0;
+    }
+    // affected_rows = 0 when values unchanged — count total synced instead
+    $cnt = Database::fetchRow('Papir',
+        "SELECT COUNT(*) as c FROM price_supplier_items psi
+         JOIN price_supplier_pricelists pl ON pl.id = psi.pricelist_id AND pl.supplier_id = 2
+         WHERE psi.stock IS NOT NULL AND psi.stock != '' AND psi.match_type != 'ignored'"
+    );
+    return ($cnt['ok'] && !empty($cnt['row'])) ? (int)$cnt['row']['c'] : 0;
+}
+
+function syncWarehouseStock() {
+    // Копирует product_stock.stock → price_supplier_items.stock для прайса "Склад"
+    // product_stock.model — числовой id_off, связь через product_papir
+    $sql = "UPDATE price_supplier_items psi
+            JOIN price_supplier_pricelists ppl ON ppl.id = psi.pricelist_id
+            JOIN price_suppliers ps ON ps.id = ppl.supplier_id AND ps.name = 'Склад'
+            JOIN product_papir pp ON pp.product_id = psi.product_id
+            JOIN product_stock pstock
+                ON pstock.model REGEXP '^[0-9]+\$'
+                AND CAST(pstock.model AS UNSIGNED) = pp.id_off
+            SET psi.stock = pstock.stock
+            WHERE psi.match_type != 'ignored'";
+    $r = Database::query('Papir', $sql);
+    if (!$r['ok']) {
+        return 0;
+    }
+    $cnt = Database::fetchRow('Papir',
+        "SELECT COUNT(*) as c FROM price_supplier_items psi
+         JOIN price_supplier_pricelists ppl ON ppl.id = psi.pricelist_id
+         JOIN price_suppliers ps ON ps.id = ppl.supplier_id AND ps.name = 'Склад'
+         WHERE psi.stock IS NOT NULL AND psi.stock > 0 AND psi.match_type != 'ignored'"
+    );
+    return ($cnt['ok'] && !empty($cnt['row'])) ? (int)$cnt['row']['c'] : 0;
+}
+
+function recalcQuantity() {
+    $sql = "UPDATE product_papir pp
+            SET pp.quantity = (
+                COALESCE((SELECT ps.stock FROM product_stock ps WHERE ps.model REGEXP '^[0-9]+$' AND CAST(ps.model AS UNSIGNED) = pp.id_off LIMIT 1), 0) +
+                COALESCE((SELECT SUM(psi.stock) FROM price_supplier_items psi WHERE psi.product_id = pp.product_id AND psi.stock IS NOT NULL AND psi.stock != '' AND psi.match_type != 'ignored'), 0)
+            )
+            WHERE pp.status = 1";
+    $r = Database::query('Papir', $sql);
+    if (!$r['ok']) {
+        return 0;
+    }
+    return isset($r['affected_rows']) ? (int)$r['affected_rows'] : 0;
 }
 
 ?>

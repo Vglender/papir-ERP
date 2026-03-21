@@ -58,6 +58,9 @@ class QuantityThresholdResolver
         $qty2 = $this->roundToStep((float)(isset($strategy['target_amount_medium']) ? $strategy['target_amount_medium'] : 2000) / $salePrice);
         $qty3 = $this->roundToStep((float)(isset($strategy['target_amount_large'])  ? $strategy['target_amount_large']  : 5000) / $salePrice);
 
+        // Минимальный порог первой скидки — 2 шт (скидка от 1 шт не имеет смысла)
+        $qty1 = max(2, $qty1);
+
         $minGap = (float)(isset($strategy['min_gap_ratio']) ? $strategy['min_gap_ratio'] : 1.2);
 
         // Гарантируем что каждый следующий порог больше предыдущего с min_gap

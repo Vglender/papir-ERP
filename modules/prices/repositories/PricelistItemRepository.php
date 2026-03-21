@@ -31,7 +31,7 @@ class PricelistItemRepository
                   AND ppl.is_active  = 1
                   AND psi.price_cost IS NOT NULL
                   AND psi.price_cost  > 0
-                ORDER BY ps.is_cost_source ASC, psi.price_cost ASC
+                ORDER BY ps.is_cost_source DESC, psi.price_cost ASC
                 LIMIT 1";
 
         $result = Database::fetchRow('Papir', $sql);
@@ -81,14 +81,16 @@ class PricelistItemRepository
     public function getList($pricelistId, $matchFilter = 'all', $search = '', $offset = 0, $limit = 50)
     {
         $pricelistId = (int)$pricelistId;
-        $where = "psi.pricelist_id = $pricelistId";
+        // По умолчанию скрываем игнорируемые; они доступны только через фильтр 'ignored'
+        $where = "psi.pricelist_id = $pricelistId AND (psi.match_type IS NULL OR psi.match_type != 'ignored')";
 
         if ($matchFilter === 'matched') {
-            $where .= " AND psi.product_id IS NOT NULL AND psi.match_type != 'ignored'";
+            $where .= " AND psi.product_id IS NOT NULL";
         } elseif ($matchFilter === 'unmatched') {
             $where .= " AND psi.product_id IS NULL";
         } elseif ($matchFilter === 'ignored') {
-            $where .= " AND psi.match_type = 'ignored'";
+            // override: show only ignored
+            $where = "psi.pricelist_id = $pricelistId AND psi.match_type = 'ignored'";
         }
 
         if ($search !== '') {
@@ -113,7 +115,7 @@ class PricelistItemRepository
              LEFT JOIN `product_papir` pp ON pp.product_id = psi.product_id
              LEFT JOIN `product_description` pd ON pd.product_id = pp.product_id AND pd.language_id = 2
              WHERE $where
-             ORDER BY psi.id ASC
+             ORDER BY psi.id DESC
              LIMIT " . (int)$offset . ", " . (int)$limit
         );
         $rows = ($result['ok'] && !empty($result['rows'])) ? $result['rows'] : array();
@@ -325,6 +327,45 @@ class PricelistItemRepository
         $r2     = Database::query('Papir', "UPDATE `product_papir` SET `status` = 0 WHERE `product_id` NOT IN ($ids) AND `status` != 0");
 
         return array('activated' => 0, 'deactivated' => 0);
+    }
+
+    // ── Все сопоставленные строки (show_all режим) ──────────────────────────
+
+    public function getAllMatchedItems($search = '', $offset = 0, $limit = 50)
+    {
+        $offset = (int)$offset; $limit = (int)$limit;
+        $where = "(psi.match_type IS NULL OR psi.match_type != 'ignored') AND ppl.is_active = 1";
+        if ($search !== '') {
+            $tokens = preg_split('/\s+/', trim($search));
+            foreach ($tokens as $token) {
+                if ($token === '') continue;
+                $t = Database::escape('Papir', $token);
+                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%')";
+            }
+        }
+        $countResult = Database::fetchRow('Papir',
+            "SELECT COUNT(*) AS cnt FROM price_supplier_items psi
+             JOIN price_supplier_pricelists ppl ON ppl.id = psi.pricelist_id
+             WHERE $where"
+        );
+        $total = ($countResult['ok'] && !empty($countResult['row'])) ? (int)$countResult['row']['cnt'] : 0;
+        $result = Database::fetchAll('Papir',
+            "SELECT psi.*,
+                    pp.product_article, pp.id_off,
+                    COALESCE(pd.name, '') AS catalog_name,
+                    ppl.name AS pricelist_name,
+                    ps.name AS supplier_name_item
+             FROM price_supplier_items psi
+             JOIN price_supplier_pricelists ppl ON ppl.id = psi.pricelist_id
+             JOIN price_suppliers ps ON ps.id = ppl.supplier_id
+             LEFT JOIN product_papir pp ON pp.product_id = psi.product_id
+             LEFT JOIN product_description pd ON pd.product_id = pp.product_id AND pd.language_id = 2
+             WHERE $where
+             ORDER BY psi.id ASC
+             LIMIT $offset, $limit"
+        );
+        $rows = ($result['ok'] && !empty($result['rows'])) ? $result['rows'] : array();
+        return array('rows' => $rows, 'total' => $total);
     }
 
     // ── Внутренние ──────────────────────────────────────────────────────────

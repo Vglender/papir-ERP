@@ -3,8 +3,9 @@
 /**
  * Синхронизирует себестоимость из ms.stock_ в price_supplier_items.
  *
- * ms.stock_.price     → price_cost (себестоимость)
- * ms.stock_.salePrice → price_rrp
+ * ms.stock_.price → price_cost (себестоимость)
+ * salePrice НЕ импортируется как price_rrp — это наша собственная розничная
+ * цена отражённая в МойСклад, импорт создавал цикл: price_sale → МС → price_rrp → price_sale
  * Связь: ms.stock_.model = product_papir.id_off
  *        ms.stock_.sku   = product_papir.product_article
  */
@@ -41,7 +42,7 @@ class MoySkladPriceSync
         }
 
         $result = Database::fetchAll('ms',
-            "SELECT `model`, `sku`, `name`, `price`, `salePrice`
+            "SELECT `model`, `sku`, `name`, `price`
              FROM `stock_`
              WHERE `price` IS NOT NULL AND `price` > 0"
         );
@@ -59,8 +60,8 @@ class MoySkladPriceSync
                 'raw_model'  => $model,
                 'raw_sku'    => $sku,
                 'raw_name'   => isset($r['name']) ? (string)$r['name'] : '',
-                'price_cost' => isset($r['price'])     && $r['price']     > 0 ? (float)$r['price']     : null,
-                'price_rrp'  => isset($r['salePrice']) && $r['salePrice'] > 0 ? (float)$r['salePrice'] : null,
+                'price_cost' => isset($r['price']) && $r['price'] > 0 ? (float)$r['price'] : null,
+                'price_rrp'  => null,
             );
         }
 

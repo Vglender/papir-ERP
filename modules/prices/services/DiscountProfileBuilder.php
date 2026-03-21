@@ -39,6 +39,36 @@ class DiscountProfileBuilder
             return ['ok' => false, 'error' => 'Product not found: ' . $productId];
         }
 
+        // Sync product_papir.price_rrp from supplier items before calculation.
+        // If no active supplier item has RRP — clear it so PriceEngine doesn't use a stale value.
+        if (empty($settings['manual_rrp_enabled'])) {
+            $rrpRow = Database::fetchRow('Papir',
+                "SELECT MAX(psi.price_rrp) AS best_rrp
+                 FROM price_supplier_items psi
+                 JOIN price_supplier_pricelists ppl ON ppl.id = psi.pricelist_id
+                 JOIN price_suppliers ps ON ps.id = ppl.supplier_id
+                 WHERE psi.product_id = " . (int)$productId . "
+                   AND psi.match_type != 'ignored'
+                   AND ps.is_active = 1
+                   AND ppl.is_active = 1
+                   AND psi.price_rrp IS NOT NULL AND psi.price_rrp > 0"
+            );
+            $syncedRrp = ($rrpRow['ok'] && !empty($rrpRow['row']) && $rrpRow['row']['best_rrp'] !== null)
+                ? (float)$rrpRow['row']['best_rrp']
+                : null;
+            // Only update if differs from current value to avoid unnecessary writes
+            $currentRrp = isset($product['price_rrp']) && $product['price_rrp'] !== null
+                ? (float)$product['price_rrp']
+                : null;
+            if ($syncedRrp !== $currentRrp) {
+                Database::update('Papir', 'product_papir',
+                    array('price_rrp' => $syncedRrp),
+                    array('product_id' => (int)$productId)
+                );
+                $product['price_rrp'] = $syncedRrp;
+            }
+        }
+
         $discountStrategies = $this->discountStrategyRepo->getAll();
         $quantityStrategy   = $this->quantityStrategyRepo->getDefault();
         $packages           = $this->packageRepo->getByProductId($productId);
@@ -57,14 +87,16 @@ class DiscountProfileBuilder
             return ['ok' => false, 'product_id' => $productId, 'errors' => $result['validation']['errors']];
         }
 
-        // Контроль: оптовая не может быть ниже розничной или акционной цены
+        // Контроль: оптовая не может быть ниже акционной цены
+        // (чтобы оптовый покупатель не получал лучшую цену чем акционный)
+        // Потолок оптовой = розничная (уже контролируется в PriceEngine шаг 3.5)
         $idOff    = isset($product['id_off']) ? (int)$product['id_off'] : 0;
         $priceAct = $this->getActionPrice($idOff);
         $priceSale = $result['price_sale'];
 
-        // Нижняя граница оптовой = розничная цена
-        // Если есть акционная и она ниже розничной — оптовая не может быть ниже акционной
-        $wholesaleFloor = $priceSale;
+        // Нижняя граница оптовой = акционная цена (если есть и ниже розничной)
+        // Без акции — нижняя граница не ограничена (оптовая может быть ниже розничной)
+        $wholesaleFloor = 0;
         if ($priceAct !== null && $priceAct > 0 && $priceAct < $priceSale) {
             $wholesaleFloor = $priceAct;
         }
@@ -94,6 +126,56 @@ class DiscountProfileBuilder
         // Сохраняем в product_papir
         $this->productRepo->savePrices($productId, $pricesSave);
 
+        // Пересчёт action_prices если у товара есть активная акция
+        $actionResult = null;
+        if ($idOff > 0) {
+            $actionRow = Database::fetchRow('Papir',
+                "SELECT discount, super_discont FROM action_products WHERE product_id = " . $idOff . " LIMIT 1"
+            );
+            if ($actionRow['ok'] && !empty($actionRow['row'])) {
+                $discount     = (int)$actionRow['row']['discount'];
+                $superDiscont = (int)$actionRow['row']['super_discont'];
+                $priceSaleAct = (float)$result['price_sale'];
+                $priceCostAct = (float)$result['price_purchase'];
+
+                if ($superDiscont > 0) {
+                    $priceAct = $priceCostAct - $priceCostAct * $superDiscont / 100;
+                } else {
+                    $priceAct = $priceSaleAct - ($priceSaleAct - $priceCostAct) * $discount / 100;
+                }
+                $priceAct = round($priceAct, 4);
+                if ($priceAct < $priceCostAct) {
+                    $priceAct = $priceCostAct;
+                }
+
+                $exists = Database::exists('Papir', 'action_prices', array('product_id' => $idOff));
+                if ($exists['ok'] && $exists['exists']) {
+                    Database::update('Papir', 'action_prices', array(
+                        'price_act'     => $priceAct,
+                        'price_base'    => $priceSaleAct,
+                        'price_cost'    => $priceCostAct,
+                        'discount'      => $discount,
+                        'super_discont' => $superDiscont,
+                        'discount_type' => $superDiscont > 0 ? 'super' : 'regular',
+                        'calculated_at' => date('Y-m-d H:i:s'),
+                    ), array('product_id' => $idOff));
+                } else {
+                    Database::insert('Papir', 'action_prices', array(
+                        'product_id'    => $idOff,
+                        'price_act'     => $priceAct,
+                        'price_base'    => $priceSaleAct,
+                        'price_cost'    => $priceCostAct,
+                        'discount'      => $discount,
+                        'super_discont' => $superDiscont,
+                        'discount_type' => $superDiscont > 0 ? 'super' : 'regular',
+                        'calculated_at' => date('Y-m-d H:i:s'),
+                    ));
+                }
+
+                $actionResult = array('action_recalc' => true, 'price_act' => $priceAct);
+            }
+        }
+
         // Сохраняем дисконтный профиль (с учётом скорректированных оптовой/дилерской)
         $result['price_wholesale'] = $wholesaleFinal;
         $result['price_dealer']    = $dealerFinal;
@@ -113,7 +195,7 @@ class DiscountProfileBuilder
             'price_3'              => isset($discounts[2]['price'])             ? $discounts[2]['price']             : null,
         ]);
 
-        return ['ok' => true, 'product_id' => $productId, 'result' => $result];
+        return ['ok' => true, 'product_id' => $productId, 'result' => $result, 'action' => $actionResult];
     }
 
     /**

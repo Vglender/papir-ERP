@@ -110,12 +110,26 @@
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
             <span class="badge">Найдено: <?php echo (int)$totalRows; ?></span>
-            <button type="button" class="btn btn-small" id="recalcAllBtn"
+            <button type="button" class="btn btn-small btn-primary" id="recalcAllBtn"
                     onclick="runRecalculateAll(0,0,0)"
                     title="Пересчитать цены для всех товаров"
                     style="display:flex;align-items:center;gap:5px;white-space:nowrap;">
-                <span style="font-size:16px;line-height:1;">⟳</span> Пересчитать все
+                <span style="font-size:16px;line-height:1;">⟳</span> Цены
             </button>
+            <button type="button" class="btn btn-small btn-primary" id="stockUpdateBtn"
+                    onclick="runStockUpdate()"
+                    title="Обновить остатки из МойСклад"
+                    style="white-space:nowrap;">
+                &#128230; Остатки
+            </button>
+            <span id="stockStatusMsg" style="font-size:12px;display:none;"></span>
+            <button type="button" class="btn btn-small" id="pushPricesBtn"
+                    onclick="pushPrices()"
+                    title="Выгрузить цены в OpenCart (offtorg, mff) и МойСклад"
+                    style="white-space:nowrap;">
+                ⬆ Обновить
+            </button>
+            <span id="pushPricesMsg" style="font-size:12px;display:none;"></span>
         </div>
     </div>
 
@@ -662,7 +676,7 @@
         .then(function (d) {
             if (!d.ok) {
                 if (text) { text.style.color = '#b42318'; text.textContent = 'Ошибка: ' + (d.error || '?'); }
-                if (btn)  { btn.disabled = false; btn.innerHTML = '<span style="font-size:16px;line-height:1;">⟳</span> Пересчитать все'; }
+                if (btn)  { btn.disabled = false; btn.innerHTML = '<span style="font-size:16px;line-height:1;">⟳</span> Цены'; }
                 return;
             }
 
@@ -685,16 +699,122 @@
                     text.style.color = '#157347';
                     text.textContent = 'Готово! Пересчитано: ' + done + ' из ' + total + (errors > 0 ? ', ошибок: ' + errors : '');
                 }
-                if (btn)  { btn.disabled = false; btn.innerHTML = '<span style="font-size:16px;line-height:1;">⟳</span> Пересчитать все'; }
+                if (btn)  { btn.disabled = false; btn.innerHTML = '<span style="font-size:16px;line-height:1;">⟳</span> Цены'; }
                 setTimeout(function () { if (progress) progress.style.display = 'none'; }, 8000);
+                pushPrices();
             }
         })
         .catch(function (e) {
             if (text) { text.style.color = '#b42318'; text.textContent = 'Ошибка сети на offset=' + offset; }
-            if (btn)  { btn.disabled = false; btn.innerHTML = '<span style="font-size:16px;line-height:1;">⟳</span> Пересчитать все'; }
+            if (btn)  { btn.disabled = false; btn.innerHTML = '<span style="font-size:16px;line-height:1;">⟳</span> Цены'; }
         });
     }
     window.runRecalculateAll = runRecalculateAll;
+
+    // ── Stock update ───────────────────────────────────────────────────────
+    function runStockUpdate() {
+        var btn = document.getElementById('stockUpdateBtn');
+        var msg = document.getElementById('stockStatusMsg');
+        if (btn) { btn.disabled = true; }
+        if (msg) { msg.style.display = 'inline'; msg.style.color = '#555'; msg.textContent = 'Обновляем...'; }
+        fetch('/prices/api/update_stock', {method: 'POST'})
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (btn) { btn.disabled = false; }
+            if (d.ok) {
+                if (msg) {
+                    msg.style.color = '#157347';
+                    msg.textContent = 'Обновлено: ' + d.stock_rows + ' физ., ' + d.virtual_synced + ' произв., quantity: ' + d.quantity_updated;
+                }
+            } else {
+                if (msg) { msg.style.color = '#b42318'; msg.textContent = d.error || 'Ошибка'; }
+            }
+        })
+        .catch(function() {
+            if (btn) { btn.disabled = false; }
+            if (msg) { msg.style.color = '#b42318'; msg.textContent = 'Ошибка сети'; }
+        });
+    }
+    window.runStockUpdate = runStockUpdate;
+
+    // ── Push prices: Phase 1 — sites (off+mff), Phase 2 — MoySklad ──────────
+    function pushPrices(onDone) {
+        var btn = document.getElementById('pushPricesBtn');
+        var msg = document.getElementById('pushPricesMsg');
+        if (btn) btn.disabled = true;
+        if (msg) { msg.style.display = 'inline'; }
+
+        var total     = 0;
+        var statSites = {pushed: 0, skipped: 0};
+        var statMs    = {pushed: 0, skipped: 0};
+
+        function show(color, text) {
+            if (msg) { msg.style.color = color; msg.textContent = text; }
+        }
+        function abort(text) {
+            if (btn) btn.disabled = false;
+            show('#b42318', '✗ ' + text);
+        }
+
+        // Phase 1: сайты (off + mff)
+        function runSites(offset) {
+            show('#555', 'Сайты: ' + offset + '/' + (total || '…'));
+            fetch('/prices/api/push_prices', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'offset=' + offset + '&limit=100&phase=sites'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) { abort(d.error || 'Ошибка сайтов'); return; }
+                if (d.total) total = d.total;
+                statSites.pushed  += d.stats.pushed  || 0;
+                statSites.skipped += d.stats.skipped || 0;
+                if (d.has_errors) { abort('Сайты: ' + (d.errors[0] || 'ошибка')); return; }
+                var done = d.next_offset !== null && d.next_offset !== undefined ? d.next_offset : total;
+                show('#555', 'Сайты: ' + done + '/' + total + ' — ' + statSites.pushed + ' ok');
+                if (d.next_offset !== null && d.next_offset !== undefined) {
+                    runSites(d.next_offset);
+                } else {
+                    show('#1a7f4b', '✓ Сайты (' + statSites.pushed + ') → МС…');
+                    runMs(0);
+                }
+            })
+            .catch(function(err) { abort('Сеть (сайты): ' + err); });
+        }
+
+        // Phase 2: МойСклад
+        function runMs(offset) {
+            fetch('/prices/api/push_prices', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'offset=' + offset + '&limit=50&phase=ms'
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) { abort(d.error || 'Ошибка МС'); return; }
+                if (d.total) total = d.total;
+                statMs.pushed  += d.stats.pushed  || 0;
+                statMs.skipped += d.stats.skipped || 0;
+                if (d.has_errors) { abort('МС: ' + (d.errors[0] || 'ошибка')); return; }
+                var done = d.next_offset !== null && d.next_offset !== undefined ? d.next_offset : total;
+                var pct  = total > 0 ? Math.round(done / total * 100) : 0;
+                show('#555', 'МС: ' + done + '/' + total + ' (' + pct + '%) — ' + statMs.pushed + ' ok');
+                if (d.next_offset !== null && d.next_offset !== undefined) {
+                    runMs(d.next_offset);
+                } else {
+                    if (btn) btn.disabled = false;
+                    show('#157347', '✓ Сайты: ' + statSites.pushed + ', МС: ' + statMs.pushed + ' (пропущено: ' + statMs.skipped + ')');
+                    setTimeout(function() { if (msg) { msg.style.display = 'none'; msg.textContent = ''; } }, 10000);
+                    if (typeof onDone === 'function') onDone();
+                }
+            })
+            .catch(function(err) { abort('Сеть (МС): ' + err); });
+        }
+
+        runSites(0);
+    }
+    window.pushPrices = pushPrices;
 
     // ── Row click → navigate ───────────────────────────────────────────────
     document.querySelectorAll('.js-row-click').forEach(function (row) {
