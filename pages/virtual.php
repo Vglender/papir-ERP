@@ -1,13 +1,6 @@
 <?php
 
-require_once '/var/sqript/products/confif_bp.php';
-require_once '/var/sqript/products/lib/Request.php';
-require_once '/var/sqript/products/lib/ViewHelper.php';
-require_once '/var/sqript/products/lib/TableHelper.php';
-require_once '/var/sqript/products/lib/Paginator.php';
-require_once '/var/sqript/products/lib/ArrayResult.php';
-require_once '/var/sqript/products/lib/VirtualRepository.php';
-require_once '/var/sqript/products/lib/VirtualDashboardRepository.php';
+require_once __DIR__ . '/../modules/database/database.php';
 
 $mysqli = connectbd('ms');
 $mysqli_papir = connectbd('Papir');

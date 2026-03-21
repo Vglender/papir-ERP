@@ -1,0 +1,57 @@
+<?php
+
+require_once __DIR__ . '/prices_bootstrap.php';
+
+$pricelistRepo = new PricelistRepository();
+$itemRepo      = new PricelistItemRepository();
+$supplierRepo  = new SupplierRepository();
+
+$basePath = '/prices/suppliers';
+
+// ── Параметры ────────────────────────────────────────────────────────────────
+$pricelistId  = Request::getInt('pricelist_id', 0);
+$matchFilter  = Request::getString('match_filter', 'all');
+$search       = Request::getString('search', '');
+$page         = max(1, Request::getInt('page', 1));
+$perPage      = 50;
+
+$allowedFilters = array('all', 'matched', 'unmatched', 'ignored');
+if (!in_array($matchFilter, $allowedFilters)) $matchFilter = 'all';
+
+$suppliers = $pricelistRepo->getAllGroupedBySupplier();
+
+// Если выбран прайс-лист — показываем его строки
+$pricelist    = null;
+$items        = array();
+$totalItems   = 0;
+$totalPages   = 1;
+$offset       = 0;
+
+if ($pricelistId > 0) {
+    $pricelist = $pricelistRepo->getById($pricelistId);
+    if ($pricelist) {
+        $offset     = ($page - 1) * $perPage;
+        $result     = $itemRepo->getList($pricelistId, $matchFilter, $search, $offset, $perPage);
+        $items      = $result['rows'];
+        $totalItems = $result['total'];
+        $totalPages = max(1, (int)ceil($totalItems / $perPage));
+        if ($page > $totalPages) { $page = $totalPages; $offset = ($page - 1) * $perPage; }
+    }
+}
+
+// Декодируем конфиг для Google Sheets прайс-листов
+$sheetConfigs = array();
+foreach ($suppliers as $sup) {
+    foreach ($sup['pricelists'] as $pl) {
+        if ($pl['source_type'] === 'google_sheets') {
+            $sheetConfigs[(int)$pl['id']] = $pricelistRepo->decodeConfig($pl);
+        }
+    }
+}
+
+function suppliersUrl($params, $basePath)
+{
+    return ViewHelper::buildUrl($basePath, $params);
+}
+
+require __DIR__ . '/views/suppliers.php';

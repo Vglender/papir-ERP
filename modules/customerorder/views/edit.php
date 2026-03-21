@@ -276,25 +276,6 @@ $updatedAt = field_value($order, 'updated_at');
             letter-spacing: .2px;
             white-space: nowrap;
         }
-        .status-draft    { background: var(--s-draft);   color: var(--s-draft-t); }
-        .status-new      { background: var(--s-new);     color: var(--s-new-t); }
-        .status-confirmed{ background: var(--s-confirm); color: var(--s-confirm-t); }
-        .status-in_progress { background: var(--s-progress); color: var(--s-progress-t); }
-        .status-waiting_payment { background: var(--s-wpay); color: var(--s-wpay-t); }
-        .status-paid     { background: var(--s-paid);   color: var(--s-paid-t); }
-        .status-partially_shipped { background: var(--s-pship); color: var(--s-pship-t); }
-        .status-shipped  { background: var(--s-ship);   color: var(--s-ship-t); }
-        .status-completed{ background: var(--s-done);   color: var(--s-done-t); }
-        .status-cancelled{ background: var(--s-cancel); color: var(--s-cancel-t); }
-
-        /* legacy pill aliases */
-        .status-gray { background: var(--s-draft); color: var(--s-draft-t); }
-        .status-blue { background: var(--s-new); color: var(--s-new-t); }
-        .status-cyan { background: var(--s-ship); color: var(--s-ship-t); }
-        .status-orange { background: var(--s-pship); color: var(--s-pship-t); }
-        .status-yellow { background: var(--s-progress); color: var(--s-progress-t); }
-        .status-green { background: var(--s-paid); color: var(--s-paid-t); }
-        .status-red { background: var(--s-cancel); color: var(--s-cancel-t); }
 
         /* header meta row: status select + planned date */
         .doc-meta-row {

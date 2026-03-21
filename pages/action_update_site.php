@@ -84,7 +84,7 @@ echo '<!DOCTYPE html>
 echo str_repeat(' ', 4096) . PHP_EOL;
 flush();
 
-require_once '/var/sqript/products/action_report.php';
+require_once __DIR__ . '/../src/action_report.php';
 
 echo '</div>
 <a href="/action" class="back-link">Вернуться в dashboard</a>

@@ -545,34 +545,46 @@ class Database
 // ----------------------------WRAPER-----------------------------------
 
 
-function connectbd($name)
-{
-    return Database::connection($name);
+if (!function_exists('connectbd')) {
+    function connectbd($name)
+    {
+        return Database::connection($name);
+    }
 }
 
-function query_bd($name, $query)
-{
-    return Database::query($name, $query);
+if (!function_exists('query_bd')) {
+    function query_bd($name, $query)
+    {
+        return Database::query($name, $query);
+    }
 }
 
-function query_insert($bd, $table, $parametrs)
-{
-    return Database::insert($bd, $table, $parametrs);
+if (!function_exists('query_insert')) {
+    function query_insert($bd, $table, $parametrs)
+    {
+        return Database::insert($bd, $table, $parametrs);
+    }
 }
 
-function query_upd($bd, $table, $parametrs, $keys)
-{
-    return Database::update($bd, $table, $parametrs, $keys);
+if (!function_exists('query_upd')) {
+    function query_upd($bd, $table, $parametrs, $keys)
+    {
+        return Database::update($bd, $table, $parametrs, $keys);
+    }
 }
 
-function delete_row($bd, $table, $keys)
-{
-    return Database::delete($bd, $table, $keys);
+if (!function_exists('delete_row')) {
+    function delete_row($bd, $table, $keys)
+    {
+        return Database::delete($bd, $table, $keys);
+    }
 }
 
-function last_id($bd, $table, $colum)
-{
-    return Database::nextId($bd, $table, $colum);
+if (!function_exists('last_id')) {
+    function last_id($bd, $table, $colum)
+    {
+        return Database::nextId($bd, $table, $colum);
+    }
 }
 
 function UpdBdTbbyId($data, $table, $bd, $key_colum = null, $base_colum = null)

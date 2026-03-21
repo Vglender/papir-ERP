@@ -15,7 +15,7 @@ while (ob_get_level() > 0) {
 ob_implicit_flush(true);
 set_time_limit(0);
 
-require_once '/var/sqript/products/lib_stock_update.php';
+require_once __DIR__ . '/../src/lib_stock_update.php';
 
 echo '<!DOCTYPE html>
 <html>

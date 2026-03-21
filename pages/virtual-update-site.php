@@ -1,6 +1,6 @@
 <?php
 
-require_once '/var/sqript/products/confif_bp.php';
+require_once __DIR__ . '/../modules/database/database.php';
 
 function h($value)
 {

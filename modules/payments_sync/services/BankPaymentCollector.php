@@ -148,6 +148,7 @@ class BankPaymentCollector
 		
 		$result = request_ukrsib_sync($dateFrom);
         $data = [];
+        $nameIndex= 1;
 
         if (!$result) {
             return $data;
@@ -157,13 +158,14 @@ class BankPaymentCollector
             $map = isset($this->accountsMap['ukrsib']['default'])
                 ? $this->accountsMap['ukrsib']['default']
                 : ['id_org' => null, 'id_acc' => null];
+            $nameIndex++;
 
             $data[] = [
                 'source' => 'ukrsib',
                 'bank' => 'ukrsib',
                 'bank_account_key' => 'default',
                 'id_paid' => $this->resolveExternalCode('ukrsib', $value),
-                'name' => $value['docNumber'],
+                'name' => $this->generatePaymentName($nameIndex, $value['provDate']),
                 'type' => !empty($value['credit']) ? 'in' : 'out',
                 'moment' => date('Y-m-d H:i:s', floor($value['provDate'] / 1000)),
                 'sum' => !empty($value['credit'])
@@ -184,7 +186,6 @@ class BankPaymentCollector
                 'id_exp' => null,
             ];
         }
-
         return $data;
     }
 
