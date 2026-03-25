@@ -77,6 +77,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 .cat-url-link { font-size: 12px; color: var(--blue); word-break: break-all; }
 .cat-url-link:empty { display: none; }
 .cat-url-empty { font-size: 12px; color: var(--text-faint); font-style: italic; }
+#cardAi textarea { min-height: 68px; }
 .seo-site-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .seo-no-sync { font-size: 11px; color: var(--text-faint); font-style: italic; padding: 3px 0 10px; }
 .seo-top-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
@@ -262,6 +263,31 @@ require_once __DIR__ . '/../../shared/layout.php';
                 <div id="seoSitePanes"></div>
 
                 <div id="seoFormError" class="form-error"></div>
+            </div>
+
+            <!-- ── Card 3: AI instructions ── -->
+            <div class="card" id="cardAi" style="display:none">
+                <div class="card-head">
+                    <div class="card-head-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;color:#f59e0b"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>ШІ — Інструкції
+                    </div>
+                    <button type="button" class="btn-icon" id="btnSaveAi" title="Зберегти AI інструкції">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="form-row">
+                    <label>Контекст категорії</label>
+                    <textarea id="aiContext" rows="3" placeholder="Опишіть категорію для ШІ — що це за товари, особливості…"></textarea>
+                </div>
+                <div class="form-row">
+                    <label>Інструкція для ШІ</label>
+                    <textarea id="aiInstruction" rows="3" placeholder="Як саме генерувати контент — стиль, акценти, що підкреслити…"></textarea>
+                </div>
+                <div id="aiFormError" class="form-error"></div>
             </div>
 
         </div><!-- /cats-form-panel -->
@@ -807,6 +833,9 @@ function populateForm(d) {
     document.getElementById('panelEmpty').style.display = 'none';
     document.getElementById('cardBasic').style.display  = 'block';
     document.getElementById('cardSeo').style.display    = 'block';
+    document.getElementById('cardAi').style.display     = 'block';
+
+    loadAiInstruction(currentCatId);
 }
 
 // ── Load category via AJAX ───────────────────────────────────────────────────
@@ -814,6 +843,7 @@ function loadCategory(id) {
     document.getElementById('panelEmpty').style.display = 'none';
     document.getElementById('cardBasic').style.display  = 'none';
     document.getElementById('cardSeo').style.display    = 'none';
+    document.getElementById('cardAi').style.display     = 'none';
 
     fetch('/categories/api/get?id=' + id)
         .then(function(r) { return r.json(); })
@@ -884,6 +914,57 @@ document.getElementById('btnSave').addEventListener('click', function() {
             }
             tree._renderNodes();
         }
+    })
+    .catch(function() {
+        btn.disabled = false;
+        err.textContent = 'Помилка мережі';
+        err.style.display = 'block';
+    });
+});
+
+// ── AI instruction ───────────────────────────────────────────────────────────
+function loadAiInstruction(catId) {
+    document.getElementById('aiContext').value     = '';
+    document.getElementById('aiInstruction').value = '';
+    document.getElementById('aiFormError').style.display = 'none';
+
+    fetch('/ai/api/get_instruction?entity_type=category&entity_id=' + catId + '&use_case=content')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.ok) return;
+            document.getElementById('aiContext').value     = d.data.context     || '';
+            document.getElementById('aiInstruction').value = d.data.instruction || '';
+        })
+        .catch(function() {});
+}
+
+document.getElementById('btnSaveAi').addEventListener('click', function() {
+    if (!currentCatId) return;
+    var btn = this;
+    var err = document.getElementById('aiFormError');
+    btn.disabled = true;
+    err.style.display = 'none';
+
+    var params = 'entity_type=category'
+        + '&entity_id='   + currentCatId
+        + '&use_case=content'
+        + '&context='     + encodeURIComponent(document.getElementById('aiContext').value)
+        + '&instruction=' + encodeURIComponent(document.getElementById('aiInstruction').value);
+
+    fetch('/ai/api/save_instruction', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: params
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        btn.disabled = false;
+        if (!d.ok) {
+            err.textContent = d.error || 'Помилка';
+            err.style.display = 'block';
+            return;
+        }
+        showToast('ШІ інструкції збережено');
     })
     .catch(function() {
         btn.disabled = false;
