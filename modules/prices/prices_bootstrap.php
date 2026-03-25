@@ -20,7 +20,6 @@ require_once __DIR__ . '/repositories/QuantityStrategyRepository.php';
 require_once __DIR__ . '/repositories/ProductPackageRepository.php';
 require_once __DIR__ . '/repositories/ProductDiscountProfileRepository.php';
 require_once __DIR__ . '/repositories/SupplierRepository.php';
-require_once __DIR__ . '/repositories/SupplierPricesRepository.php';
 require_once __DIR__ . '/repositories/PricelistRepository.php';
 require_once __DIR__ . '/repositories/PricelistItemRepository.php';
 

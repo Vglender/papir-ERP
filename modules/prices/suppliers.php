@@ -11,13 +11,19 @@ $basePath = '/prices/suppliers';
 // ── Параметры ────────────────────────────────────────────────────────────────
 $pricelistId  = Request::getInt('pricelist_id', 0);
 $matchFilter  = Request::getString('match_filter', 'all');
+$stockFilter  = Request::getString('stock_filter', 'all');
+$rrpFilter    = Request::getString('rrp_filter', 'all');
 $search       = Request::getString('search', '');
 $page         = max(1, Request::getInt('page', 1));
 $perPage      = 50;
 $showAll      = Request::getInt('show_all', 0);
 
-$allowedFilters = array('all', 'matched', 'unmatched', 'ignored');
-if (!in_array($matchFilter, $allowedFilters)) $matchFilter = 'all';
+$allowedFilters      = array('all', 'matched', 'unmatched', 'ignored');
+$allowedStockFilters = array('all', 'has_stock', 'no_stock');
+$allowedRrpFilters   = array('all', 'has_rrp', 'no_rrp');
+if (!in_array($matchFilter, $allowedFilters))      $matchFilter = 'all';
+if (!in_array($stockFilter, $allowedStockFilters)) $stockFilter = 'all';
+if (!in_array($rrpFilter,   $allowedRrpFilters))   $rrpFilter   = 'all';
 
 $suppliers = $pricelistRepo->getAllGroupedBySupplier();
 
@@ -46,7 +52,8 @@ if ($showAll) {
     $pricelist = $pricelistRepo->getById($pricelistId);
     if ($pricelist) {
         $offset     = ($page - 1) * $perPage;
-        $result     = $itemRepo->getList($pricelistId, $matchFilter, $search, $offset, $perPage);
+        $extraFilters = array('stock_filter' => $stockFilter, 'rrp_filter' => $rrpFilter);
+        $result     = $itemRepo->getList($pricelistId, $matchFilter, $search, $offset, $perPage, $extraFilters);
         $items      = $result['rows'];
         $totalItems = $result['total'];
         $totalPages = max(1, (int)ceil($totalItems / $perPage));
@@ -63,6 +70,9 @@ foreach ($suppliers as $sup) {
         }
     }
 }
+
+// true если текущий прайс — склад МойСклад (source_type=moy_sklad)
+$isWarehousePl = $pricelist && isset($pricelist['source_type']) && $pricelist['source_type'] === 'moy_sklad';
 
 function suppliersUrl($params, $basePath)
 {

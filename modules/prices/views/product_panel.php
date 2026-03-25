@@ -17,9 +17,6 @@
             <?php if ((int)$details['real_stock'] > 0) { ?>
                 <span class="status-pill pill-stk">В наличии: <?php echo (int)$details['real_stock']; ?></span>
             <?php } ?>
-            <?php if (!empty($details['is_locked'])) { ?>
-                <span class="status-pill" style="background:#f1f3f5;color:#555;">🔒 Locked</span>
-            <?php } ?>
         </div>
 
         <div class="info-grid">
@@ -382,13 +379,6 @@
                 <?php } ?>
             </div>
 
-            <div style="margin-top:10px;">
-                <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-                    <input type="checkbox" id="ps_is_locked"
-                           <?php echo !empty($details['is_locked']) ? 'checked' : ''; ?>>
-                    Заблокировать товар (is_locked)
-                </label>
-            </div>
 
             <div class="settings-save-row">
                 <button type="button" class="btn btn-primary btn-small"
@@ -498,7 +488,7 @@ function saveProductSettings(productId) {
         'manual_dealer_price='      + encodeURIComponent(val('ps_manual_dealer_price')),
         'manual_rrp_enabled='       + encodeURIComponent(chk('ps_manual_rrp_enabled')),
         'manual_rrp='               + encodeURIComponent(val('ps_manual_rrp')),
-        'is_locked='                + encodeURIComponent(chk('ps_is_locked'))
+        'is_locked=0'
     ];
 
     fetch('/prices/api/save_product_settings', {

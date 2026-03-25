@@ -50,12 +50,25 @@ if (Request::isPost()) {
         }
 
         if (empty($errors)) {
-            $saveResult = $actionRepo->save($post_product_id, $discount, $super_discont);
-
-            if (!$saveResult['ok']) {
-                $errors[] = 'Ошибка сохранения: ' . (isset($saveResult['error']) ? $saveResult['error'] : 'unknown');
-            } else {
+            // Both discounts zeroed — remove action completely
+            if ($discount == 0 && $super_discont == 0) {
+                $actionRepo->delete($post_product_id);
+                $priceRepo->deleteByProductId($post_product_id);
+                // Remove special price from OpenCart
+                Database::query('off',
+                    "DELETE FROM `oc_product_special`
+                     WHERE `product_id` = " . $post_product_id . "
+                       AND `customer_group_id` IN (1, 4)"
+                );
                 ViewHelper::redirect($basePath, $state);
+            } else {
+                $saveResult = $actionRepo->save($post_product_id, $discount, $super_discont);
+
+                if (!$saveResult['ok']) {
+                    $errors[] = 'Ошибка сохранения: ' . (isset($saveResult['error']) ? $saveResult['error'] : 'unknown');
+                } else {
+                    ViewHelper::redirect($basePath, $state);
+                }
             }
         }
     }

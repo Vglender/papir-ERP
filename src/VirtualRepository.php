@@ -14,40 +14,34 @@ final class VirtualRepository
         $this->papirDb = $papirDb;
     }
 
-    public function existsVirtual($productId)
-    {
-        $sql = "SELECT product_id
-                FROM `virtual`
-                WHERE product_id = " . (int)$productId . "
-                LIMIT 1";
-
-        $res = $this->msDb->query($sql);
-
-        return $res && $res->num_rows > 0;
-    }
-
     public function save($productId, $virtualStock, $priceCost, $price, $priceRrp)
     {
-        $productId = (int)$productId;
+        $productId    = (int)$productId;
         $virtualStock = (int)$virtualStock;
-        $priceCost = (float)$priceCost;
-        $price = (float)$price;
-        $priceRrp = (float)$priceRrp;
+        $priceCost    = (float)$priceCost;
+        $price        = (float)$price;
+        $priceRrp     = (float)$priceRrp;
+
+        $papirRow = $this->getPapirRow($productId);
+        if ($papirRow === null) {
+            return 'Товар не найден в Papir';
+        }
+        $idOff = (int)$papirRow['id_off'];
 
         $this->msDb->begin_transaction();
         $this->papirDb->begin_transaction();
 
         try {
-            if ($this->existsVirtual($productId)) {
+            if ($this->existsVirtual($idOff)) {
                 $sqlVirtual = "UPDATE `virtual`
                                SET `stock` = " . $virtualStock . "
-                               WHERE `product_id` = " . $productId;
+                               WHERE `product_id` = " . $idOff;
             } else {
-                $virtualName = $this->getProductNameForVirtual($productId);
+                $virtualName    = $this->getProductNameForVirtual($productId);
                 $virtualNameEsc = $this->msDb->real_escape_string($virtualName);
 
                 $sqlVirtual = "INSERT INTO `virtual`
-                               SET `product_id` = " . $productId . ",
+                               SET `product_id` = " . $idOff . ",
                                    `name` = '" . $virtualNameEsc . "',
                                    `stock` = " . $virtualStock;
             }
@@ -60,7 +54,7 @@ final class VirtualRepository
                            SET `price_cost` = " . $priceCost . ",
                                `price` = " . $price . ",
                                `price_rrp` = " . $priceRrp . "
-                           WHERE `id_off` = " . $productId . "
+                           WHERE `product_id` = " . $productId . "
                            LIMIT 1";
 
             if (!$this->papirDb->query($sqlProduct)) {
@@ -81,8 +75,13 @@ final class VirtualRepository
 
     public function deleteVirtual($productId)
     {
+        $idOff = $this->getIdOff($productId);
+        if ($idOff <= 0) {
+            return false;
+        }
+
         $sql = "DELETE FROM `virtual`
-                WHERE `product_id` = " . (int)$productId;
+                WHERE `product_id` = " . $idOff;
 
         return $this->msDb->query($sql);
     }
@@ -96,7 +95,8 @@ final class VirtualRepository
             return null;
         }
 
-        $msRow = $this->getMsRow($productId);
+        $idOff = (int)$papirRow['id_off'];
+        $msRow = $this->getMsRow($idOff);
 
         return array(
             'product_id'    => $papirRow['product_id'],
@@ -109,10 +109,30 @@ final class VirtualRepository
         );
     }
 
+    // Returns id_off for a given Papir product_id (needed for ms operations)
+    private function getIdOff($productId)
+    {
+        $sql = "SELECT `id_off` FROM `product_papir` WHERE `product_id` = " . (int)$productId . " LIMIT 1";
+        $res = $this->papirDb->query($sql);
+        if ($res && $row = $res->fetch_assoc()) {
+            return (int)$row['id_off'];
+        }
+        return 0;
+    }
+
+    // Returns true if ms.virtual has an entry for this id_off
+    private function existsVirtual($idOff)
+    {
+        $sql = "SELECT product_id FROM `virtual` WHERE product_id = " . (int)$idOff . " LIMIT 1";
+        $res = $this->msDb->query($sql);
+        return $res && $res->num_rows > 0;
+    }
+
     private function getPapirRow($productId)
     {
         $sql = "SELECT
-                    pp.`id_off` AS product_id,
+                    pp.`product_id`,
+                    pp.`id_off`,
                     COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name,
                     COALESCE(pp.`price_cost`, 0) AS price_cost,
                     COALESCE(pp.`price`, 0) AS price,
@@ -124,7 +144,7 @@ final class VirtualRepository
                 LEFT JOIN `product_description` pd1
                     ON pd1.`product_id` = pp.`product_id`
                    AND pd1.`language_id` = 1
-                WHERE pp.`id_off` = " . $productId . "
+                WHERE pp.`product_id` = " . (int)$productId . "
                 LIMIT 1";
 
         $res = $this->papirDb->query($sql);
@@ -136,13 +156,14 @@ final class VirtualRepository
         return null;
     }
 
-    private function getMsRow($productId)
+    // Queries ms tables using id_off (ms.virtual.product_id = id_off, ms.stock_.model = id_off)
+    private function getMsRow($idOff)
     {
         $sql = "SELECT
                     v.`product_id`,
                     COALESCE(v.`stock`, 0) AS virtual_stock,
                     COALESCE(s.`stock`, 0) AS real_stock
-                FROM (SELECT " . $productId . " AS product_id) t
+                FROM (SELECT " . (int)$idOff . " AS product_id) t
                 LEFT JOIN `virtual` v
                     ON v.`product_id` = t.`product_id`
                 LEFT JOIN `stock_` s
@@ -156,7 +177,7 @@ final class VirtualRepository
         }
 
         return array(
-            'product_id'    => $productId,
+            'product_id'    => $idOff,
             'virtual_stock' => 0,
             'real_stock'    => 0,
         );
@@ -173,7 +194,7 @@ final class VirtualRepository
                 LEFT JOIN `product_description` pd1
                     ON pd1.`product_id` = pp.`product_id`
                    AND pd1.`language_id` = 1
-                WHERE pp.`id_off` = " . (int)$productId . "
+                WHERE pp.`product_id` = " . (int)$productId . "
                 LIMIT 1";
 
         $res = $this->papirDb->query($sql);

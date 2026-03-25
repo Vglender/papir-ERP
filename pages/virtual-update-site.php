@@ -17,18 +17,18 @@ function logLine(&$messages, $text, $type = 'info')
 
 function updateProductQuantityFromMS(&$messages)
 {
-    /** 1) Забираем все товары из Papir, которые должны существовать на сайте **/
+    /** 1) Забираем все off-товары из product_site (site_id=1) **/
     $mysqli_papir = connectbd('Papir');
 
-    $sqlPapir = "SELECT `id_off`
-                 FROM `product_papir`
-                 WHERE `id_off` IS NOT NULL
-                   AND `id_off` > 0";
+    $sqlPapir = "SELECT `site_product_id`
+                 FROM `product_site`
+                 WHERE `site_id` = 1
+                   AND `site_product_id` > 0";
 
     $resPapir = $mysqli_papir->query($sqlPapir);
 
     if (!$resPapir) {
-        logLine($messages, 'Ошибка чтения product_papir: ' . $mysqli_papir->error, 'error');
+        logLine($messages, 'Ошибка чтения product_site: ' . $mysqli_papir->error, 'error');
         $mysqli_papir->close();
         return;
     }
@@ -36,7 +36,7 @@ function updateProductQuantityFromMS(&$messages)
     $siteProductIds = array();
 
     while ($row = $resPapir->fetch_assoc()) {
-        $pid = (int)$row['id_off'];
+        $pid = (int)$row['site_product_id'];
         if ($pid > 0) {
             $siteProductIds[$pid] = $pid;
         }
@@ -44,10 +44,10 @@ function updateProductQuantityFromMS(&$messages)
 
     $mysqli_papir->close();
 
-    logLine($messages, 'Товаров из product_papir для обновления: ' . count($siteProductIds), 'success');
+    logLine($messages, 'Товаров из product_site (off) для обновления: ' . count($siteProductIds), 'success');
 
     if (empty($siteProductIds)) {
-        logLine($messages, 'В product_papir не найдено товаров с id_off.', 'error');
+        logLine($messages, 'В product_site не найдено off-товаров.', 'error');
         return;
     }
 

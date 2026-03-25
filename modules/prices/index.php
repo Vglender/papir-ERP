@@ -18,6 +18,8 @@ $perPage    = 50;
 
 $search       = Request::getString('search', '');
 $filter       = Request::getString('filter', 'all');
+$allowedFilters = array('all', 'manual_only', 'no_stock');
+if (!in_array($filter, $allowedFilters)) $filter = 'all';
 $strategyId   = Request::getInt('strategy_id', 0);
 $sort         = Request::getString('sort', 'id_off');
 $order        = Request::getString('order', 'asc');

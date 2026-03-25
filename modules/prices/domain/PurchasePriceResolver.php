@@ -5,7 +5,7 @@
  *
  * Источники (в порядке приоритета):
  *   1. manual      — ручное значение из product_price_settings
- *   2. supplier_db — лучшая цена из price_supplier_prices (MoySklad, Google Sheets, …)
+ *   2. supplier_db — лучшая цена из price_supplier_items (через PricelistItemRepository)
  *   3. price_supplier / price_accounting_cost — прямые поля product_papir (берём большую)
  *   4. legacy      — старое поле price_cost (фоллбэк)
  *

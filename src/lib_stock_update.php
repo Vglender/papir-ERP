@@ -10,7 +10,7 @@ if (!defined('API_BASE_URL_ENTITY')) {
 if (!defined('API_BASE_URL_REPORT')) {
     define('API_BASE_URL_REPORT', $_msauth['api_base_url_report']);
 }
-$_ms_auth_string = $_msauth['auth'];
+$GLOBALS['_ms_auth_string'] = $_msauth['auth'];
 unset($_msauth);
 
 if (!function_exists('ms_query')) {
@@ -106,6 +106,14 @@ function updateStockFromMs($writeExcel = true, $silent = false) {
         $result_outcome = ms_query($link_outcome);
         $result_outcome = json_decode(json_encode($result_outcome), true);
 
+        if (!empty($result_outcome['errors'])) {
+            foreach ($result_outcome['errors'] as $apiErr) {
+                $errMsg = isset($apiErr['error']) ? $apiErr['error'] : json_encode($apiErr);
+                logError('MoySklad turnover API error: ' . $errMsg);
+            }
+            break;
+        }
+
         if (!empty($result_outcome['rows'])) {
             foreach ($result_outcome['rows'] as $value) {
                 if (!empty($value['assortment']['code'])) {
@@ -128,6 +136,15 @@ function updateStockFromMs($writeExcel = true, $silent = false) {
     while ($link) {
         $result = ms_query($link);
         $result = json_decode(json_encode($result), true);
+
+        if (!empty($result['errors'])) {
+            foreach ($result['errors'] as $apiErr) {
+                $errMsg = isset($apiErr['error']) ? $apiErr['error'] : json_encode($apiErr);
+                $errCode = isset($apiErr['code']) ? ' (code=' . $apiErr['code'] . ')' : '';
+                logError('MoySklad API error: ' . $errMsg . $errCode);
+            }
+            break;
+        }
 
         $left = isset($result['meta']['size']) ? ($result['meta']['size'] - $s) : 0;
         logProgress('Remaining: ' . $left);
@@ -276,7 +293,6 @@ function syncWarehouseStock() {
 function recalcQuantity() {
     $sql = "UPDATE product_papir pp
             SET pp.quantity = (
-                COALESCE((SELECT ps.stock FROM product_stock ps WHERE ps.model REGEXP '^[0-9]+$' AND CAST(ps.model AS UNSIGNED) = pp.id_off LIMIT 1), 0) +
                 COALESCE((SELECT SUM(psi.stock) FROM price_supplier_items psi WHERE psi.product_id = pp.product_id AND psi.stock IS NOT NULL AND psi.stock != '' AND psi.match_type != 'ignored'), 0)
             )
             WHERE pp.status = 1";

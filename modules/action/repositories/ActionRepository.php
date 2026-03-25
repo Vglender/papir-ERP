@@ -52,6 +52,7 @@ class ActionRepository
     {
         $sql = "SELECT `product_id`, `discount`, `super_discont`, `updated_at`
                 FROM `action_products`
+                WHERE `discount` > 0 OR `super_discont` > 0
                 ORDER BY `product_id` ASC";
 
         $result = Database::fetchAll('Papir', $sql);

@@ -123,7 +123,7 @@
                 &#128230; Остатки
             </button>
             <span id="stockStatusMsg" style="font-size:12px;display:none;"></span>
-            <button type="button" class="btn btn-small" id="pushPricesBtn"
+            <button type="button" class="btn btn-small btn-primary" id="pushPricesBtn"
                     onclick="pushPrices()"
                     title="Выгрузить цены в OpenCart (offtorg, mff) и МойСклад"
                     style="white-space:nowrap;">
@@ -357,6 +357,7 @@
                     <select name="filter" id="filter">
                         <option value="all"         <?php echo $filter === 'all'         ? 'selected' : ''; ?>>Все товары</option>
                         <option value="manual_only" <?php echo $filter === 'manual_only' ? 'selected' : ''; ?>>С ручными ценами</option>
+                        <option value="no_stock"    <?php echo $filter === 'no_stock'    ? 'selected' : ''; ?>>Без остатков</option>
                     </select>
                 </div>
 
@@ -384,7 +385,7 @@
                 </div>
 
                 <div class="btn-row">
-                    <button type="submit" class="btn">Применить</button>
+                    <button type="submit" class="btn btn-primary">Применить</button>
                     <a href="/prices" class="btn">Сброс</a>
                 </div>
             </form>

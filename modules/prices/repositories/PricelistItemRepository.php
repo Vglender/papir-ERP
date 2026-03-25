@@ -78,7 +78,7 @@ class PricelistItemRepository
      * @param int    $limit
      * @return array  ['rows'=>[], 'total'=>int]
      */
-    public function getList($pricelistId, $matchFilter = 'all', $search = '', $offset = 0, $limit = 50)
+    public function getList($pricelistId, $matchFilter = 'all', $search = '', $offset = 0, $limit = 50, $extraFilters = array())
     {
         $pricelistId = (int)$pricelistId;
         // По умолчанию скрываем игнорируемые; они доступны только через фильтр 'ignored'
@@ -98,12 +98,26 @@ class PricelistItemRepository
             foreach ($tokens as $token) {
                 if ($token === '') continue;
                 $t = Database::escape('Papir', $token);
-                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%')";
+                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%' OR CAST(pp.id_off AS CHAR) LIKE '%$t%' OR pp.product_article LIKE '%$t%')";
             }
         }
 
+        $stockFilter = isset($extraFilters['stock_filter']) ? $extraFilters['stock_filter'] : 'all';
+        if ($stockFilter === 'has_stock') {
+            $where .= " AND psi.stock IS NOT NULL AND psi.stock > 0";
+        } elseif ($stockFilter === 'no_stock') {
+            $where .= " AND (psi.stock IS NULL OR psi.stock = 0)";
+        }
+
+        $rrpFilter = isset($extraFilters['rrp_filter']) ? $extraFilters['rrp_filter'] : 'all';
+        if ($rrpFilter === 'has_rrp') {
+            $where .= " AND psi.price_rrp IS NOT NULL AND psi.price_rrp > 0";
+        } elseif ($rrpFilter === 'no_rrp') {
+            $where .= " AND (psi.price_rrp IS NULL OR psi.price_rrp = 0)";
+        }
+
         $countResult = Database::fetchRow('Papir',
-            "SELECT COUNT(*) AS cnt FROM `price_supplier_items` psi WHERE $where"
+            "SELECT COUNT(*) AS cnt FROM `price_supplier_items` psi LEFT JOIN `product_papir` pp ON pp.product_id = psi.product_id WHERE $where"
         );
         $total = ($countResult['ok'] && !empty($countResult['row'])) ? (int)$countResult['row']['cnt'] : 0;
 
@@ -322,11 +336,73 @@ class PricelistItemRepository
             return array('activated' => 0, 'deactivated' => 0);
         }
 
-        $ids    = implode(',', array_map(function ($r) { return (int)$r['product_id']; }, $result['rows']));
-        $r1     = Database::query('Papir', "UPDATE `product_papir` SET `status` = 1 WHERE `product_id` IN ($ids)     AND `status` != 1");
-        $r2     = Database::query('Papir', "UPDATE `product_papir` SET `status` = 0 WHERE `product_id` NOT IN ($ids) AND `status` != 0");
+        $ids = implode(',', array_map(function ($r) { return (int)$r['product_id']; }, $result['rows']));
 
-        return array('activated' => 0, 'deactivated' => 0);
+        $r1 = Database::query('Papir', "UPDATE `product_papir` SET `status` = 1 WHERE `product_id` IN ($ids)     AND `status` != 1");
+        $r2 = Database::query('Papir', "UPDATE `product_papir` SET `status` = 0 WHERE `product_id` NOT IN ($ids) AND `status` != 0");
+
+        $activated   = ($r1['ok'] && isset($r1['affected_rows'])) ? (int)$r1['affected_rows'] : 0;
+        $deactivated = ($r2['ok'] && isset($r2['affected_rows'])) ? (int)$r2['affected_rows'] : 0;
+
+        // ── Cascade: sync status + noindex in OpenCart (off) based on product_papir.status ──
+        Database::query('off',
+            "UPDATE `oc_product` op
+             JOIN `Papir`.`product_papir` pp ON pp.id_off = op.product_id
+             SET op.status  = pp.status,
+                 op.noindex = pp.status"
+        );
+
+        // ── Cascade: clean stale data for inactive products ──
+
+        // product_discount_profile
+        Database::query('Papir',
+            "DELETE pdp FROM `product_discount_profile` pdp
+             JOIN `product_papir` pp ON pp.product_id = pdp.product_id
+             WHERE pp.status = 0"
+        );
+
+        // action_prices
+        Database::query('Papir',
+            "DELETE ap FROM `action_prices` ap
+             JOIN `product_papir` pp ON pp.id_off = ap.product_id
+             WHERE pp.status = 0"
+        );
+
+        // action_products
+        Database::query('Papir',
+            "DELETE apo FROM `action_products` apo
+             JOIN `product_papir` pp ON pp.product_id = apo.product_id
+             WHERE pp.status = 0"
+        );
+
+        // oc_product_discount (off)
+        Database::query('off',
+            "DELETE od FROM `oc_product_discount` od
+             JOIN `Papir`.`product_papir` pp ON pp.id_off = od.product_id
+             WHERE pp.status = 0"
+        );
+
+        // oc_product_special (off)
+        Database::query('off',
+            "DELETE os FROM `oc_product_special` os
+             JOIN `Papir`.`product_papir` pp ON pp.id_off = os.product_id
+             WHERE pp.status = 0"
+        );
+
+        // product_papir: для неактивных обнуляем расчётные цены,
+        // сохраняем только price_purchase/price_cost и price_sale/price
+        Database::query('Papir',
+            "UPDATE `product_papir`
+             SET `price_wholesale` = NULL,
+                 `price_dealer`    = NULL,
+                 `price_rrp`       = NULL
+             WHERE `status` = 0
+               AND (`price_wholesale` IS NOT NULL
+                 OR `price_dealer`    IS NOT NULL
+                 OR `price_rrp`       IS NOT NULL)"
+        );
+
+        return array('activated' => $activated, 'deactivated' => $deactivated);
     }
 
     // ── Все сопоставленные строки (show_all режим) ──────────────────────────
@@ -340,12 +416,13 @@ class PricelistItemRepository
             foreach ($tokens as $token) {
                 if ($token === '') continue;
                 $t = Database::escape('Papir', $token);
-                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%')";
+                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%' OR CAST(pp.id_off AS CHAR) LIKE '%$t%' OR pp.product_article LIKE '%$t%')";
             }
         }
         $countResult = Database::fetchRow('Papir',
             "SELECT COUNT(*) AS cnt FROM price_supplier_items psi
              JOIN price_supplier_pricelists ppl ON ppl.id = psi.pricelist_id
+             LEFT JOIN product_papir pp ON pp.product_id = psi.product_id
              WHERE $where"
         );
         $total = ($countResult['ok'] && !empty($countResult['row'])) ? (int)$countResult['row']['cnt'] : 0;

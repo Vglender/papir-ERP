@@ -47,8 +47,6 @@ $ppData['discount_strategy_id'] = ($discountStrategyId !== '' && is_numeric($dis
 $discountStrategyManual = isset($_POST['discount_strategy_manual']) ? (int)$_POST['discount_strategy_manual'] : 0;
 $ppData['discount_strategy_manual'] = $discountStrategyManual ? 1 : 0;
 
-$isLocked = isset($_POST['is_locked']) ? (int)$_POST['is_locked'] : 0;
-
 // ── Manual overrides → product_price_settings ─────────────────────────────
 
 $ppsData = array();
@@ -86,9 +84,6 @@ $customLarge  = isset($_POST['custom_large_discount_percent'])  ? trim($_POST['c
 $ppsData['custom_small_discount_percent']  = ($customSmall  !== '' && is_numeric($customSmall))  ? (float)$customSmall  : null;
 $ppsData['custom_medium_discount_percent'] = ($customMedium !== '' && is_numeric($customMedium)) ? (float)$customMedium : null;
 $ppsData['custom_large_discount_percent']  = ($customLarge  !== '' && is_numeric($customLarge))  ? (float)$customLarge  : null;
-
-// is_locked goes into product_price_settings
-$ppsData['is_locked'] = $isLocked ? 1 : 0;
 
 // ── Save ──────────────────────────────────────────────────────────────────
 

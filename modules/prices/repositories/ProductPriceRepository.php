@@ -61,10 +61,10 @@ class ProductPriceRepository
     private function buildSearchWhere($search)
     {
         $parts = array_filter(array_map('trim', preg_split('/\s+/', $search)));
-        $conditions = [];
+        $conditions = array();
         foreach ($parts as $token) {
             $t = Database::escape($this->dbName, $token);
-            $conditions[] = "(pp.product_article LIKE '%{$t}%' OR pd.name LIKE '%{$t}%')";
+            $conditions[] = "(CAST(pp.id_off AS CHAR) LIKE '%{$t}%' OR pp.product_article LIKE '%{$t}%' OR pd.name LIKE '%{$t}%')";
         }
         return $conditions;
     }
@@ -96,6 +96,8 @@ class ProductPriceRepository
                     pps.manual_dealer_enabled = 1 OR pps.manual_rrp_enabled = 1 OR
                     pps.manual_cost_enabled = 1
                 )";
+            } elseif ($filters['filter'] === 'no_stock') {
+                $where[] = "COALESCE(pp.quantity, 0) = 0";
             }
         }
 
@@ -214,12 +216,25 @@ class ProductPriceRepository
             }
         }
 
+        if (!empty($filters['filter'])) {
+            if ($filters['filter'] === 'manual_only') {
+                $where[] = "pps.product_id IS NOT NULL AND (
+                    pps.manual_price_enabled = 1 OR pps.manual_wholesale_enabled = 1 OR
+                    pps.manual_dealer_enabled = 1 OR pps.manual_rrp_enabled = 1 OR
+                    pps.manual_cost_enabled = 1
+                )";
+            } elseif ($filters['filter'] === 'no_stock') {
+                $where[] = "COALESCE(pp.quantity, 0) = 0";
+            }
+        }
+
         $whereSql = implode(' AND ', $where);
 
         $result = Database::fetchRow($this->dbName,
             "SELECT COUNT(*) AS cnt
              FROM `product_papir` pp
              LEFT JOIN `product_description` pd ON pd.product_id = pp.product_id AND pd.language_id = 2
+             LEFT JOIN `product_price_settings` pps ON pps.product_id = pp.product_id
              WHERE {$whereSql}"
         );
 

@@ -89,6 +89,18 @@ class ActionPriceRepository
     }
 
     /**
+     * Delete action_prices row for a single product.
+     *
+     * @param int $productId
+     * @return array
+     */
+    public function deleteByProductId($productId)
+    {
+        $productId = (int)$productId;
+        return Database::query('Papir', "DELETE FROM `action_prices` WHERE `product_id` = " . $productId);
+    }
+
+    /**
      * Count all rows in action_prices.
      *
      * @return int

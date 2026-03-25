@@ -58,6 +58,13 @@ tbody tr:hover td { background:#eef4ff; }
 .filters > div { flex:0 0 auto; }
 .filters input[type="text"] { width:240px; }
 .filters select { width:160px; }
+.toggle-group { display:inline-flex; border-radius:7px; overflow:hidden; }
+.toggle-group label { display:block; }
+.toggle-group input[type=radio] { display:none; }
+.toggle-group label span { display:block; padding:6px 10px; font-size:12px; cursor:pointer; background:#fff; color:#444; white-space:nowrap; border:1px solid #c8d1dd; border-right:none; transition:background .12s,color .12s; }
+.toggle-group label:first-child span { border-radius:7px 0 0 7px; }
+.toggle-group label:last-child span { border-right:1px solid #c8d1dd; border-radius:0 7px 7px 0; }
+.toggle-group input[type=radio]:checked + span { background:#1f6feb; color:#fff; border-color:#1f6feb; }
 .pagination { display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; }
 .pagination a, .pagination span { display:inline-block; padding:6px 10px; border:1px solid #d9e0ea; border-radius:7px; text-decoration:none; color:#222; background:#fff; font-size:13px; }
 .pagination .cur { background:#1f6feb; border-color:#1f6feb; color:#fff; }
@@ -83,6 +90,8 @@ tbody tr:hover td { background:#eef4ff; }
 td input[type=number]{ -moz-appearance:textfield; }
 td input[type=number]::-webkit-outer-spin-button,
 td input[type=number]::-webkit-inner-spin-button{ display:none; }
+/* Unsaved field highlight */
+.input-dirty { background:#fffbe6 !important; border-color:#f0b429 !important; box-shadow:0 0 0 2px rgba(240,180,41,.18); }
 /* Action dropdown */
 .act-wrap{ position:relative; display:inline-block; }
 .act-dot{ background:none; border:1px solid #d5dce6; border-radius:4px; padding:1px 6px; cursor:pointer; font-size:15px; color:#666; line-height:1.2; }
@@ -368,14 +377,29 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                     </div>
                     <div>
                         <label>Статус</label>
-                        <select name="match_filter">
+                        <select name="match_filter" onchange="this.form.submit()">
                             <option value="all"       <?php echo $matchFilter==='all'       ?'selected':''; ?>>Все</option>
                             <option value="matched"   <?php echo $matchFilter==='matched'   ?'selected':''; ?>>Сопоставлены</option>
                             <option value="unmatched" <?php echo $matchFilter==='unmatched' ?'selected':''; ?>>Не найдены</option>
                             <option value="ignored"   <?php echo $matchFilter==='ignored'   ?'selected':''; ?>>Игнорируются</option>
                         </select>
                     </div>
-                    <div><label>&nbsp;</label><button type="submit" class="btn">Применить</button></div>
+                    <div>
+                        <label>Остаток</label>
+                        <div class="toggle-group">
+                            <label><input type="radio" name="stock_filter" value="all"       onchange="this.form.submit()" <?php echo $stockFilter==='all'       ?'checked':''; ?>><span>Все</span></label>
+                            <label><input type="radio" name="stock_filter" value="has_stock" onchange="this.form.submit()" <?php echo $stockFilter==='has_stock' ?'checked':''; ?>><span>Есть</span></label>
+                            <label><input type="radio" name="stock_filter" value="no_stock"  onchange="this.form.submit()" <?php echo $stockFilter==='no_stock'  ?'checked':''; ?>><span>Нет</span></label>
+                        </div>
+                    </div>
+                    <div>
+                        <label>RRP</label>
+                        <div class="toggle-group">
+                            <label><input type="radio" name="rrp_filter" value="all"     onchange="this.form.submit()" <?php echo $rrpFilter==='all'     ?'checked':''; ?>><span>Все</span></label>
+                            <label><input type="radio" name="rrp_filter" value="has_rrp" onchange="this.form.submit()" <?php echo $rrpFilter==='has_rrp' ?'checked':''; ?>><span>С RRP</span></label>
+                            <label><input type="radio" name="rrp_filter" value="no_rrp"  onchange="this.form.submit()" <?php echo $rrpFilter==='no_rrp'  ?'checked':''; ?>><span>Без RRP</span></label>
+                        </div>
+                    </div>
                 </form>
 
                 <!-- Таблица строк -->
@@ -389,7 +413,9 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                         <col class="col-price"><col class="col-rrp"><col class="col-stock">
                         <col class="col-status"><col class="col-cat"><col class="col-act">
                     </colgroup>
-                    <?php $isCostSource = !empty($pricelist['is_cost_source']); ?>
+                    <?php
+                    $isCostSource    = !empty($pricelist['is_cost_source']);
+                    ?>
                     <thead>
                     <tr>
                         <th>Артикул</th>
@@ -438,9 +464,15 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                         <td class="num">
                             <?php if ($manualEdit) { ?>
                                 <input type="number" class="edit-stock" style="width:100%;font-size:11px;padding:2px 4px;" data-id="<?php echo $itemId; ?>" value="<?php echo $item['stock'] !== null ? (int)$item['stock'] : ''; ?>">
-                            <?php } else { ?>
-                                <?php echo $item['stock'] !== null ? (int)$item['stock'] : '—'; ?>
-                            <?php } ?>
+                            <?php } else {
+                                if ($isWarehousePl && isset($item['warehouse_stock']) && $item['warehouse_stock'] !== null) {
+                                    echo (int)$item['warehouse_stock'];
+                                } elseif ($item['stock'] !== null) {
+                                    echo (int)$item['stock'];
+                                } else {
+                                    echo '—';
+                                }
+                            } ?>
                         </td>
                         <td>
                             <?php if ($isIgnored) { ?>
@@ -491,7 +523,7 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                 <?php if ($totalPages > 1) { ?>
                 <div class="pagination">
                     <?php for ($p = 1; $p <= $totalPages; $p++) {
-                        $url = suppliersUrl(array('pricelist_id'=>$pricelistId,'match_filter'=>$matchFilter,'search'=>$search,'page'=>$p), $basePath);
+                        $url = suppliersUrl(array('pricelist_id'=>$pricelistId,'match_filter'=>$matchFilter,'stock_filter'=>$stockFilter,'rrp_filter'=>$rrpFilter,'search'=>$search,'page'=>$p), $basePath);
                         if ($p === $page) {
                             echo '<span class="cur">' . $p . '</span>';
                         } else {
@@ -1056,6 +1088,11 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
 
         Promise.all(promises).then(function(results) {
             if (btn) { btn.disabled = false; btn.textContent = 'Сохранено ✓'; }
+            // Remove dirty highlight from all saved inputs
+            document.querySelectorAll('.edit-stock,.edit-price-cost,.edit-price-rrp,.edit-name').forEach(function(inp) {
+                inp.classList.remove('input-dirty');
+                inp.setAttribute('data-orig', inp.value);
+            });
             // Count recalculated
             var recalc = results.filter(function(d) { return d.recalculated; }).length;
             if (recalc > 0 && btn) {
@@ -1067,6 +1104,18 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
         });
     }
     window.saveManualEdits = saveManualEdits;
+
+    // ── Dirty tracking for edit inputs ───────────────────────────────────────
+    document.querySelectorAll('.edit-stock,.edit-price-cost,.edit-price-rrp,.edit-name').forEach(function(inp) {
+        inp.setAttribute('data-orig', inp.value);
+        inp.addEventListener('input', function() {
+            if (this.value !== this.getAttribute('data-orig')) {
+                this.classList.add('input-dirty');
+            } else {
+                this.classList.remove('input-dirty');
+            }
+        });
+    });
 
     // ── Rename pricelist ──────────────────────────────────────────────────────
     function startRename(plId) {

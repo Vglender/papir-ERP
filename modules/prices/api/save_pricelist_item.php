@@ -123,10 +123,14 @@ if ($priceChanged && $productId > 0) {
         $pushRow = Database::fetchRow('Papir',
             "SELECT p.product_id, p.product_article, p.id_off, p.id_mf, p.id_ms,
                     p.price_purchase, p.price_sale, p.price_wholesale, p.price_dealer, p.quantity,
-                    p.link_off, p.links_mf, p.links_prom,
+                    IF(ps_off.seo_url != '' AND ps_off.seo_url IS NOT NULL, CONCAT('https://officetorg.com.ua/', ps_off.seo_url), '') AS link_off,
+                    IF(ps_mff.seo_url != '' AND ps_mff.seo_url IS NOT NULL, CONCAT('https://menufolder.com.ua/', ps_mff.seo_url), '') AS links_mf,
+                    p.links_prom,
                     dp.qty_1, dp.price_1, dp.qty_2, dp.price_2, dp.qty_3, dp.price_3
              FROM product_papir p
              LEFT JOIN product_discount_profile dp ON dp.product_id = p.product_id
+             LEFT JOIN product_seo ps_off ON ps_off.product_id = p.product_id AND ps_off.site_id = 1 AND ps_off.language_id = 1
+             LEFT JOIN product_seo ps_mff ON ps_mff.product_id = p.product_id AND ps_mff.site_id = 2 AND ps_mff.language_id = 1
              WHERE p.product_id = " . (int)$productId . " LIMIT 1"
         );
         if ($pushRow['ok'] && !empty($pushRow['row'])) {
@@ -144,16 +148,38 @@ if ($priceChanged && $productId > 0) {
 // ── Cascade 3: recalculate quantity if stock changed for matched product
 if ($stockChanged && $productId > 0) {
     $qSql = "UPDATE product_papir pp
-             SET pp.quantity = (
-                 COALESCE((SELECT ps.stock FROM product_stock ps WHERE ps.model REGEXP '^[0-9]+\$' AND CAST(ps.model AS UNSIGNED) = pp.id_off LIMIT 1), 0) +
-                 COALESCE((SELECT SUM(psi.stock) FROM price_supplier_items psi WHERE psi.product_id = pp.product_id AND psi.stock IS NOT NULL AND psi.stock != '' AND psi.match_type != 'ignored'), 0)
-             )
+             SET pp.quantity = COALESCE((
+                 SELECT SUM(psi.stock)
+                 FROM price_supplier_items psi
+                 WHERE psi.product_id = pp.product_id
+                   AND psi.stock IS NOT NULL AND psi.stock != ''
+                   AND psi.match_type != 'ignored'
+             ), 0)
              WHERE pp.product_id = " . $productId;
     $qr = Database::query('Papir', $qSql);
     $response['quantity_updated'] = $qr['ok'];
     if ($qr['ok']) {
-        $qRow = Database::fetchRow('Papir', "SELECT quantity FROM product_papir WHERE product_id = " . $productId . " LIMIT 1");
-        $response['new_quantity'] = ($qRow['ok'] && !empty($qRow['row'])) ? (float)$qRow['row']['quantity'] : null;
+        $qRow = Database::fetchRow('Papir',
+            "SELECT p.product_id, p.product_article, p.id_off, p.id_mf, p.id_ms,
+                    p.price_purchase, p.price_sale, p.price_wholesale, p.price_dealer, p.quantity,
+                    IF(ps_off.seo_url != '' AND ps_off.seo_url IS NOT NULL, CONCAT('https://officetorg.com.ua/', ps_off.seo_url), '') AS link_off,
+                    IF(ps_mff.seo_url != '' AND ps_mff.seo_url IS NOT NULL, CONCAT('https://menufolder.com.ua/', ps_mff.seo_url), '') AS links_mf,
+                    p.links_prom,
+                    dp.qty_1, dp.price_1, dp.qty_2, dp.price_2, dp.qty_3, dp.price_3
+             FROM product_papir p
+             LEFT JOIN product_discount_profile dp ON dp.product_id = p.product_id
+             LEFT JOIN product_seo ps_off ON ps_off.product_id = p.product_id AND ps_off.site_id = 1 AND ps_off.language_id = 1
+             LEFT JOIN product_seo ps_mff ON ps_mff.product_id = p.product_id AND ps_mff.site_id = 2 AND ps_mff.language_id = 1
+             WHERE p.product_id = " . $productId . " LIMIT 1"
+        );
+        if ($qRow['ok'] && !empty($qRow['row'])) {
+            $response['new_quantity'] = (float)$qRow['row']['quantity'];
+            // Push updated quantity to OpenCart sites (skip MoySklad — quantity not stored there)
+            $ocExporter = new OpenCartPriceExport();
+            $ocExporter->pushBatch('off', array($qRow['row']), 'id_off');
+            $ocExporter->pushBatch('mff', array($qRow['row']), 'id_mf');
+            $response['quantity_pushed'] = true;
+        }
     }
 }
 

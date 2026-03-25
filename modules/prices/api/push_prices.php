@@ -36,8 +36,8 @@ $batchResult = Database::fetchAll('Papir',
         p.price_wholesale,
         p.price_dealer,
         p.quantity,
-        p.link_off,
-        p.links_mf,
+        IF(ps_off.seo_url != '' AND ps_off.seo_url IS NOT NULL, CONCAT('https://officetorg.com.ua/', ps_off.seo_url), '') AS link_off,
+        IF(ps_mff.seo_url != '' AND ps_mff.seo_url IS NOT NULL, CONCAT('https://menufolder.com.ua/', ps_mff.seo_url), '') AS links_mf,
         p.links_prom,
         dp.qty_1,
         dp.price_1,
@@ -47,6 +47,8 @@ $batchResult = Database::fetchAll('Papir',
         dp.price_3
      FROM product_papir p
      LEFT JOIN product_discount_profile dp ON dp.product_id = p.product_id
+     LEFT JOIN product_seo ps_off ON ps_off.product_id = p.product_id AND ps_off.site_id = 1 AND ps_off.language_id = 1
+     LEFT JOIN product_seo ps_mff ON ps_mff.product_id = p.product_id AND ps_mff.site_id = 2 AND ps_mff.language_id = 1
      WHERE p.status = 1
        AND p.price_sale > 0
      ORDER BY p.product_id ASC

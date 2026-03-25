@@ -78,8 +78,25 @@ flush();
 
 require_once __DIR__ . '/action_bootstrap.php';
 
+if (!function_exists('logLine')) {
+    function logLine($text, $type = 'info')
+    {
+        echo '<div class="log-line log-' . $type . '">'
+            . htmlspecialchars($text, ENT_QUOTES, 'UTF-8')
+            . '</div>';
+        if (function_exists('ob_flush')) {
+            @ob_flush();
+        }
+        flush();
+    }
+}
+
+$logCallback = function ($message, $type) {
+    logLine($message, $type);
+};
+
 $updater = new StockUpdater();
-$updater->update();
+$updater->update($logCallback);
 
 echo '</div>
 

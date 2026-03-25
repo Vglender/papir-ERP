@@ -74,10 +74,10 @@ final class VirtualDashboardRepository
 
     public function getTotalRows($search, $filter)
     {
+        // getVirtualIdsSet keys are id_off (ms.virtual.product_id = id_off)
         $virtualIdsSet = $this->getVirtualIdsSet();
 
-        $sql = "SELECT
-                    pp.`id_off` AS product_id
+        $sql = "SELECT pp.`product_id`, pp.`id_off`
                 FROM `product_papir` pp
                 LEFT JOIN `product_description` pd2
                     ON pd2.`product_id` = pp.`product_id`
@@ -95,8 +95,8 @@ final class VirtualDashboardRepository
         $count = 0;
 
         while ($row = $res->fetch_assoc()) {
-            $id = (int)$row['product_id'];
-            $hasVirtual = isset($virtualIdsSet[$id]);
+            $idOff = (int)$row['id_off'];
+            $hasVirtual = isset($virtualIdsSet[$idOff]);
 
             if ($filter === 'with_virtual' && !$hasVirtual) {
                 continue;
@@ -122,13 +122,14 @@ final class VirtualDashboardRepository
             return false;
         }
 
+        // virtualIdsSet is keyed by id_off (ms.virtual.product_id = id_off)
         $virtualIdsSet = $this->getVirtualIdsSet();
 
         $rows = array();
 
         foreach ($papirRows as $row) {
-            $id = (int)$row['product_id'];
-            $hasVirtual = isset($virtualIdsSet[$id]);
+            $idOff = (int)$row['id_off'];
+            $hasVirtual = isset($virtualIdsSet[$idOff]);
 
             if ($filter === 'with_virtual' && !$hasVirtual) {
                 continue;
@@ -167,20 +168,20 @@ final class VirtualDashboardRepository
 
         $pagedRows = array_slice($rows, $offset, $limit);
 
-        $pageIds = array();
+        // getMsDataMapForPage works by id_off (ms tables use id_off as key)
+        $pageIdOffs = array();
         foreach ($pagedRows as $row) {
-            $pageIds[] = (int)$row['product_id'];
+            $pageIdOffs[] = (int)$row['id_off'];
         }
 
-        $msMap = $this->getMsDataMapForPage($pageIds);
+        $msMap = $this->getMsDataMapForPage($pageIdOffs);
 
         foreach ($pagedRows as $index => $row) {
-            $id = (int)$row['product_id'];
-
-            if (isset($msMap[$id])) {
-                $pagedRows[$index]['virtual_stock'] = $msMap[$id]['virtual_stock'];
-                $pagedRows[$index]['real_stock'] = $msMap[$id]['real_stock'];
-                $pagedRows[$index]['has_virtual_row'] = $msMap[$id]['has_virtual_row'];
+            $idOff = (int)$row['id_off'];
+            if (isset($msMap[$idOff])) {
+                $pagedRows[$index]['virtual_stock']   = $msMap[$idOff]['virtual_stock'];
+                $pagedRows[$index]['real_stock']      = $msMap[$idOff]['real_stock'];
+                $pagedRows[$index]['has_virtual_row'] = $msMap[$idOff]['has_virtual_row'];
             }
         }
 
@@ -190,7 +191,8 @@ final class VirtualDashboardRepository
     private function getPapirBaseRows($search)
     {
         $sql = "SELECT
-                    pp.`id_off` AS product_id,
+                    pp.`product_id`,
+                    pp.`id_off`,
                     COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name,
                     COALESCE(pp.`price_cost`, 0) AS price_cost,
                     COALESCE(pp.`price`, 0) AS price,
@@ -214,6 +216,7 @@ final class VirtualDashboardRepository
         while ($row = $res->fetch_assoc()) {
             $rows[] = array(
                 'product_id'      => (int)$row['product_id'],
+                'id_off'          => (int)$row['id_off'],
                 'name'            => $row['name'],
                 'price_cost'      => (float)$row['price_cost'],
                 'price'           => (float)$row['price'],
@@ -227,6 +230,7 @@ final class VirtualDashboardRepository
         return $rows;
     }
 
+    // Returns set keyed by id_off (ms.virtual.product_id stores id_off)
     private function getVirtualIdsSet()
     {
         $sql = "SELECT `product_id` FROM `virtual`";
@@ -245,16 +249,18 @@ final class VirtualDashboardRepository
         return $set;
     }
 
-    private function getMsDataMapForPage(array $productIds)
+    // Takes id_off array, returns map keyed by id_off
+    // (ms.virtual.product_id = id_off, ms.stock_.model = id_off)
+    private function getMsDataMapForPage(array $idOffs)
     {
-        if (empty($productIds)) {
+        if (empty($idOffs)) {
             return array();
         }
 
-        $ids = array_map('intval', array_unique($productIds));
+        $ids = array_map('intval', array_unique($idOffs));
         $idsSql = implode(',', $ids);
 
-        $virtualMap = array();
+        $virtualMap   = array();
         $realStockMap = array();
 
         $sqlVirtual = "SELECT `product_id`, `stock`
@@ -296,64 +302,64 @@ final class VirtualDashboardRepository
 
         return $map;
     }
-	
-	public function getCatalogTotalCount()
-	{
-		$sql = "SELECT COUNT(*) AS cnt FROM `product_papir`";
-		$res = $this->papirDb->query($sql);
 
-		if ($res && $row = $res->fetch_assoc()) {
-			return isset($row['cnt']) ? (int)$row['cnt'] : 0;
-		}
+    public function getCatalogTotalCount()
+    {
+        $sql = "SELECT COUNT(*) AS cnt FROM `product_papir`";
+        $res = $this->papirDb->query($sql);
 
-		return 0;
-	}
+        if ($res && $row = $res->fetch_assoc()) {
+            return isset($row['cnt']) ? (int)$row['cnt'] : 0;
+        }
 
-	public function getVirtualPositiveCount()
-	{
-		$sql = "SELECT COUNT(*) AS cnt
-				FROM `virtual`
-				WHERE `stock` > 0";
-		$res = $this->msDb->query($sql);
+        return 0;
+    }
 
-		if ($res && $row = $res->fetch_assoc()) {
-			return isset($row['cnt']) ? (int)$row['cnt'] : 0;
-		}
+    public function getVirtualPositiveCount()
+    {
+        $sql = "SELECT COUNT(*) AS cnt
+                FROM `virtual`
+                WHERE `stock` > 0";
+        $res = $this->msDb->query($sql);
 
-		return 0;
-	}
+        if ($res && $row = $res->fetch_assoc()) {
+            return isset($row['cnt']) ? (int)$row['cnt'] : 0;
+        }
 
-	private function buildPapirWhereSql($search)
-	{
-		$whereParts = array();
-		$search = trim((string)$search);
+        return 0;
+    }
 
-		if ($search !== '') {
-			$tokens = preg_split('/\s+/u', mb_strtolower($search, 'UTF-8'));
-			$tokens = array_filter($tokens, function ($token) {
-				return $token !== '';
-			});
+    private function buildPapirWhereSql($search)
+    {
+        $whereParts = array();
+        $search = trim((string)$search);
 
-			$tokenConditions = array();
+        if ($search !== '') {
+            $tokens = preg_split('/\s+/u', mb_strtolower($search, 'UTF-8'));
+            $tokens = array_filter($tokens, function ($token) {
+                return $token !== '';
+            });
 
-			foreach ($tokens as $token) {
-				$tokenEsc = $this->papirDb->real_escape_string($token);
+            $tokenConditions = array();
 
-				$tokenConditions[] = "(
-					CAST(pp.`id_off` AS CHAR) LIKE '%" . $tokenEsc . "%'
-					OR LOWER(COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '')) LIKE '%" . $tokenEsc . "%'
-				)";
-			}
+            foreach ($tokens as $token) {
+                $tokenEsc = $this->papirDb->real_escape_string($token);
 
-			if (!empty($tokenConditions)) {
-				$whereParts[] = implode(' AND ', $tokenConditions);
-			}
-		}
+                $tokenConditions[] = "(
+                    CAST(pp.`product_id` AS CHAR) LIKE '%" . $tokenEsc . "%'
+                    OR LOWER(COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '')) LIKE '%" . $tokenEsc . "%'
+                )";
+            }
 
-		if (empty($whereParts)) {
-			return '';
-		}
+            if (!empty($tokenConditions)) {
+                $whereParts[] = implode(' AND ', $tokenConditions);
+            }
+        }
 
-		return ' WHERE ' . implode(' AND ', $whereParts);
-	}
+        if (empty($whereParts)) {
+            return '';
+        }
+
+        return ' WHERE ' . implode(' AND ', $whereParts);
+    }
 }

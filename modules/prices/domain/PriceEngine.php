@@ -77,8 +77,8 @@ class PriceEngine
 
         // Применяем ручные переопределения для конкретных цен
         $saleFinal      = $this->resolveManual($settings, 'manual_price',     $base['sale']);
-        $wholesaleFinal = $this->resolveManual($settings, 'manual_wholesale', $base['wholesale']);
-        $dealerFinal    = $this->resolveManual($settings, 'manual_dealer',    $base['dealer']);
+        $wholesaleFinal = $this->resolveManualPrice($settings, 'manual_wholesale', $base['wholesale']);
+        $dealerFinal    = $this->resolveManualPrice($settings, 'manual_dealer',    $base['dealer']);
 
         // 3. RRP — только для розничной цены (если manual уже задан, RRP не применяем)
         $rrpResult  = array('price' => $saleFinal, 'rrp_applied' => false);
@@ -216,6 +216,7 @@ class PriceEngine
 
     /**
      * Возвращает ручное значение если оно включено, иначе calculated.
+     * Ключ значения = $key (напр. 'manual_price').
      */
     private function resolveManual(array $settings, $key, $calculated)
     {
@@ -227,9 +228,21 @@ class PriceEngine
     }
 
     /**
+     * То же что resolveManual, но ключ значения = $key . '_price'
+     * (для manual_wholesale_price, manual_dealer_price).
+     */
+    private function resolveManualPrice(array $settings, $key, $calculated)
+    {
+        $enabledKey = $key . '_enabled';
+        $valueKey   = $key . '_price';
+        if (!empty($settings[$enabledKey]) && isset($settings[$valueKey]) && (float)$settings[$valueKey] > 0) {
+            return (float)$settings[$valueKey];
+        }
+        return $calculated;
+    }
+
+    /**
      * Фабричный метод — создаёт PriceEngine с зависимостями по умолчанию.
-     *
-     * @param SupplierPricesRepository|null $supplierPricesRepo
      */
     public static function create(PricelistItemRepository $itemRepo = null)
     {

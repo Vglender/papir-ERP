@@ -255,7 +255,13 @@ final class CatalogRepository
         $sql = "SELECT
                     pp.`id_off`,
                     pp.`product_article`,
-                    pp.`price`,
+                    pp.`price_sale`,
+                    pp.`price_wholesale`,
+                    pp.`price_dealer`,
+                    ap.`price_act`,
+                    pdp.`qty_1`,   pdp.`price_1`,
+                    pdp.`qty_2`,   pdp.`price_2`,
+                    pdp.`qty_3`,   pdp.`price_3`,
                     COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name
                 FROM `product_papir` pp
                 LEFT JOIN `product_description` pd2
@@ -264,6 +270,10 @@ final class CatalogRepository
                 LEFT JOIN `product_description` pd1
                     ON pd1.`product_id` = pp.`product_id`
                    AND pd1.`language_id` = 1
+                LEFT JOIN `action_prices` ap
+                    ON ap.`product_id` = pp.`id_off`
+                LEFT JOIN `product_discount_profile` pdp
+                    ON pdp.`product_id` = pp.`product_id`
                 WHERE pp.`id_off` IN (" . $inList . ")
                 ORDER BY FIELD(pp.`id_off`, " . $inList . ")";
 
@@ -278,31 +288,26 @@ final class CatalogRepository
         while ($row = $res->fetch_assoc()) {
             $idOff = (int)$row['id_off'];
 
+            $qtyDiscounts = array();
+            for ($i = 1; $i <= 3; $i++) {
+                if (!empty($row['qty_' . $i]) && $row['price_' . $i] !== null) {
+                    $qtyDiscounts[] = array(
+                        'quantity' => (int)$row['qty_' . $i],
+                        'price'    => (float)$row['price_' . $i],
+                    );
+                }
+            }
+
             $items[$idOff] = array(
-                'id' => $idOff,
-                'article' => isset($row['product_article']) ? (string)$row['product_article'] : '',
-                'name' => isset($row['name']) ? (string)$row['name'] : '',
-                'price' => $row['price'] !== null ? (float)$row['price'] : null,
-                'action_price' => null,
-                'quantity_discounts' => array(),
+                'id'                 => $idOff,
+                'article'            => isset($row['product_article']) ? (string)$row['product_article'] : '',
+                'name'               => isset($row['name']) ? (string)$row['name'] : '',
+                'price'              => $row['price_sale']      !== null ? (float)$row['price_sale']      : null,
+                'price_wholesale'    => $row['price_wholesale'] !== null ? (float)$row['price_wholesale'] : null,
+                'price_dealer'       => $row['price_dealer']    !== null ? (float)$row['price_dealer']    : null,
+                'action_price'       => $row['price_act']       !== null ? (float)$row['price_act']       : null,
+                'quantity_discounts' => $qtyDiscounts,
             );
-        }
-
-        if (empty($items)) {
-            return array();
-        }
-
-        $specialMap = $this->getActiveSpecialMap(array_keys($items));
-        $discountMap = $this->getActiveDiscountsMap(array_keys($items));
-
-        foreach ($items as $idOff => $item) {
-            if (isset($specialMap[$idOff])) {
-                $items[$idOff]['action_price'] = (float)$specialMap[$idOff]['price'];
-            }
-
-            if (isset($discountMap[$idOff]['quantity_discounts'])) {
-                $items[$idOff]['quantity_discounts'] = $discountMap[$idOff]['quantity_discounts'];
-            }
         }
 
         return array_values($items);
@@ -318,7 +323,8 @@ final class CatalogRepository
 
         $sql = "SELECT
                     pp.*,
-                    COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name
+                    COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name,
+                    m.`name` AS manufacturer_name
                 FROM `product_papir` pp
                 LEFT JOIN `product_description` pd2
                     ON pd2.`product_id` = pp.`product_id`
@@ -326,6 +332,7 @@ final class CatalogRepository
                 LEFT JOIN `product_description` pd1
                     ON pd1.`product_id` = pp.`product_id`
                    AND pd1.`language_id` = 1
+                LEFT JOIN `manufacturers` m ON m.`manufacturer_id` = pp.`manufacturer_id`
                 WHERE pp.`id_off` = " . $idOff . "
                 LIMIT 1";
 
@@ -345,10 +352,10 @@ final class CatalogRepository
             'status'             => $product['status'] !== null ? (int)$product['status'] : 0,
             'name'               => $product['name'],
             'price_cost'         => $product['price_cost'] !== null ? (float)$product['price_cost'] : 0.0,
-            'price'              => $product['price'] !== null ? (float)$product['price'] : 0.0,
+            'price_sale'         => isset($product['price_sale']) ? (float)$product['price_sale'] : 0.0,
             'price_rrp'          => $product['price_rrp'] !== null ? (float)$product['price_rrp'] : 0.0,
             'quantity'           => $this->getRealStockByIdOff($idOff),
-            'manufacturer_name'  => $product['manufacturer_name'],
+            'manufacturer_name'  => isset($product['manufacturer_name']) ? $product['manufacturer_name'] : null,
             'manufacturer_id'    => $product['manufacturer_id'],
             'categoria_id'       => $product['categoria_id'],
             'category_name'      => $this->getCategoryNameById((int)$product['categoria_id']),
@@ -356,11 +363,7 @@ final class CatalogRepository
             'tnved'              => $product['tnved'],
             'unit'               => $product['unit'],
             'packs'              => $product['packs'],
-            'seo_url'            => $product['seo_url'],
-            'link_off'           => $product['link_off'],
-            'links_mf'           => $product['links_mf'],
-            'links_prm'          => $product['links_prm'],
-            'links_prom'         => $product['links_prom'],
+            'links_prom'         => isset($product['links_prom']) ? $product['links_prom'] : null,
             'id_ms'              => $product['id_ms'],
             'id_mf'              => $product['id_mf'],
             'id_prm'             => $product['id_prm'],
