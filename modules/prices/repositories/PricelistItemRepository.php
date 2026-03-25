@@ -94,11 +94,31 @@ class PricelistItemRepository
         }
 
         if ($search !== '') {
-            $tokens = preg_split('/\s+/', trim($search));
-            foreach ($tokens as $token) {
-                if ($token === '') continue;
-                $t = Database::escape('Papir', $token);
-                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%' OR CAST(pp.id_off AS CHAR) LIKE '%$t%' OR pp.product_article LIKE '%$t%')";
+            $rawChips = preg_split('/\s*,\s*/u', trim($search));
+            $chipConditions = array();
+            foreach ($rawChips as $chip) {
+                $chip = trim($chip);
+                if ($chip === '') continue;
+                if (preg_match('/^\d+$/', $chip)) {
+                    $chipConditions[] = "pp.`product_id` = " . (int)$chip;
+                    continue;
+                }
+                $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+                $tokens = array_filter($tokens, function($t) { return $t !== ''; });
+                $tokenParts = array();
+                foreach ($tokens as $token) {
+                    $t = Database::escape('Papir', $token);
+                    $tokenParts[] = "(psi.raw_sku LIKE '%{$t}%' OR psi.raw_name LIKE '%{$t}%' OR psi.raw_model LIKE '%{$t}%' OR LOWER(COALESCE(pp.`product_article`,'')) LIKE '%{$t}%' OR CAST(pp.`product_id` AS CHAR) LIKE '%{$t}%')";
+                }
+                if (!empty($tokenParts)) {
+                    $chipConditions[] = '(' . implode(' AND ', $tokenParts) . ')';
+                }
+            }
+            if (!empty($chipConditions)) {
+                $searchClause = count($chipConditions) === 1
+                    ? $chipConditions[0]
+                    : '(' . implode(' OR ', $chipConditions) . ')';
+                $where .= ' AND ' . $searchClause;
             }
         }
 
@@ -123,7 +143,7 @@ class PricelistItemRepository
 
         $result = Database::fetchAll('Papir',
             "SELECT psi.*,
-                    pp.product_article, pp.id_off,
+                    pp.product_id AS pp_product_id, pp.product_article, pp.id_off,
                     COALESCE(pd.name, '') AS catalog_name
              FROM `price_supplier_items` psi
              LEFT JOIN `product_papir` pp ON pp.product_id = psi.product_id
@@ -275,7 +295,7 @@ class PricelistItemRepository
         foreach ($tokens as $t) {
             if ($t === '') continue;
             $e = Database::escape('Papir', $t);
-            $where .= " AND (pp.product_article LIKE '%$e%' OR pp.id_off LIKE '%$e%' OR pd.name LIKE '%$e%')";
+            $where .= " AND (pp.product_article LIKE '%$e%' OR CAST(pp.product_id AS CHAR) LIKE '%$e%' OR pd.name LIKE '%$e%')";
         }
 
         $result = Database::fetchAll('Papir',
@@ -412,11 +432,28 @@ class PricelistItemRepository
         $offset = (int)$offset; $limit = (int)$limit;
         $where = "(psi.match_type IS NULL OR psi.match_type != 'ignored') AND ppl.is_active = 1";
         if ($search !== '') {
-            $tokens = preg_split('/\s+/', trim($search));
-            foreach ($tokens as $token) {
-                if ($token === '') continue;
-                $t = Database::escape('Papir', $token);
-                $where .= " AND (psi.raw_sku LIKE '%$t%' OR psi.raw_name LIKE '%$t%' OR psi.raw_model LIKE '%$t%' OR CAST(pp.id_off AS CHAR) LIKE '%$t%' OR pp.product_article LIKE '%$t%')";
+            $rawChips = preg_split('/\s*,\s*/u', trim($search));
+            $chipConditions = array();
+            foreach ($rawChips as $chip) {
+                $chip = trim($chip);
+                if ($chip === '') continue;
+                if (preg_match('/^\d+$/', $chip)) {
+                    $chipConditions[] = "pp.`product_id` = " . (int)$chip;
+                    continue;
+                }
+                $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+                $tokens = array_filter($tokens, function($t) { return $t !== ''; });
+                $tokenParts = array();
+                foreach ($tokens as $token) {
+                    $t = Database::escape('Papir', $token);
+                    $tokenParts[] = "(psi.raw_sku LIKE '%{$t}%' OR psi.raw_name LIKE '%{$t}%' OR LOWER(COALESCE(pp.`product_article`,'')) LIKE '%{$t}%' OR CAST(pp.`product_id` AS CHAR) LIKE '%{$t}%')";
+                }
+                if (!empty($tokenParts)) {
+                    $chipConditions[] = '(' . implode(' AND ', $tokenParts) . ')';
+                }
+            }
+            if (!empty($chipConditions)) {
+                $where .= ' AND ' . (count($chipConditions) === 1 ? $chipConditions[0] : '(' . implode(' OR ', $chipConditions) . ')');
             }
         }
         $countResult = Database::fetchRow('Papir',
@@ -428,7 +465,7 @@ class PricelistItemRepository
         $total = ($countResult['ok'] && !empty($countResult['row'])) ? (int)$countResult['row']['cnt'] : 0;
         $result = Database::fetchAll('Papir',
             "SELECT psi.*,
-                    pp.product_article, pp.id_off,
+                    pp.product_id AS pp_product_id, pp.product_article, pp.id_off,
                     COALESCE(pd.name, '') AS catalog_name,
                     ppl.name AS pricelist_name,
                     ps.name AS supplier_name_item

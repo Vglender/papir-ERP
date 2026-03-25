@@ -711,6 +711,8 @@
 		.bulk-log-err  { color: #b42318; }
 		.action-menu-dropdown .action-delete { color: #b42318; }
 		.action-menu-dropdown .action-delete:hover { background: #fff1f1; }
+		.action-menu-sep { height: 1px; background: #e8edf3; margin: 4px 0; }
+		.module-links { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 0 4px; }
 		#bulkClearSelection.has-selection {
 			background: #fff4e5; border-color: #e6951a; color: #b26a00; font-weight: 600;
 		}
@@ -1335,6 +1337,10 @@
 								<button type="button" class="action-menu-toggle">&#9776;</button>
 
 								<div class="action-menu-dropdown">
+									<a href="/prices?search=<?php echo (int)$row['product_id']; ?>" target="_blank">Прайси →</a>
+									<a href="/prices/suppliers?search=<?php echo (int)$row['product_id']; ?>" target="_blank">Постачальники →</a>
+									<a href="/action?search=<?php echo (int)$row['product_id']; ?>" target="_blank">Акція →</a>
+									<div class="action-menu-sep"></div>
 									<a href="#" class="action-delete js-row-delete" data-product-id="<?php echo (int)$row['product_id']; ?>">Видалити</a>
 								</div>
 							</div>
@@ -1528,7 +1534,14 @@
                 </div>
 
 			<div class="section">
-				<h3>Цены</h3>
+				<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;">
+					<h3 style="margin:0;">Цены</h3>
+					<div style="display:flex;gap:6px;">
+						<a href="/prices?search=<?php echo (int)$details['product_id']; ?>" target="_blank" class="btn btn-xs">Прайси →</a>
+						<a href="/prices/suppliers?search=<?php echo (int)$details['product_id']; ?>" target="_blank" class="btn btn-xs">Постачальники →</a>
+						<a href="/action?search=<?php echo (int)$details['product_id']; ?>" target="_blank" class="btn btn-xs">Акція →</a>
+					</div>
+				</div>
 
 				<div class="price-card">
 
@@ -1781,13 +1794,6 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                         <div class="k">Дата обновления</div>
 						<div class="v"><?php echo renderValue($details['date_updated']); ?></div>
 
-						<div class="module-links">
-								class="btn btn-small"
-							>Action</a>
-
-								class="btn btn-small"
-							>Virtual</a>
-						</div><!-- /module-links -->
                     </div><!-- /info-grid -->
                     </div><!-- /section-body Ссылки -->
                 </div><!-- /section Ссылки -->

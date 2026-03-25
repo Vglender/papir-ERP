@@ -60,13 +60,35 @@ class ProductPriceRepository
 
     private function buildSearchWhere($search)
     {
-        $parts = array_filter(array_map('trim', preg_split('/\s+/', $search)));
-        $conditions = array();
-        foreach ($parts as $token) {
-            $t = Database::escape($this->dbName, $token);
-            $conditions[] = "(CAST(pp.id_off AS CHAR) LIKE '%{$t}%' OR pp.product_article LIKE '%{$t}%' OR pd.name LIKE '%{$t}%')";
+        $rawChips = preg_split('/\s*,\s*/u', $search);
+        $chipConditions = array();
+
+        foreach ($rawChips as $chip) {
+            $chip = trim($chip);
+            if ($chip === '') continue;
+
+            // Чистый ID — точное совпадение
+            if (preg_match('/^\d+$/', $chip)) {
+                $chipConditions[] = "pp.`product_id` = " . (int)$chip;
+                continue;
+            }
+
+            // Текст — AND по токенам
+            $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+            $tokens = array_filter($tokens, function($t) { return $t !== ''; });
+            $tokenParts = array();
+            foreach ($tokens as $token) {
+                $t = Database::escape($this->dbName, $token);
+                $tokenParts[] = "(CAST(pp.`product_id` AS CHAR) LIKE '%{$t}%'
+                    OR LOWER(COALESCE(pp.`product_article`,'')) LIKE '%{$t}%'
+                    OR LOWER(COALESCE(pd.`name`,'')) LIKE '%{$t}%')";
+            }
+            if (!empty($tokenParts)) {
+                $chipConditions[] = '(' . implode(' AND ', $tokenParts) . ')';
+            }
         }
-        return $conditions;
+
+        return $chipConditions;
     }
 
     public function getList(array $filters = [], $sort = 'product_id', $order = 'asc', $offset = 0, $limit = 50)
@@ -79,8 +101,11 @@ class ProductPriceRepository
         }
 
         if (!empty($filters['search'])) {
-            foreach ($this->buildSearchWhere($filters['search']) as $cond) {
-                $where[] = $cond;
+            $chipConditions = $this->buildSearchWhere($filters['search']);
+            if (!empty($chipConditions)) {
+                $where[] = count($chipConditions) === 1
+                    ? $chipConditions[0]
+                    : '(' . implode(' OR ', $chipConditions) . ')';
             }
         }
 
@@ -101,7 +126,7 @@ class ProductPriceRepository
             }
         }
 
-        $allowedSort = ['product_id', 'id_off', 'product_article', 'price_purchase', 'price_sale', 'price_wholesale', 'price_dealer', 'price_rrp'];
+        $allowedSort = ['product_id', 'product_article', 'price_purchase', 'price_sale', 'price_wholesale', 'price_dealer', 'price_rrp'];
         $sort  = in_array($sort, $allowedSort) ? $sort : 'product_id';
         $order = $order === 'desc' ? 'DESC' : 'ASC';
         $whereSql = implode(' AND ', $where);

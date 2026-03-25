@@ -50,19 +50,25 @@ if (Request::isPost()) {
         }
 
         if (empty($errors)) {
-            // Both discounts zeroed — remove action completely
-            if ($discount == 0 && $super_discont == 0) {
-                $actionRepo->delete($post_product_id);
-                $priceRepo->deleteByProductId($post_product_id);
+            // Look up id_off from product_papir (action tables use id_off as key)
+            $ppRow = Database::fetchRow('Papir', "SELECT id_off FROM product_papir WHERE product_id = " . $post_product_id . " LIMIT 1");
+            $idOff = ($ppRow['ok'] && !empty($ppRow['row'])) ? (int)$ppRow['row']['id_off'] : 0;
+
+            if ($idOff <= 0) {
+                $errors[] = 'Товар не прив\'язаний до сайту (id_off = 0).';
+            } elseif ($discount == 0 && $super_discont == 0) {
+                // Both discounts zeroed — remove action completely
+                $actionRepo->delete($idOff);
+                $priceRepo->deleteByProductId($idOff);
                 // Remove special price from OpenCart
                 Database::query('off',
                     "DELETE FROM `oc_product_special`
-                     WHERE `product_id` = " . $post_product_id . "
+                     WHERE `product_id` = " . $idOff . "
                        AND `customer_group_id` IN (1, 4)"
                 );
                 ViewHelper::redirect($basePath, $state);
             } else {
-                $saveResult = $actionRepo->save($post_product_id, $discount, $super_discont);
+                $saveResult = $actionRepo->save($idOff, $discount, $super_discont);
 
                 if (!$saveResult['ok']) {
                     $errors[] = 'Ошибка сохранения: ' . (isset($saveResult['error']) ? $saveResult['error'] : 'unknown');
@@ -76,7 +82,11 @@ if (Request::isPost()) {
 
 // Handle GET: delete
 if ($action === 'delete' && $product_id > 0) {
-    $actionRepo->delete($product_id);
+    $ppDelRow = Database::fetchRow('Papir', "SELECT id_off FROM product_papir WHERE product_id = " . $product_id . " LIMIT 1");
+    $idOffDel = ($ppDelRow['ok'] && !empty($ppDelRow['row'])) ? (int)$ppDelRow['row']['id_off'] : 0;
+    if ($idOffDel > 0) {
+        $actionRepo->delete($idOffDel);
+    }
     ViewHelper::redirect($basePath, $state);
 }
 
@@ -92,8 +102,6 @@ if ($action === 'edit' && $product_id > 0) {
 }
 
 // Stats
-$updatedAt      = $dashboardRepo->getUpdatedAt();
-$totalStockSum  = $dashboardRepo->getTotalStockSum();
 $total_rows     = $dashboardRepo->getTotalRows($search, $filter);
 $actionCount    = count($actionRepo->getAll());
 $pendingCount   = $priceRepo->getPendingPublishCount();

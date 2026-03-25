@@ -54,7 +54,7 @@
             font-size: 13px;
             font-weight: bold;
         }
-        input[type="text"],
+        input[type="text"]:not(.chip-typer),
         input[type="number"],
         select {
             width: 100%;
@@ -157,6 +157,11 @@
             border-color: #1f6feb;
             color: #1f6feb;
         }
+        .chip-input { display:flex; flex-wrap:wrap; gap:4px; align-items:center; padding:6px 8px; border:1px solid #c8d1dd; border-radius:8px; background:#fff; cursor:text; min-height:38px; margin-bottom:14px; }
+        .chip { display:inline-flex; align-items:center; gap:4px; padding:3px 8px; background:#eef4ff; color:#1f4db8; border-radius:4px; font-size:13px; white-space:nowrap; }
+        .chip-x { cursor:pointer; color:#888; line-height:1; }
+        .chip-x:hover { color:#b42318; }
+        .chip-typer { border:none; outline:none; font-size:13px; padding:2px 4px; min-width:120px; flex:1; background:transparent; }
         .filters {
             display: grid;
             grid-template-columns: minmax(280px, 1fr) 220px;
@@ -321,9 +326,7 @@
         <div>
             <h1 class="title">Акции</h1>
             <div class="subtitle">
-                Товары с остатком &gt; 0 из <strong>stock_</strong>.
-                Остатки обновлены:
-                <strong><?php echo ViewHelper::h($updatedAt !== '' ? $updatedAt : '—'); ?></strong>
+                Товары с остатком &gt; 0 и товары с активной акцией.
             </div>
         </div>
 
@@ -332,10 +335,6 @@
                 <span class="badge">Позиций: <?php echo (int)$total_rows; ?></span>
                 <span class="badge badge-warning">Акций: <?php echo (int)$actionCount; ?></span>
                 <span class="badge badge-neutral">Ожидают публикации: <?php echo (int)$pendingCount; ?></span>
-            </div>
-            <div class="subtitle" style="margin-top:4px;">
-                Сумма остатков:
-                <strong><?php echo ViewHelper::h(number_format($totalStockSum, 2, '.', ' ')); ?></strong>
             </div>
             <div class="action-btns">
                 <a href="/action-update-stock" class="btn btn-primary" target="_blank">▲ Обновить остатки</a>
@@ -398,14 +397,12 @@
         <div class="card">
             <form method="get" class="filters" action="/action">
                 <div>
-                    <label for="search">Поиск</label>
-                    <input
-                        type="text"
-                        name="search"
-                        id="search"
-                        value="<?php echo ViewHelper::h($search); ?>"
-                        placeholder="ID или название"
-                    >
+                    <label>Поиск</label>
+                    <div class="chip-input" id="searchChipBox">
+                        <input type="text" class="chip-typer" id="searchChipTyper"
+                               placeholder="ID, артикул или название…" autocomplete="off">
+                    </div>
+                    <input type="hidden" name="search" id="searchHidden" value="<?php echo ViewHelper::h($search); ?>">
                 </div>
 
                 <div>
@@ -547,5 +544,9 @@
         </div>
     </div>
 </div>
+<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
+<script>
+ChipSearch.init('searchChipBox', 'searchChipTyper', 'searchHidden');
+</script>
 </body>
 </html>

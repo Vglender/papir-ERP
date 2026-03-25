@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>Поставщики и прайс-листы</title>
+<link rel="stylesheet" href="/modules/shared/ui.css">
 <style>
 body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f7fb; color:#222; }
 .wrap { max-width:1600px; margin:0 auto; padding:24px; }
@@ -13,14 +14,20 @@ body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f7fb; co
 .layout { display:grid; grid-template-columns:320px 1fr; gap:20px; align-items:start; }
 .card { background:#fff; border:1px solid #d9e0ea; border-radius:12px; padding:16px 20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
 .sticky { position:sticky; top:16px; }
-.btn { display:inline-block; padding:8px 14px; border-radius:8px; border:1px solid #c8d1dd; background:#fff; color:#222; cursor:pointer; font-size:13px; box-sizing:border-box; text-align:center; text-decoration:none; }
+.btn { display:inline-block; padding:8px 14px; border-radius:8px; border:1px solid #c8d1dd; background:#fff; color:#222; cursor:pointer; font-size:13px; box-sizing:border-box; text-align:center; text-decoration:none; transition:background .15s,border-color .15s; }
+.btn:hover { background:#f0f4ff; border-color:#a8bde8; }
 .btn-primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
+.btn-primary:hover { background:#1558c8; border-color:#1558c8; }
+.btn-ghost { background:#f1f5f9; border-color:#d1d9e0; color:#444; }
+.btn-ghost:hover { background:#e2e8f0; }
+.btn-apply { background:#f1f5f9; border-color:#c8d1dd; color:#333; }
+.btn-apply:hover { background:#e8f0fe; border-color:#a8bde8; color:#1a56c4; }
 .btn-danger  { background:#fff1f1; border-color:#f5c6c6; color:#b42318; }
 .btn-small { padding:5px 9px; font-size:12px; border-radius:6px; }
 .btn-xs    { padding:3px 7px; font-size:11px; border-radius:5px; }
 .btn-row { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
 label { display:block; margin:0 0 4px; font-size:12px; font-weight:bold; color:#555; }
-input[type="text"], input[type="number"], select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #c8d1dd; border-radius:7px; font-size:13px; background:#fff; }
+input[type="text"]:not(.chip-typer), input[type="number"], select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #c8d1dd; border-radius:7px; font-size:13px; background:#fff; }
 .supplier-block { margin-bottom:20px; }
 .supplier-header { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#f8fafc; border:1px solid #d9e0ea; border-radius:8px 8px 0 0; cursor:default; }
 .supplier-name { font-weight:bold; font-size:14px; }
@@ -54,9 +61,10 @@ tbody tr:hover td { background:#eef4ff; }
 .mb-manual     { background:#fff4e5; color:#b26a00; }
 .mb-ignored    { background:#f5f5f5; color:#999; }
 .mb-none       { background:#fff1f1; color:#b42318; }
-.filters { display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap; margin-bottom:14px; }
+.filters { display:flex; gap:10px; align-items:flex-end; flex-wrap:nowrap; margin-bottom:14px; }
+.filters > .filter-search { flex:1 1 auto; min-width:180px; }
+.filters > .filter-actions { flex:0 0 auto; display:flex; gap:8px; align-items:flex-end; }
 .filters > div { flex:0 0 auto; }
-.filters input[type="text"] { width:240px; }
 .filters select { width:160px; }
 .toggle-group { display:inline-flex; border-radius:7px; overflow:hidden; }
 .toggle-group label { display:block; }
@@ -277,14 +285,21 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                     <div style="font-size:12px;color:#666;margin-top:2px;">Итого: <?php echo $totalItems; ?> строк (без игнорируемых)</div>
                 </div>
                 <!-- Фильтры -->
-                <form method="get" action="/prices/suppliers" class="filters">
+                <form method="get" action="/prices/suppliers" class="filters" id="showAllSearchForm">
                     <input type="hidden" name="show_all" value="1">
                     <input type="hidden" name="page" value="1">
-                    <div>
+                    <div class="filter-search">
                         <label>Поиск</label>
-                        <input type="text" name="search" value="<?php echo ViewHelper::h($search); ?>" placeholder="артикул, название...">
+                        <div class="chip-input" id="showAllChipBox">
+                            <input type="text" class="chip-typer" id="showAllChipTyper"
+                                   placeholder="ID, артикул або назва…" autocomplete="off">
+                        </div>
+                        <input type="hidden" name="search" id="showAllSearchHidden" value="<?php echo ViewHelper::h($search); ?>">
                     </div>
-                    <div><label>&nbsp;</label><button type="submit" class="btn">Применить</button></div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-apply">Применить</button>
+                        <a href="/prices/suppliers?show_all=1" class="btn btn-ghost">Сброс</a>
+                    </div>
                 </form>
                 <?php if (empty($items)) { ?>
                     <div style="color:#777;padding:20px 0;">Нет строк.</div>
@@ -292,25 +307,28 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                 <div style="overflow-x:auto;">
                 <table>
                     <colgroup>
-                        <col style="width:90px"><col class="col-sku"><col class="col-model"><col class="col-name">
+                        <col style="width:90px"><col style="width:44px"><col class="col-sku"><col class="col-model"><col class="col-name">
                         <col class="col-price"><col class="col-rrp"><col class="col-stock">
                         <col class="col-status"><col class="col-cat">
                     </colgroup>
                     <thead><tr>
                         <th>Прайс</th>
+                        <th>ID</th>
                         <th>Артикул</th><th>model</th><th>Название</th>
                         <th>Цена</th><th>RRP</th><th>Ост.</th>
                         <th>Статус</th><th>Каталог</th>
                     </tr></thead>
                     <tbody>
                     <?php foreach ($items as $item) {
-                        $itemId    = (int)$item['id'];
-                        $matchType = isset($item['match_type']) ? $item['match_type'] : null;
-                        $productId = isset($item['product_id']) ? (int)$item['product_id'] : null;
-                        $isMatched = $productId !== null && $matchType !== 'ignored';
+                        $itemId      = (int)$item['id'];
+                        $matchType   = isset($item['match_type']) ? $item['match_type'] : null;
+                        $productId   = isset($item['product_id']) ? (int)$item['product_id'] : null;
+                        $ppProductId = isset($item['pp_product_id']) ? (int)$item['pp_product_id'] : null;
+                        $isMatched   = $productId !== null && $matchType !== 'ignored';
                     ?>
                     <tr>
                         <td style="font-size:11px;color:#666;"><?php echo ViewHelper::h($item['supplier_name_item']); ?><br><span style="color:#aaa;"><?php echo ViewHelper::h($item['pricelist_name']); ?></span></td>
+                        <td style="font-family:monospace;font-size:11px;color:#555;"><?php echo $ppProductId ? $ppProductId : '—'; ?></td>
                         <td style="font-family:monospace;font-size:11px;"><?php echo ViewHelper::h($item['raw_sku'] ?: '—'); ?></td>
                         <td style="font-family:monospace;font-size:11px;"><?php echo ViewHelper::h($item['raw_model'] ?: '—'); ?></td>
                         <td title="<?php echo ViewHelper::h($item['raw_name']); ?>"><?php echo ViewHelper::h($item['raw_name'] ?: '—'); ?></td>
@@ -368,12 +386,16 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                 </div>
 
                 <!-- Фильтры -->
-                <form method="get" action="/prices/suppliers" class="filters">
+                <form method="get" action="/prices/suppliers" class="filters" id="plSearchForm">
                     <input type="hidden" name="pricelist_id" value="<?php echo $pricelistId; ?>">
                     <input type="hidden" name="page" value="1">
-                    <div>
+                    <div class="filter-search">
                         <label>Поиск</label>
-                        <input type="text" name="search" value="<?php echo ViewHelper::h($search); ?>" placeholder="артикул, название...">
+                        <div class="chip-input" id="plChipBox">
+                            <input type="text" class="chip-typer" id="plChipTyper"
+                                   placeholder="ID, артикул або назва…" autocomplete="off">
+                        </div>
+                        <input type="hidden" name="search" id="plSearchHidden" value="<?php echo ViewHelper::h($search); ?>">
                     </div>
                     <div>
                         <label>Статус</label>
@@ -399,6 +421,10 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                             <label><input type="radio" name="rrp_filter" value="has_rrp" onchange="this.form.submit()" <?php echo $rrpFilter==='has_rrp' ?'checked':''; ?>><span>С RRP</span></label>
                             <label><input type="radio" name="rrp_filter" value="no_rrp"  onchange="this.form.submit()" <?php echo $rrpFilter==='no_rrp'  ?'checked':''; ?>><span>Без RRP</span></label>
                         </div>
+                    </div>
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-apply">Применить</button>
+                        <a href="/prices/suppliers?pricelist_id=<?php echo $pricelistId; ?>" class="btn btn-ghost">Сброс</a>
                     </div>
                 </form>
 
@@ -1371,6 +1397,14 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
     });
 
 })();
+</script>
+<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
+<script>
+<?php if ($showAll) { ?>
+ChipSearch.init('showAllChipBox', 'showAllChipTyper', 'showAllSearchHidden');
+<?php } elseif ($pricelist) { ?>
+ChipSearch.init('plChipBox', 'plChipTyper', 'plSearchHidden');
+<?php } ?>
 </script>
 </body>
 </html>

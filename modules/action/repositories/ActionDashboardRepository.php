@@ -56,6 +56,7 @@ class ActionDashboardRepository
     {
         return array(
             'product_id'    => '',
+            'id_off'        => '',
             'discount'      => 0,
             'super_discont' => 0,
             'name'          => '',
@@ -68,37 +69,69 @@ class ActionDashboardRepository
     }
 
     /**
-     * Get the last stock update timestamp.
+     * Build chip-based search conditions (OR between chips, AND within chip).
+     * Pure integer chip = exact product_id match.
      *
-     * @return string
+     * @param string $search
+     * @return array  array of SQL condition strings
      */
-    public function getUpdatedAt()
+    private function buildSearchWhere($search)
     {
-        $sql    = "SELECT `date` FROM `stock` WHERE `number` = 1 LIMIT 1";
-        $result = Database::fetchRow('ms', $sql);
+        $rawChips = preg_split('/\s*,\s*/u', trim($search));
+        $chipConditions = array();
 
-        if ($result['ok'] && !empty($result['row'])) {
-            return isset($result['row']['date']) ? $result['row']['date'] : '';
+        foreach ($rawChips as $chip) {
+            $chip = trim($chip);
+            if ($chip === '') continue;
+
+            if (preg_match('/^\d+$/', $chip)) {
+                $chipConditions[] = "pp.`product_id` = " . (int)$chip;
+                continue;
+            }
+
+            $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+            $tokens = array_filter($tokens, function($t) { return $t !== ''; });
+            $tokenParts = array();
+            foreach ($tokens as $token) {
+                $t = Database::escape('Papir', $token);
+                $tokenParts[] = "(CAST(pp.`product_id` AS CHAR) LIKE '%{$t}%' OR LOWER(COALESCE(pp.`product_article`,'')) LIKE '%{$t}%' OR LOWER(COALESCE(pd.`name`,'')) LIKE '%{$t}%')";
+            }
+            if (!empty($tokenParts)) {
+                $chipConditions[] = '(' . implode(' AND ', $tokenParts) . ')';
+            }
         }
 
-        return '';
+        return $chipConditions;
     }
 
     /**
-     * Get total sum of stock value.
+     * Build WHERE clause.
      *
-     * @return float
+     * @param string $search
+     * @param string $filter
+     * @return string  full WHERE ... clause
      */
-    public function getTotalStockSum()
+    private function buildWhereSql($search, $filter)
     {
-        $sql    = "SELECT SUM(`stock` * `price`) AS total_stock_sum FROM `stock_` WHERE `stock` > 0";
-        $result = Database::fetchRow('ms', $sql);
+        $whereParts = array('pp.`status` = 1', '(pp.`quantity` > 0 OR ap.`product_id` IS NOT NULL)');
 
-        if ($result['ok'] && !empty($result['row'])) {
-            return isset($result['row']['total_stock_sum']) ? (float)$result['row']['total_stock_sum'] : 0.0;
+        $search = trim((string)$search);
+        $filter = trim((string)$filter);
+
+        if ($search !== '') {
+            $chips = $this->buildSearchWhere($search);
+            if (!empty($chips)) {
+                $whereParts[] = count($chips) === 1 ? $chips[0] : '(' . implode(' OR ', $chips) . ')';
+            }
         }
 
-        return 0.0;
+        if ($filter === 'with_action') {
+            $whereParts[] = "ap.`product_id` IS NOT NULL";
+        } elseif ($filter === 'without_action') {
+            $whereParts[] = "ap.`product_id` IS NULL AND pp.`quantity` > 0";
+        }
+
+        return 'WHERE ' . implode(' AND ', $whereParts);
     }
 
     /**
@@ -113,16 +146,13 @@ class ActionDashboardRepository
         $whereSql = $this->buildWhereSql($search, $filter);
 
         $sql = "SELECT COUNT(*) AS total_rows
-                FROM `stock_` s
-                LEFT JOIN `virtual` v
-                    ON v.`product_id` = CAST(s.`model` AS UNSIGNED)
-                LEFT JOIN `Papir`.`action_products` ap
-                    ON ap.`product_id` = CAST(s.`model` AS UNSIGNED)
-                LEFT JOIN `Papir`.`action_prices` act_p
-                    ON act_p.`product_id` = CAST(s.`model` AS UNSIGNED)
-                " . $whereSql;
+                FROM `product_papir` pp
+                LEFT JOIN `product_description` pd ON pd.product_id = pp.product_id AND pd.language_id = 2
+                LEFT JOIN `action_products` ap ON ap.product_id = pp.id_off
+                LEFT JOIN `action_prices` act_p ON act_p.product_id = pp.id_off
+                {$whereSql}";
 
-        $result = Database::fetchRow('ms', $sql);
+        $result = Database::fetchRow('Papir', $sql);
 
         if ($result['ok'] && !empty($result['row'])) {
             return isset($result['row']['total_rows']) ? (int)$result['row']['total_rows'] : 0;
@@ -151,28 +181,26 @@ class ActionDashboardRepository
         $orderBy  = $this->buildOrderBy($sort, $order);
 
         $sql = "SELECT
-                    CAST(s.`model` AS UNSIGNED) AS product_id,
-                    s.`name`,
-                    (s.`stock` + COALESCE(v.`stock`, 0)) AS stock,
-                    s.`price`,
-                    ((s.`stock` + COALESCE(v.`stock`, 0)) * s.`price`) AS total_sum,
+                    pp.`product_id`,
+                    pp.`id_off`,
+                    COALESCE(pd.`name`, '') AS name,
+                    pp.`quantity` AS stock,
+                    COALESCE(pp.`price_sale`, pp.`price`, 0) AS price,
+                    (pp.`quantity` * COALESCE(pp.`price_sale`, pp.`price`, 0)) AS total_sum,
                     ap.`discount`,
                     ap.`super_discont`,
                     act_p.`price_act`,
                     act_p.`published_at`,
                     act_p.`calculated_at`
-                FROM `stock_` s
-                LEFT JOIN `virtual` v
-                    ON v.`product_id` = CAST(s.`model` AS UNSIGNED)
-                LEFT JOIN `Papir`.`action_products` ap
-                    ON ap.`product_id` = CAST(s.`model` AS UNSIGNED)
-                LEFT JOIN `Papir`.`action_prices` act_p
-                    ON act_p.`product_id` = CAST(s.`model` AS UNSIGNED)
-                " . $whereSql . "
-                ORDER BY " . $orderBy . "
+                FROM `product_papir` pp
+                LEFT JOIN `product_description` pd ON pd.product_id = pp.product_id AND pd.language_id = 2
+                LEFT JOIN `action_products` ap ON ap.product_id = pp.id_off
+                LEFT JOIN `action_prices` act_p ON act_p.product_id = pp.id_off
+                {$whereSql}
+                ORDER BY {$orderBy}
                 LIMIT " . (int)$offset . ", " . (int)$limit;
 
-        $result = Database::fetchAll('ms', $sql);
+        $result = Database::fetchAll('Papir', $sql);
 
         if ($result['ok'] && !empty($result['rows'])) {
             return $result['rows'];
@@ -184,7 +212,7 @@ class ActionDashboardRepository
     /**
      * Get a single row for the edit form.
      *
-     * @param int $productId
+     * @param int $productId  Papir product_id
      * @return array|null
      */
     public function getEditRow($productId)
@@ -192,62 +220,30 @@ class ActionDashboardRepository
         $productId = (int)$productId;
 
         $sql = "SELECT
-                    CAST(s.`model` AS UNSIGNED) AS product_id,
-                    s.`name`,
-                    (s.`stock` + COALESCE(v.`stock`, 0)) AS stock,
-                    s.`price`,
+                    pp.`product_id`,
+                    pp.`id_off`,
+                    COALESCE(pd.`name`, '') AS name,
+                    pp.`quantity` AS stock,
+                    COALESCE(pp.`price_sale`, pp.`price`, 0) AS price,
                     COALESCE(ap.`discount`, 0) AS discount,
                     COALESCE(ap.`super_discont`, 0) AS super_discont,
                     act_p.`price_act`,
                     act_p.`published_at`,
                     act_p.`calculated_at`
-                FROM `stock_` s
-                LEFT JOIN `virtual` v
-                    ON v.`product_id` = CAST(s.`model` AS UNSIGNED)
-                LEFT JOIN `Papir`.`action_products` ap
-                    ON ap.`product_id` = CAST(s.`model` AS UNSIGNED)
-                LEFT JOIN `Papir`.`action_prices` act_p
-                    ON act_p.`product_id` = CAST(s.`model` AS UNSIGNED)
-                WHERE CAST(s.`model` AS UNSIGNED) = " . $productId . "
+                FROM `product_papir` pp
+                LEFT JOIN `product_description` pd ON pd.product_id = pp.product_id AND pd.language_id = 2
+                LEFT JOIN `action_products` ap ON ap.product_id = pp.id_off
+                LEFT JOIN `action_prices` act_p ON act_p.product_id = pp.id_off
+                WHERE pp.`product_id` = {$productId}
                 LIMIT 1";
 
-        $result = Database::fetchRow('ms', $sql);
+        $result = Database::fetchRow('Papir', $sql);
 
         if ($result['ok'] && !empty($result['row'])) {
             return $result['row'];
         }
 
         return null;
-    }
-
-    /**
-     * Build WHERE clause.
-     *
-     * @param string $search
-     * @param string $filter
-     * @return string
-     */
-    private function buildWhereSql($search, $filter)
-    {
-        $whereParts   = array();
-        $whereParts[] = "CAST(s.`model` AS UNSIGNED) > 0";
-
-        $search = trim((string)$search);
-        $filter = trim((string)$filter);
-
-        if ($search !== '') {
-            $searchEsc    = Database::escape('ms', $search);
-            $whereParts[] = "(CAST(s.`model` AS CHAR) LIKE '%" . $searchEsc . "%'
-                              OR s.`name` LIKE '%" . $searchEsc . "%')";
-        }
-
-        if ($filter === 'with_action') {
-            $whereParts[] = "ap.`product_id` IS NOT NULL";
-        } elseif ($filter === 'without_action') {
-            $whereParts[] = "ap.`product_id` IS NULL";
-        }
-
-        return ' WHERE ' . implode(' AND ', $whereParts);
     }
 
     /**
@@ -260,16 +256,16 @@ class ActionDashboardRepository
     private function buildOrderBy($sort, $order)
     {
         $map = array(
-            'product_id'    => 'product_id',
+            'product_id'    => 'pp.product_id',
             'name'          => 'name',
             'quantity'      => 'stock',
             'price'         => 'price',
             'total_sum'     => 'total_sum',
-            'discount'      => 'discount',
-            'super_discont' => 'super_discont',
+            'discount'      => 'ap.discount',
+            'super_discont' => 'ap.super_discont',
         );
 
-        $column    = isset($map[$sort]) ? $map[$sort] : 'product_id';
+        $column    = isset($map[$sort]) ? $map[$sort] : 'pp.product_id';
         $direction = strtoupper($order === 'desc' ? 'DESC' : 'ASC');
 
         return $column . ' ' . $direction;

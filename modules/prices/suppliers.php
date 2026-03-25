@@ -16,7 +16,7 @@ $rrpFilter    = Request::getString('rrp_filter', 'all');
 $search       = Request::getString('search', '');
 $page         = max(1, Request::getInt('page', 1));
 $perPage      = 50;
-$showAll      = Request::getInt('show_all', 0);
+$showAll      = Request::getInt('show_all', 1);
 
 $allowedFilters      = array('all', 'matched', 'unmatched', 'ignored');
 $allowedStockFilters = array('all', 'has_stock', 'no_stock');

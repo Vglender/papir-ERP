@@ -13,13 +13,32 @@
         .layout { display:grid; grid-template-columns: minmax(760px,1fr) 480px; gap:20px; align-items:start; }
         .card { background:#fff; border:1px solid #d9e0ea; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
         .sticky-panel { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow-y:auto; padding-right:6px; }
-        .filters { display:grid; grid-template-columns: minmax(260px,1fr) 200px 220px auto auto; gap:10px; margin-bottom:16px; align-items:end; }
+        .filters { display:flex; gap:10px; margin-bottom:16px; align-items:flex-end; flex-wrap:nowrap; }
+        .filters > .filter-search { flex:1 1 auto; min-width:200px; }
+        .filters > .filter-select { flex:0 0 180px; }
+        .filters > .filter-actions { flex:0 0 auto; display:flex; gap:8px; align-items:flex-end; }
         label { display:block; margin:0 0 6px; font-size:13px; font-weight:bold; }
-        input[type="text"], select { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #c8d1dd; border-radius:8px; font-size:14px; background:#fff; }
-        .btn { display:inline-block; padding:10px 14px; border-radius:8px; border:1px solid #c8d1dd; background:#fff; color:#222; text-decoration:none; cursor:pointer; font-size:14px; box-sizing:border-box; text-align:center; }
+        input[type="text"]:not(.chip-typer), select { width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #c8d1dd; border-radius:8px; font-size:14px; background:#fff; }
+        /* Chip search */
+        .chip-input { display:flex; flex-wrap:wrap; gap:4px; padding:3px 6px; min-height:42px; border:1px solid #c8d1dd; border-radius:8px; background:#fff; cursor:text; align-items:center; width:100%; box-sizing:border-box; }
+        .chip-input:focus-within { border-color:#4a90e2; }
+        .chip { display:inline-flex; align-items:center; gap:3px; background:#eef4ff; color:#1f4db8; border-radius:4px; padding:2px 6px 2px 8px; font-size:13px; white-space:nowrap; line-height:1.5; }
+        .chip-x { cursor:pointer; font-size:15px; line-height:1; color:#1f4db8; opacity:.55; margin-left:1px; }
+        .chip-x:hover { opacity:1; }
+        .chip-typer { border:none; outline:none; background:transparent; font-size:14px; min-width:120px; flex:1; padding:2px 0; font-family:inherit; color:#222; }
+        .btn { display:inline-block; padding:10px 14px; border-radius:8px; border:1px solid #c8d1dd; background:#fff; color:#222; text-decoration:none; cursor:pointer; font-size:14px; box-sizing:border-box; text-align:center; transition:background .15s,border-color .15s; }
+        .btn:hover { background:#f0f4ff; border-color:#a8bde8; }
         .btn-primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
+        .btn-primary:hover { background:#1558c8; border-color:#1558c8; }
+        .btn-ghost { background:#f1f5f9; border-color:#d1d9e0; color:#444; }
+        .btn-ghost:hover { background:#e2e8f0; }
+        .btn-apply { background:#f1f5f9; border-color:#c8d1dd; color:#333; }
+        .btn-apply:hover { background:#e8f0fe; border-color:#a8bde8; color:#1a56c4; }
         .btn-small { padding:6px 10px; font-size:12px; border-radius:6px; }
         .btn-row { display:flex; gap:8px; flex-wrap:wrap; }
+        .bulk-left { font-size:14px; display:flex; align-items:center; }
+        #bulkClear.has-selection { background:#fff4e5; border-color:#e6951a; color:#b26a00; font-weight:600; }
+        #bulkClear.has-selection:hover { background:#ffe8c4; }
         .bulk-toolbar { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:0; padding:10px 12px; border:1px solid #d9e0ea; border-radius:10px; background:#f8fafc; }
         .bulk-actions { display:flex; gap:8px; flex-wrap:wrap; }
         table { width:100%; border-collapse:collapse; background:#fff; }
@@ -27,6 +46,8 @@
         th { background:#f8fafc; font-size:12px; text-transform:uppercase; letter-spacing:.02em; color:#555; }
         .sort-link { color:#555; text-decoration:none; white-space:nowrap; }
         .sort-link:hover { text-decoration:underline; }
+        td a { color:inherit; text-decoration:none; }
+        td a:hover { text-decoration:underline; }
         .num { white-space:nowrap; }
         tbody tr.js-row-click { cursor:pointer; transition:background .15s; }
         tbody tr.js-row-click:hover { background:#f8fbff; }
@@ -345,14 +366,16 @@
                     <input type="hidden" name="selected" value="<?php echo (int)$selected; ?>">
                 <?php } ?>
 
-                <div>
-                    <label for="search">Поиск</label>
-                    <input type="text" name="search" id="search"
-                           value="<?php echo ViewHelper::h($search); ?>"
-                           placeholder="id_off, артикул, название">
+                <div class="filter-search">
+                    <label>Поиск</label>
+                    <div class="chip-input" id="searchChipBox">
+                        <input type="text" class="chip-typer" id="searchChipTyper"
+                               placeholder="ID, артикул или название…" autocomplete="off">
+                    </div>
+                    <input type="hidden" name="search" id="search" value="<?php echo ViewHelper::h($search); ?>">
                 </div>
 
-                <div>
+                <div class="filter-select">
                     <label for="filter">Фильтр</label>
                     <select name="filter" id="filter">
                         <option value="all"         <?php echo $filter === 'all'         ? 'selected' : ''; ?>>Все товары</option>
@@ -361,42 +384,20 @@
                     </select>
                 </div>
 
-                <div>
-                    <label for="strategy_id">Стратегия</label>
-                    <select name="strategy_id" id="strategy_id">
-                        <option value="0">Все стратегии</option>
-                        <?php foreach ($strategies as $s) { ?>
-                            <option value="<?php echo (int)$s['id']; ?>"
-                                <?php echo $strategyId === (int)$s['id'] ? 'selected' : ''; ?>>
-                                <?php echo ViewHelper::h($s['name']); ?>
-                            </option>
-                        <?php } ?>
-                    </select>
-                </div>
-
-                <div>
-                    <label>&nbsp;</label>
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:normal;cursor:pointer;padding:10px 0;">
-                        <input type="checkbox" name="show_inactive" value="1"
-                               <?php echo !empty($showInactive) ? 'checked' : ''; ?>
-                               onchange="this.form.submit()">
-                        <span style="font-size:13px;color:#666;">Показывать неактивные</span>
-                    </label>
-                </div>
-
-                <div class="btn-row">
-                    <button type="submit" class="btn btn-primary">Применить</button>
-                    <a href="/prices" class="btn">Сброс</a>
+                <div class="filter-actions">
+                    <button type="submit" class="btn btn-apply">Применить</button>
+                    <a href="/prices" class="btn btn-ghost">Сброс</a>
                 </div>
             </form>
 
             <div class="bulk-toolbar">
-                <div><strong>Выбрано:</strong> <span id="selectedCount">0</span></div>
+                <div class="bulk-left">
+                    <strong>Выбрано:</strong>&nbsp;<span id="selectedCount">0</span>
+                    <button type="button" class="btn btn-small btn-ghost" id="bulkClear" style="margin-left:12px;">Снять выбор</button>
+                </div>
                 <div class="bulk-actions">
-                    <button type="button" class="btn btn-small" id="bulkSelectPage">Выбрать страницу</button>
-                    <button type="button" class="btn btn-small" id="bulkClear">Снять выбор</button>
                     <button type="button" class="btn btn-small" id="bulkCopyIds">Копировать ID</button>
-                    <button type="button" class="btn btn-small btn-primary" id="bulkRecalculate">Пересчитать</button>
+                    <button type="button" class="btn btn-small" id="bulkRecalculate">Пересчитать</button>
                     <button type="button" class="btn btn-small" id="bulkSettingsToggle">Настройки</button>
                 </div>
             </div>
@@ -440,7 +441,7 @@
                 <thead>
                 <tr>
                     <th style="width:36px;"><input type="checkbox" id="selectAllRows"></th>
-                    <th><?php echo pricesSortLink('id_off',     'id_off',          $state, $basePath); ?></th>
+                    <th><?php echo pricesSortLink('ID',         'product_id',      $state, $basePath); ?></th>
                     <th><?php echo pricesSortLink('Артикул',    'product_article',  $state, $basePath); ?></th>
                     <th>Название</th>
                     <th><?php echo pricesSortLink('Закупочная', 'price_purchase',   $state, $basePath); ?></th>
@@ -465,9 +466,9 @@
                             style="<?php echo $isInactive ? 'opacity:.45;' : ''; ?>"
                             data-url="<?php echo ViewHelper::h($selectUrl); ?>"
                             data-product-id="<?php echo (int)$row['product_id']; ?>">
-                            <td><input type="checkbox" class="row-selector" value="<?php echo (int)$row['id_off']; ?>"></td>
+                            <td><input type="checkbox" class="row-selector" value="<?php echo (int)$row['product_id']; ?>"></td>
                             <td class="num">
-                                <a href="<?php echo ViewHelper::h($selectUrl); ?>"><?php echo (int)$row['id_off']; ?></a>
+                                <a href="<?php echo ViewHelper::h($selectUrl); ?>"><?php echo (int)$row['product_id']; ?></a>
                             </td>
                             <td><?php echo textVal($row['product_article']); ?></td>
                             <td>
@@ -530,6 +531,7 @@
     </div>
 </div>
 
+<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
 <script>
 (function () {
     // ── Global settings toggle ─────────────────────────────────────────────
@@ -833,7 +835,13 @@
     var selectedCount   = document.getElementById('selectedCount');
 
     function refreshCounter() {
-        if (selectedCount) selectedCount.textContent = selectedIds.size;
+        var n = selectedIds.size;
+        if (selectedCount) selectedCount.textContent = n;
+        var clearBtn = document.getElementById('bulkClear');
+        if (clearBtn) {
+            clearBtn.textContent = n > 0 ? 'Снять выбор (' + n + ')' : 'Снять выбор';
+            n > 0 ? clearBtn.classList.add('has-selection') : clearBtn.classList.remove('has-selection');
+        }
         if (selectAllRows) {
             var checked = Array.from(rowSelectors).filter(function (cb) { return cb.checked; }).length;
             selectAllRows.checked = rowSelectors.length > 0 && checked === rowSelectors.length;
@@ -859,18 +867,12 @@
         });
     }
 
-    var bulkSelectPage   = document.getElementById('bulkSelectPage');
     var bulkClear        = document.getElementById('bulkClear');
     var bulkCopyIds      = document.getElementById('bulkCopyIds');
     var bulkRecalculate  = document.getElementById('bulkRecalculate');
     var bulkSettingsToggle = document.getElementById('bulkSettingsToggle');
     var bulkSettingsPanel  = document.getElementById('bulkSettingsPanel');
     var bulkApplySettings  = document.getElementById('bulkApplySettings');
-
-    if (bulkSelectPage) bulkSelectPage.addEventListener('click', function () {
-        rowSelectors.forEach(function (cb) { cb.checked = true; selectedIds.add(cb.value); });
-        refreshCounter();
-    });
 
     if (bulkClear) bulkClear.addEventListener('click', function () {
         rowSelectors.forEach(function (cb) { cb.checked = false; });
@@ -993,25 +995,17 @@
 
     refreshCounter();
 
-    // ── Search: Enter → submit ─────────────────────────────────────────────
-    var searchInput   = document.getElementById('search');
+    // ── Chip Search ────────────────────────────────────────────────────────
+    ChipSearch.init('searchChipBox', 'searchChipTyper', 'search');
+
     var filterInput   = document.getElementById('filter');
     var strategyInput = document.getElementById('strategy_id');
-    var searchForm    = searchInput ? searchInput.closest('form') : null;
+    var searchForm    = document.getElementById('search') ? document.getElementById('search').closest('form') : null;
 
     function resetPageAndSubmit() {
         var pageInput = searchForm.querySelector('input[name="page"]');
         if (pageInput) pageInput.value = 1;
         searchForm.submit();
-    }
-
-    if (searchInput && searchForm) {
-        searchInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                resetPageAndSubmit();
-            }
-        });
     }
 
     if (filterInput && searchForm) {
