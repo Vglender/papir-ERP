@@ -14,4 +14,5 @@
 /modules/database/config/
 /modules/moysklad/storage/
 modules/prices/google_credentials.json
+/modules/openai/storage/
 
