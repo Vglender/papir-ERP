@@ -54,4 +54,12 @@ foreach (array(1 => $offId, 2 => $mffId) as $siteId => $siteAttrId) {
     }
 }
 
+// Каскад: обновить название атрибута на сайтах
+if ($nameUk || $nameRu) {
+    $names = array();
+    if ($nameUk) $names[2] = $nameUk;
+    if ($nameRu) $names[1] = $nameRu;
+    AttributeCascadeHelper::cascadeAttributeName($id, $names);
+}
+
 echo json_encode(array('ok' => true, 'attribute_id' => $id));

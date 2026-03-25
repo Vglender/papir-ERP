@@ -45,4 +45,7 @@ $r = Database::query('Papir',
      WHERE attribute_id = {$attrId}{$langSql} AND text = '{$srcEsc}'"
 );
 
+// Каскад на сайты
+AttributeCascadeHelper::cascadeMergeValue($attrId, $sourceText, $targetText, $langId);
+
 echo json_encode(array('ok' => true, 'affected' => $r['affected_rows']));

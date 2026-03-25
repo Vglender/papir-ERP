@@ -143,6 +143,9 @@ class AttributeRepository {
             "DELETE FROM attribute_site_mapping WHERE attribute_id = {$src}"
         );
 
+        // Каскад на сайты — до удаления, пока маппинги ещё есть
+        AttributeCascadeHelper::cascadeMergeAttribute($src, $tgt);
+
         // Удалить описания и сам атрибут
         Database::query('Papir', "DELETE FROM product_attribute_description WHERE attribute_id = {$src}");
         Database::query('Papir', "DELETE FROM product_attribute WHERE attribute_id = {$src}");

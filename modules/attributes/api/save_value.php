@@ -51,4 +51,7 @@ $r2 = Database::query('Papir',
      WHERE attribute_id = {$attrId}{$langSql} AND text = '{$oldEsc}'"
 );
 
+// Каскад на сайты
+AttributeCascadeHelper::cascadeRenameValue($attrId, $oldText, $newText, $langId);
+
 echo json_encode(array('ok' => true, 'affected' => $r2['affected_rows']));
