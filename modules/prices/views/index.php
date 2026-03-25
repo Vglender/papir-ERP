@@ -143,14 +143,12 @@
                     style="white-space:nowrap;">
                 &#128230; Остатки
             </button>
-            <span id="stockStatusMsg" style="font-size:12px;display:none;"></span>
             <button type="button" class="btn btn-small btn-primary" id="pushPricesBtn"
                     onclick="pushPrices()"
                     title="Выгрузить цены в OpenCart (offtorg, mff) и МойСклад"
                     style="white-space:nowrap;">
                 ⬆ Обновить
             </button>
-            <span id="pushPricesMsg" style="font-size:12px;display:none;"></span>
         </div>
     </div>
 
@@ -349,7 +347,18 @@
                     } ?>
                 </div>
             </div>
-            <a href="/prices/suppliers" class="btn btn-small btn-primary">Управление поставщиками →</a>
+            <?php
+                // Строим ссылку: search → сохраняем; иначе если явно выбран товар — его ID
+                if ($search !== '') {
+                    $__supSearch = $search;
+                } elseif ($selectedExplicit > 0) {
+                    $__supSearch = (string)$selectedExplicit;
+                } else {
+                    $__supSearch = '';
+                }
+                $__supUrl = '/prices/suppliers' . ($__supSearch !== '' ? '?search=' . urlencode($__supSearch) : '');
+            ?>
+            <a href="<?php echo ViewHelper::h($__supUrl); ?>" class="btn btn-small btn-primary">Управление поставщиками →</a>
         </div>
     </div>
 
@@ -716,52 +725,80 @@
 
     // ── Stock update ───────────────────────────────────────────────────────
     function runStockUpdate() {
-        var btn = document.getElementById('stockUpdateBtn');
-        var msg = document.getElementById('stockStatusMsg');
-        if (btn) { btn.disabled = true; }
-        if (msg) { msg.style.display = 'inline'; msg.style.color = '#555'; msg.textContent = 'Обновляем...'; }
+        var btn      = document.getElementById('stockUpdateBtn');
+        var progress = document.getElementById('recalcProgress');
+        var bar      = document.getElementById('recalcBar');
+        var text     = document.getElementById('recalcText');
+
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Остатки...'; }
+        if (bar)  { bar.style.width = '0%'; }
+        if (text) { text.style.color = '#555'; text.textContent = 'Обновляем остатки из МойСклад...'; }
+        if (progress) progress.style.display = 'block';
+
+        // Анимация ожидания — ползём до 70% пока ждём ответа
+        var fakeTimer = setInterval(function() {
+            if (!bar) return;
+            var cur = parseFloat(bar.style.width) || 0;
+            if (cur < 70) bar.style.width = (cur + 5) + '%';
+            else clearInterval(fakeTimer);
+        }, 300);
+
         fetch('/prices/api/update_stock', {method: 'POST'})
         .then(function(r) { return r.json(); })
         .then(function(d) {
-            if (btn) { btn.disabled = false; }
+            clearInterval(fakeTimer);
+            if (btn) { btn.disabled = false; btn.textContent = '📦 Остатки'; }
+            if (bar)  bar.style.width = '100%';
             if (d.ok) {
-                if (msg) {
-                    msg.style.color = '#157347';
-                    msg.textContent = 'Обновлено: ' + d.stock_rows + ' физ., ' + d.virtual_synced + ' произв., quantity: ' + d.quantity_updated;
+                if (text) {
+                    text.style.color = '#157347';
+                    text.textContent = 'Готово! Физ.: ' + d.stock_rows + ', произв.: ' + d.virtual_synced + ', quantity: ' + d.quantity_updated;
                 }
             } else {
-                if (msg) { msg.style.color = '#b42318'; msg.textContent = d.error || 'Ошибка'; }
+                if (text) { text.style.color = '#b42318'; text.textContent = 'Ошибка: ' + (d.error || '?'); }
             }
+            setTimeout(function() { if (progress) progress.style.display = 'none'; }, 8000);
         })
         .catch(function() {
-            if (btn) { btn.disabled = false; }
-            if (msg) { msg.style.color = '#b42318'; msg.textContent = 'Ошибка сети'; }
+            clearInterval(fakeTimer);
+            if (btn) { btn.disabled = false; btn.textContent = '📦 Остатки'; }
+            if (text) { text.style.color = '#b42318'; text.textContent = 'Ошибка сети'; }
+            setTimeout(function() { if (progress) progress.style.display = 'none'; }, 8000);
         });
     }
     window.runStockUpdate = runStockUpdate;
 
     // ── Push prices: Phase 1 — sites (off+mff), Phase 2 — MoySklad ──────────
     function pushPrices(onDone) {
-        var btn = document.getElementById('pushPricesBtn');
-        var msg = document.getElementById('pushPricesMsg');
-        if (btn) btn.disabled = true;
-        if (msg) { msg.style.display = 'inline'; }
+        var btn      = document.getElementById('pushPricesBtn');
+        var progress = document.getElementById('recalcProgress');
+        var bar      = document.getElementById('recalcBar');
+        var text     = document.getElementById('recalcText');
+
+        if (btn) { btn.disabled = true; btn.textContent = '⬆ Обновляем...'; }
+        if (bar)  bar.style.width = '0%';
+        if (text) { text.style.color = '#555'; text.textContent = 'Выгрузка цен: подготовка…'; }
+        if (progress) progress.style.display = 'block';
 
         var total     = 0;
-        var statSites = {pushed: 0, skipped: 0};
-        var statMs    = {pushed: 0, skipped: 0};
+        var statSites = {pushed: 0, skipped: 0, errors: 0};
+        var statMs    = {pushed: 0, skipped: 0, errors: 0};
 
-        function show(color, text) {
-            if (msg) { msg.style.color = color; msg.textContent = text; }
+        function show(color, msg) {
+            if (text) { text.style.color = color; text.textContent = msg; }
         }
-        function abort(text) {
-            if (btn) btn.disabled = false;
-            show('#b42318', '✗ ' + text);
+        function setBar(pct) {
+            if (bar) bar.style.width = Math.min(100, pct) + '%';
+        }
+        function abort(msg) {
+            if (btn) { btn.disabled = false; btn.textContent = '⬆ Обновить'; }
+            show('#b42318', '✗ ' + msg);
+            setTimeout(function() { if (progress) progress.style.display = 'none'; }, 8000);
         }
 
-        // Phase 1: сайты (off + mff)
+        // Phase 1: сайты (off + mff) — прогресс 0–50%
         function runSites(offset) {
-            show('#555', 'Сайты: ' + offset + '/' + (total || '…'));
+            show('#555', 'Сайты: ' + (offset || 0) + '/' + (total || '…') + ' — ' + statSites.pushed + ' ok');
             fetch('/prices/api/push_prices', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -771,22 +808,24 @@
             .then(function(d) {
                 if (!d.ok) { abort(d.error || 'Ошибка сайтов'); return; }
                 if (d.total) total = d.total;
-                statSites.pushed  += d.stats.pushed  || 0;
+                statSites.pushed += d.stats.pushed || 0;
                 statSites.skipped += d.stats.skipped || 0;
-                if (d.has_errors) { abort('Сайты: ' + (d.errors[0] || 'ошибка')); return; }
+                if (d.has_errors) statSites.errors += d.errors.length;
                 var done = d.next_offset !== null && d.next_offset !== undefined ? d.next_offset : total;
-                show('#555', 'Сайты: ' + done + '/' + total + ' — ' + statSites.pushed + ' ok');
+                setBar(total > 0 ? done / total * 50 : 25);
+                show('#555', 'Сайты: ' + done + '/' + total + ' — ' + statSites.pushed + ' ok' + (statSites.errors ? ' · ⚠ ' + statSites.errors + ' ош.' : ''));
                 if (d.next_offset !== null && d.next_offset !== undefined) {
                     runSites(d.next_offset);
                 } else {
-                    show('#1a7f4b', '✓ Сайты (' + statSites.pushed + ') → МС…');
+                    setBar(50);
+                    show('#555', '✓ Сайты (' + statSites.pushed + ') → МойСклад…');
                     runMs(0);
                 }
             })
             .catch(function(err) { abort('Сеть (сайты): ' + err); });
         }
 
-        // Phase 2: МойСклад
+        // Phase 2: МойСклад — прогресс 50–100%
         function runMs(offset) {
             fetch('/prices/api/push_prices', {
                 method: 'POST',
@@ -797,18 +836,22 @@
             .then(function(d) {
                 if (!d.ok) { abort(d.error || 'Ошибка МС'); return; }
                 if (d.total) total = d.total;
-                statMs.pushed  += d.stats.pushed  || 0;
+                statMs.pushed += d.stats.pushed || 0;
                 statMs.skipped += d.stats.skipped || 0;
-                if (d.has_errors) { abort('МС: ' + (d.errors[0] || 'ошибка')); return; }
+                if (d.has_errors) statMs.errors += d.errors.length;
                 var done = d.next_offset !== null && d.next_offset !== undefined ? d.next_offset : total;
-                var pct  = total > 0 ? Math.round(done / total * 100) : 0;
-                show('#555', 'МС: ' + done + '/' + total + ' (' + pct + '%) — ' + statMs.pushed + ' ok');
+                setBar(50 + (total > 0 ? done / total * 50 : 25));
+                show('#555', 'МойСклад: ' + done + '/' + total + ' — ' + statMs.pushed + ' ok' + (statMs.errors ? ' · ⚠ ' + statMs.errors + ' ош.' : ''));
                 if (d.next_offset !== null && d.next_offset !== undefined) {
                     runMs(d.next_offset);
                 } else {
-                    if (btn) btn.disabled = false;
-                    show('#157347', '✓ Сайты: ' + statSites.pushed + ', МС: ' + statMs.pushed + ' (пропущено: ' + statMs.skipped + ')');
-                    setTimeout(function() { if (msg) { msg.style.display = 'none'; msg.textContent = ''; } }, 10000);
+                    setBar(100);
+                    if (btn) { btn.disabled = false; btn.textContent = '⬆ Обновить'; }
+                    var errNote = (statSites.errors + statMs.errors) > 0
+                        ? ' · ⚠ ' + (statSites.errors + statMs.errors) + ' ошибок в лог'
+                        : '';
+                    show('#157347', 'Готово! Сайты: ' + statSites.pushed + ', МС: ' + statMs.pushed + ' (пропущено: ' + statMs.skipped + ')' + errNote);
+                    setTimeout(function() { if (progress) progress.style.display = 'none'; }, 8000);
                     if (typeof onDone === 'function') onDone();
                 }
             })

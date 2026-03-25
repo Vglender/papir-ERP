@@ -16,7 +16,8 @@ $rrpFilter    = Request::getString('rrp_filter', 'all');
 $search       = Request::getString('search', '');
 $page         = max(1, Request::getInt('page', 1));
 $perPage      = 50;
-$showAll      = Request::getInt('show_all', 1);
+$showAll        = Request::getInt('show_all', 1);
+$unmatchedOnly  = Request::getInt('unmatched_only', 0);
 
 $allowedFilters      = array('all', 'matched', 'unmatched', 'ignored');
 $allowedStockFilters = array('all', 'has_stock', 'no_stock');
@@ -43,7 +44,7 @@ $offset       = 0;
 
 if ($showAll) {
     $offset = ($page - 1) * $perPage;
-    $result = $itemRepo->getAllMatchedItems($search, $offset, $perPage);
+    $result = $itemRepo->getAllMatchedItems($search, $offset, $perPage, (bool)$unmatchedOnly);
     $items = $result['rows'];
     $totalItems = $result['total'];
     $totalPages = max(1, (int)ceil($totalItems / $perPage));

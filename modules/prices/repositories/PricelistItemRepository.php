@@ -427,10 +427,14 @@ class PricelistItemRepository
 
     // ── Все сопоставленные строки (show_all режим) ──────────────────────────
 
-    public function getAllMatchedItems($search = '', $offset = 0, $limit = 50)
+    public function getAllMatchedItems($search = '', $offset = 0, $limit = 50, $unmatchedOnly = false)
     {
         $offset = (int)$offset; $limit = (int)$limit;
-        $where = "(psi.match_type IS NULL OR psi.match_type != 'ignored') AND ppl.is_active = 1";
+        if ($unmatchedOnly) {
+            $where = "psi.product_id IS NULL AND (psi.match_type IS NULL OR psi.match_type != 'ignored') AND ppl.is_active = 1";
+        } else {
+            $where = "(psi.match_type IS NULL OR psi.match_type != 'ignored') AND ppl.is_active = 1";
+        }
         if ($search !== '') {
             $rawChips = preg_split('/\s*,\s*/u', trim($search));
             $chipConditions = array();

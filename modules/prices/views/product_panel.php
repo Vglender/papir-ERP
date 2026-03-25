@@ -8,15 +8,21 @@
             <?php echo textVal($details['name']); ?>
         </div>
 
-        <div class="status-badges">
-            <?php if ((int)$details['status'] === 1) { ?>
-                <span class="status-pill pill-on">Включен</span>
-            <?php } else { ?>
-                <span class="status-pill pill-off">Отключен</span>
-            <?php } ?>
-            <?php if ((int)$details['real_stock'] > 0) { ?>
-                <span class="status-pill pill-stk">В наличии: <?php echo (int)$details['real_stock']; ?></span>
-            <?php } ?>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
+            <div class="status-badges">
+                <?php if ((int)$details['status'] === 1) { ?>
+                    <span class="status-pill pill-on">Включен</span>
+                <?php } else { ?>
+                    <span class="status-pill pill-off">Отключен</span>
+                <?php } ?>
+                <?php if ((int)$details['real_stock'] > 0) { ?>
+                    <span class="status-pill pill-stk">В наличии: <?php echo (int)$details['real_stock']; ?></span>
+                <?php } ?>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0;">
+                <a href="/catalog?search=<?php echo (int)$details['product_id']; ?>" class="btn btn-xs btn-ghost" title="Открыть в каталоге">→ Catalog</a>
+                <a href="/action?search=<?php echo (int)$details['product_id']; ?>" class="btn btn-xs btn-ghost" title="Открыть в акциях">→ Action</a>
+            </div>
         </div>
 
         <div class="info-grid">
@@ -239,15 +245,13 @@
         </div>
     </div>
 
-    <!-- Ссылки -->
+    <!-- Действия -->
     <div class="section">
         <div class="module-links">
             <button type="button" class="btn btn-primary btn-small"
                     onclick="recalculateOne(<?php echo (int)$details['product_id']; ?>)">
                 ↻ Пересчитать
             </button>
-            <a href="/catalog?selected=<?php echo (int)$details['id_off']; ?>" class="btn btn-small" target="_blank">Catalog</a>
-            <a href="/action?search=<?php echo (int)$details['id_off']; ?>" class="btn btn-small" target="_blank">Action</a>
         </div>
     </div>
 

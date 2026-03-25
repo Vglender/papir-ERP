@@ -106,6 +106,15 @@ if ($nextOffset >= $total) {
     $nextOffset = null;
 }
 
+// Записываем ошибки в лог
+if (!empty($allErrors)) {
+    $logFile = __DIR__ . '/../../../logs/push_prices_errors.log';
+    $ts      = date('Y-m-d H:i:s');
+    foreach ($allErrors as $errMsg) {
+        file_put_contents($logFile, "[{$ts}] [phase={$phase}] {$errMsg}" . PHP_EOL, FILE_APPEND | LOCK_EX);
+    }
+}
+
 echo json_encode(array(
     'ok'          => true,
     'has_errors'  => !empty($allErrors),

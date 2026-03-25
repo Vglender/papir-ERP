@@ -24,8 +24,9 @@ $strategyId   = Request::getInt('strategy_id', 0);
 $sort         = Request::getString('sort', 'product_id');
 $order        = Request::getString('order', 'asc');
 $page         = max(1, Request::getInt('page', 1));
-$selected     = Request::getInt('selected', 0);
-$showInactive = Request::getInt('show_inactive', 0);
+$selected         = Request::getInt('selected', 0);
+$selectedExplicit = $selected; // до авто-подстановки первой строки
+$showInactive     = Request::getInt('show_inactive', 0);
 
 $allowedSort  = ['product_id', 'product_article', 'price_purchase', 'price_sale', 'price_wholesale', 'price_dealer', 'price_rrp'];
 $sort         = in_array($sort, $allowedSort) ? $sort : 'product_id';

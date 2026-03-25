@@ -118,12 +118,20 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
     <div class="topbar">
         <div>
             <h1 class="title">Поставщики и прайс-листы</h1>
-            <div class="breadcrumb"><a href="/prices">← Цены</a></div>
+            <div class="breadcrumb"><a href="<?php echo ViewHelper::h('/prices' . ($search !== '' ? '?search=' . urlencode($search) : '')); ?>">← Цены</a></div>
         </div>
         <div class="btn-row" style="align-items:center;">
-            <a href="/prices/suppliers<?php echo $showAll ? '' : '?show_all=1'; ?>"
-               class="btn btn-small" title="<?php echo $showAll ? 'Скрыть — вернуться к прайсам' : 'Показать все товары из всех прайсов'; ?>">
-                <?php echo $showAll ? '⊗ Скрыть все' : '⊕ Все товары'; ?>
+            <?php
+                $__searchQ   = $search !== '' ? '&search=' . urlencode($search) : '';
+                $__toggleUrl = $showAll
+                    ? '/prices/suppliers?show_all=0' . $__searchQ
+                    : '/prices/suppliers?show_all=1' . $__searchQ;
+                $__toggleTitle = $showAll ? 'Скрыть — вернуться к прайсам' : 'Показать все товары из всех прайсов';
+                $__toggleText  = $showAll ? '⊗ Скрыть все' : '⊕ Все товары';
+            ?>
+            <a href="<?php echo ViewHelper::h($__toggleUrl); ?>"
+               class="btn btn-small" title="<?php echo $__toggleTitle; ?>">
+                <?php echo $__toggleText; ?>
             </a>
             <button class="btn btn-small btn-primary" id="updateBkBtn" onclick="updateBK(this)" title="Пересчитать все цены (БК + акции)">⟳ БК</button>
             <button class="btn btn-small" id="pushPricesBtn" onclick="pushPrices()" title="Выгрузить цены в OpenCart и МойСклад">⬆ Выгрузить цены</button>
@@ -170,7 +178,9 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                         $unmatched = $total - $matched;
                     ?>
                     <?php
-                        $plUrl    = ViewHelper::h(suppliersUrl(array('pricelist_id' => $plId), $basePath));
+                        $plParams = array('pricelist_id' => $plId, 'show_all' => 0);
+                        if ($search !== '') $plParams['search'] = $search;
+                        $plUrl    = ViewHelper::h(suppliersUrl($plParams, $basePath));
                         $plActive = !empty($pl['is_active']);
                         $plStyle  = $plActive ? '' : 'opacity:.45;';
                     ?>
@@ -217,7 +227,7 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                             <?php } ?>
                             <button class="btn btn-small<?php echo !empty($pl['allow_manual_edit']) ? ' btn-primary' : ''; ?>"
                                     id="manual_edit_btn_<?php echo $plId; ?>"
-                                    onclick="toggleManualEdit(<?php echo $plId; ?>)"
+                                    onclick="toggleManualEdit(<?php echo $plId; ?>, '<?php echo ViewHelper::h($search); ?>', <?php echo !empty($pl['allow_manual_edit']) ? 1 : 0; ?>, <?php echo $showAll ? 1 : 0; ?>)"
                                     title="Ручное редактирование">✎</button>
                             <button class="btn btn-small btn-danger"
                                     onclick="deletePricelist(<?php echo $plId; ?>, <?php echo ViewHelper::h(json_encode($pl['name'])); ?>)"
@@ -281,8 +291,8 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
         <?php if ($showAll) { ?>
             <div class="card">
                 <div style="margin-bottom:14px;">
-                    <strong style="font-size:15px;">Все товары (все активные прайсы)</strong>
-                    <div style="font-size:12px;color:#666;margin-top:2px;">Итого: <?php echo $totalItems; ?> строк (без игнорируемых)</div>
+                    <strong style="font-size:15px;"><?php echo $unmatchedOnly ? 'Несопоставленные позиции' : 'Все товары (все активные прайсы)'; ?></strong>
+                    <div style="font-size:12px;color:#666;margin-top:2px;">Итого: <?php echo $totalItems; ?> строк<?php echo $unmatchedOnly ? ' без сопоставления' : ' (без игнорируемых)'; ?></div>
                 </div>
                 <!-- Фильтры -->
                 <form method="get" action="/prices/suppliers" class="filters" id="showAllSearchForm">
@@ -295,6 +305,14 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                                    placeholder="ID, артикул або назва…" autocomplete="off">
                         </div>
                         <input type="hidden" name="search" id="showAllSearchHidden" value="<?php echo ViewHelper::h($search); ?>">
+                    </div>
+                    <div>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;white-space:nowrap;">
+                            <input type="checkbox" name="unmatched_only" value="1"
+                                   <?php echo $unmatchedOnly ? 'checked' : ''; ?>
+                                   onchange="this.form.submit()">
+                            Несопоставленные
+                        </label>
                     </div>
                     <div class="filter-actions">
                         <button type="submit" class="btn btn-apply">Применить</button>
@@ -388,6 +406,7 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                 <!-- Фильтры -->
                 <form method="get" action="/prices/suppliers" class="filters" id="plSearchForm">
                     <input type="hidden" name="pricelist_id" value="<?php echo $pricelistId; ?>">
+                    <input type="hidden" name="show_all" value="0">
                     <input type="hidden" name="page" value="1">
                     <div class="filter-search">
                         <label>Поиск</label>
@@ -691,7 +710,28 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
 
 <script>
 (function () {
-    var _activePlIds = <?php echo json_encode($activePlIds); ?>;
+    var _activePlIds   = <?php echo json_encode($activePlIds); ?>;
+    var CURRENT_SEARCH   = <?php echo json_encode($search); ?>;
+    var CURRENT_SHOW_ALL = <?php echo $showAll ? 'true' : 'false'; ?>;
+
+    // ── Navigation helper ─────────────────────────────────────────────────────
+    function suppliersBaseUrl(params) {
+        var url = '/prices/suppliers';
+        var parts = [];
+        for (var k in params) {
+            if (params[k] !== null && params[k] !== undefined && params[k] !== '') {
+                parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));
+            }
+        }
+        if (parts.length) url += '?' + parts.join('&');
+        return url;
+    }
+    function homeUrl() {
+        var p = {show_all: CURRENT_SHOW_ALL ? 1 : 0};
+        if (CURRENT_SEARCH) p.search = CURRENT_SEARCH;
+        return suppliersBaseUrl(p);
+    }
+
 
 
     // ── Recalculate all purchase prices ─────────────────────────────────────
@@ -1043,13 +1083,20 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
             body:'pricelist_id='+encodeURIComponent(plId)
         })
         .then(function(r){return r.json();})
-        .then(function(d){ if(d.ok){window.location.href='/prices/suppliers';}else{alert('Ошибка: '+(d.error||'?'));} })
+        .then(function(d){ if(d.ok){window.location.href=homeUrl();}else{alert('Ошибка: '+(d.error||'?'));} })
         .catch(function(){alert('Ошибка сети');});
     }
     window.deletePricelist = deletePricelist;
 
     // ── Toggle manual edit ────────────────────────────────────────────────────
-    function toggleManualEdit(plId) {
+    function toggleManualEdit(plId, search, isActive, isShowAll) {
+        // Если режим уже включён и мы в show_all — просто перейти в прайс без toggle
+        if (isActive && isShowAll) {
+            var url = '/prices/suppliers?pricelist_id=' + plId + '&show_all=0';
+            if (search) url += '&search=' + encodeURIComponent(search);
+            window.location.href = url;
+            return;
+        }
         fetch('/prices/api/toggle_manual_edit', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -1057,7 +1104,7 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
         })
         .then(function(r) { return r.json(); })
         .then(function(d) {
-            if (d.ok) window.location.reload();
+            if (d.ok) { var url = '/prices/suppliers?pricelist_id=' + plId + '&show_all=0'; if (search) url += '&search=' + encodeURIComponent(search); window.location.href = url; }
             else alert('Ошибка: ' + (d.error || '?'));
         })
         .catch(function() { alert('Ошибка сети'); });
@@ -1279,7 +1326,7 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
         })
         .then(function(r){return r.json();})
         .then(function(d){
-            if (d.ok) { window.location.href='/prices/suppliers'; return; }
+            if (d.ok) { window.location.href=homeUrl(); return; }
             if (d.error === 'has_pricelists') {
                 var msg = 'Поставщик «'+supName+'» имеет '+d.count+' прайс(ов).\nУдалить вместе со всеми прайсами и строками?';
                 if (!confirm(msg)) return;
@@ -1288,7 +1335,7 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
                     body:'supplier_id='+encodeURIComponent(supId)+'&cascade=1'
                 })
                 .then(function(r){return r.json();})
-                .then(function(d2){ if(d2.ok){window.location.href='/prices/suppliers';}else{alert('Ошибка: '+(d2.error||'?'));} });
+                .then(function(d2){ if(d2.ok){window.location.href=homeUrl();}else{alert('Ошибка: '+(d2.error||'?'));} });
             } else {
                 alert('Ошибка: '+(d.error||'?'));
             }

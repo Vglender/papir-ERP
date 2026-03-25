@@ -11,7 +11,7 @@
  */
 class QuantityThresholdResolver
 {
-    const SMART_STEPS = [1, 2, 3, 5, 10, 15, 20, 25, 50, 100, 150, 200, 250, 500];
+    const SMART_STEPS = [1, 2, 3, 5, 10, 15, 20, 25, 50, 100, 150, 200, 250, 500, 1000, 2000, 5000, 10000];
 
     /**
      * @param array $packages  Строки из product_package (уровни 1, 2, 3)
@@ -22,10 +22,15 @@ class QuantityThresholdResolver
     public function resolve(array $packages, array $strategy, $salePrice)
     {
         if ($this->hasAllPackages($packages)) {
+            $q1 = (int)$packages[0]['quantity'];
+            $q2 = (int)$packages[1]['quantity'];
+            $q3 = (int)$packages[2]['quantity'];
+            if ($q2 <= $q1) { $q2 = 0; $q3 = 0; }
+            elseif ($q3 <= $q2) { $q3 = 0; }
             return [
-                'qty_1'  => (int)$packages[0]['quantity'],
-                'qty_2'  => (int)$packages[1]['quantity'],
-                'qty_3'  => (int)$packages[2]['quantity'],
+                'qty_1'  => $q1,
+                'qty_2'  => $q2,
+                'qty_3'  => $q3,
                 'source' => 'packages',
             ];
         }
@@ -70,6 +75,14 @@ class QuantityThresholdResolver
         // Повторно округляем после корректировки
         $qty2 = $this->roundToStep((float)$qty2);
         $qty3 = $this->roundToStep((float)$qty3);
+
+        // Если после округления уровни не строго возрастают — отключаем дублирующий уровень
+        if ($qty2 <= $qty1) {
+            $qty2 = 0;
+            $qty3 = 0;
+        } elseif ($qty3 <= $qty2) {
+            $qty3 = 0;
+        }
 
         return [
             'qty_1'  => $qty1,
