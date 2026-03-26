@@ -2254,35 +2254,37 @@ function buildPriceListTextFromServerItems(items) {
         return '';
     }
 
-    var lines = ['Прайс по выбранным товарам:', ''];
+    var blocks = [];
 
-    items.forEach(function (item, index) {
-        lines.push((index + 1) + '. ' + (item.name || ('Товар #' + item.id)));
+    items.forEach(function (item) {
+        var lines = [];
 
-        if (item.article) {
-            lines.push('Артикул: ' + item.article);
+        lines.push(item.name || ('Товар #' + item.id));
+
+        var url = item.url_mff || item.url_off || null;
+        if (url) {
+            lines.push(url);
         }
 
-        lines.push('Роздріб: ' + (item.price_sale !== null && item.price_sale !== '' ? formatPrice(item.price_sale) + ' грн' : '—'));
-
-        lines.push('Акція (роздріб): ' + (item.action_price !== null && item.action_price !== '' ? formatPrice(item.action_price) + ' грн' : '—'));
+        var retail = item.action_price !== null ? item.action_price : item.price_sale;
+        if (retail !== null) {
+            var priceStr = formatPrice(retail) + ' грн';
+            if (item.action_price !== null && item.price_sale !== null) {
+                priceStr += ' (знижка з ' + formatPrice(item.price_sale) + ' грн)';
+            }
+            lines.push('Ціна: ' + priceStr);
+        }
 
         if (item.quantity_discounts && item.quantity_discounts.length) {
-            lines.push('Знижки від кількості:');
-
             item.quantity_discounts.forEach(function (discount) {
-                lines.push('- від ' + discount.quantity + ' шт — ' + formatPrice(discount.price) + ' грн');
+                lines.push('від ' + discount.quantity + ' шт — ' + formatPrice(discount.price) + ' грн');
             });
-        } else {
-            lines.push('Знижки від кількості: —');
         }
 
-        lines.push('');
+        blocks.push(lines.join('\n'));
     });
 
-    lines.push('Ціни актуальні на момент відправки.');
-
-    return lines.join('\n');
+    return blocks.join('\n\n');
 }
 
 if (bulkPriceList) {

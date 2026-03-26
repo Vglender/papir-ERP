@@ -4,7 +4,7 @@ class AttributeRepository {
     /**
      * Список атрибутов с фильтрацией и поиском.
      */
-    public static function getList($search = '', $groupId = 0) {
+    public static function getList($search = '', $groupId = 0, $limit = 50, $offset = 0) {
         $where = 'WHERE 1=1';
 
         if ($groupId > 0) {
@@ -12,15 +12,50 @@ class AttributeRepository {
         }
 
         if ($search !== '') {
-            $s = Database::escape('Papir', mb_strtolower(trim($search), 'UTF-8'));
-            $where .= " AND (
-                CAST(pa.attribute_id AS CHAR) LIKE '%{$s}%'
-                OR LOWER(COALESCE(d_uk.attribute_name,'')) LIKE '%{$s}%'
-                OR LOWER(COALESCE(d_ru.attribute_name,'')) LIKE '%{$s}%'
-            )";
+            $chips = preg_split('/\s*,\s*/u', trim($search));
+            $chipConds = array();
+            foreach ($chips as $chip) {
+                $chip = trim($chip);
+                if ($chip === '') continue;
+                if (preg_match('/^\d+$/', $chip)) {
+                    $chipConds[] = 'pa.attribute_id = ' . (int)$chip;
+                    continue;
+                }
+                $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+                $tokenParts = array();
+                foreach ($tokens as $tok) {
+                    $tok = trim($tok);
+                    if ($tok === '') continue;
+                    $t = Database::escape('Papir', $tok);
+                    $tokenParts[] = "(CAST(pa.attribute_id AS CHAR) LIKE '%{$t}%'
+                        OR LOWER(COALESCE(d_uk.attribute_name,'')) LIKE '%{$t}%'
+                        OR LOWER(COALESCE(d_ru.attribute_name,'')) LIKE '%{$t}%')";
+                }
+                if (!empty($tokenParts)) {
+                    $chipConds[] = '(' . implode(' AND ', $tokenParts) . ')';
+                }
+            }
+            if (!empty($chipConds)) {
+                $where .= ' AND (' . implode(' OR ', $chipConds) . ')';
+            }
         }
 
-        return Database::fetchAll('Papir',
+        $joins = "FROM product_attribute pa
+             LEFT JOIN attribute_group_description ag_uk ON ag_uk.group_id = pa.group_id AND ag_uk.language_id = 2
+             LEFT JOIN attribute_group_description ag_ru ON ag_ru.group_id = pa.group_id AND ag_ru.language_id = 1
+             LEFT JOIN product_attribute_description d_uk ON d_uk.attribute_id = pa.attribute_id AND d_uk.language_id = 2
+             LEFT JOIN product_attribute_description d_ru ON d_ru.attribute_id = pa.attribute_id AND d_ru.language_id = 1
+             LEFT JOIN attribute_site_mapping asm_off ON asm_off.attribute_id = pa.attribute_id AND asm_off.site_id = 1
+             LEFT JOIN attribute_site_mapping asm_mff ON asm_mff.attribute_id = pa.attribute_id AND asm_mff.site_id = 2";
+
+        $countR = Database::fetchRow('Papir',
+            "SELECT COUNT(*) AS total {$joins} {$where}"
+        );
+        $total = ($countR['ok'] && $countR['row']) ? (int)$countR['row']['total'] : 0;
+
+        $lim = (int)$limit;
+        $off = (int)$offset;
+        $r = Database::fetchAll('Papir',
             "SELECT
                 pa.attribute_id,
                 pa.group_id,
@@ -34,15 +69,16 @@ class AttributeRepository {
                  WHERE pav.attribute_id = pa.attribute_id AND pav.site_id = 0) AS values_count,
                 asm_off.site_attribute_id AS off_attr_id,
                 asm_mff.site_attribute_id AS mff_attr_id
-             FROM product_attribute pa
-             LEFT JOIN attribute_group_description ag_uk ON ag_uk.group_id = pa.group_id AND ag_uk.language_id = 2
-             LEFT JOIN attribute_group_description ag_ru ON ag_ru.group_id = pa.group_id AND ag_ru.language_id = 1
-             LEFT JOIN product_attribute_description d_uk ON d_uk.attribute_id = pa.attribute_id AND d_uk.language_id = 2
-             LEFT JOIN product_attribute_description d_ru ON d_ru.attribute_id = pa.attribute_id AND d_ru.language_id = 1
-             LEFT JOIN attribute_site_mapping asm_off ON asm_off.attribute_id = pa.attribute_id AND asm_off.site_id = 1
-             LEFT JOIN attribute_site_mapping asm_mff ON asm_mff.attribute_id = pa.attribute_id AND asm_mff.site_id = 2
+             {$joins}
              {$where}
-             ORDER BY pa.group_id, COALESCE(d_uk.attribute_name, d_ru.attribute_name)"
+             ORDER BY pa.group_id, COALESCE(d_uk.attribute_name, d_ru.attribute_name)
+             LIMIT {$off}, {$lim}"
+        );
+
+        return array(
+            'ok'    => $r['ok'],
+            'rows'  => $r['ok'] ? $r['rows'] : array(),
+            'total' => $total,
         );
     }
 
@@ -88,27 +124,37 @@ class AttributeRepository {
             $tokens = preg_split('/[\s,\/]+/u', mb_strtolower($name, 'UTF-8'));
             $tokens = array_filter(array_slice($tokens, 0, 3), function($t) { return mb_strlen($t, 'UTF-8') > 2; });
             foreach ($tokens as $token) {
-                $t = Database::escape('Papir', $token);
+                // Для довгих токенів беремо 5-символьний префікс щоб знаходити
+                // близькі варіанти написання (брошув* / брошур*)
+                $len = mb_strlen($token, 'UTF-8');
+                $search = $len > 6 ? mb_substr($token, 0, 5, 'UTF-8') : $token;
+                $t = Database::escape('Papir', $search);
                 $conditions[] = "LOWER(COALESCE(d_uk.attribute_name,'')) LIKE '%{$t}%'";
                 $conditions[] = "LOWER(COALESCE(d_ru.attribute_name,'')) LIKE '%{$t}%'";
             }
         }
         if (empty($conditions)) return array();
 
-        $condSql = implode(' OR ', array_unique($conditions));
+        $uniqueConds = array_unique($conditions);
+        $condSql  = implode(' OR ', $uniqueConds);
+        // score = кількість умов що збіглися; більше → вищий пріоритет
+        // Кожен LIKE-вираз треба обгортати в () — інакше + має вищий пріоритет
+        $wrappedConds = array_map(function($c) { return '(' . $c . ')'; }, $uniqueConds);
+        $scoreSql = '(' . implode(' + ', $wrappedConds) . ')';
 
         $r = Database::fetchAll('Papir',
             "SELECT pa.attribute_id,
                     d_uk.attribute_name AS name_uk,
                     d_ru.attribute_name AS name_ru,
                     ag_uk.name AS group_name_uk,
-                    (SELECT COUNT(*) FROM product_attribute_value pav WHERE pav.attribute_id = pa.attribute_id) AS values_count
+                    (SELECT COUNT(*) FROM product_attribute_value pav WHERE pav.attribute_id = pa.attribute_id) AS values_count,
+                    {$scoreSql} AS match_score
              FROM product_attribute pa
              LEFT JOIN product_attribute_description d_uk ON d_uk.attribute_id = pa.attribute_id AND d_uk.language_id = 2
              LEFT JOIN product_attribute_description d_ru ON d_ru.attribute_id = pa.attribute_id AND d_ru.language_id = 1
              LEFT JOIN attribute_group_description ag_uk ON ag_uk.group_id = pa.group_id AND ag_uk.language_id = 2
              WHERE pa.attribute_id != {$aid} AND ({$condSql})
-             ORDER BY pa.attribute_id
+             ORDER BY match_score DESC, values_count DESC
              LIMIT 20"
         );
         return $r['ok'] ? $r['rows'] : array();
@@ -133,6 +179,9 @@ class AttributeRepository {
             "DELETE FROM product_attribute_value WHERE attribute_id = {$src}"
         );
 
+        // Каскад на сайты — ДО переноса маппингов, пока source-маппинги ещё есть
+        AttributeCascadeHelper::cascadeMergeAttribute($src, $tgt);
+
         // Перенести маппинги на сайты (если у target ещё нет для этого site)
         Database::query('Papir',
             "INSERT IGNORE INTO attribute_site_mapping (attribute_id, site_id, site_attribute_id)
@@ -142,9 +191,6 @@ class AttributeRepository {
         Database::query('Papir',
             "DELETE FROM attribute_site_mapping WHERE attribute_id = {$src}"
         );
-
-        // Каскад на сайты — до удаления, пока маппинги ещё есть
-        AttributeCascadeHelper::cascadeMergeAttribute($src, $tgt);
 
         // Удалить описания и сам атрибут
         Database::query('Papir', "DELETE FROM product_attribute_description WHERE attribute_id = {$src}");

@@ -9,21 +9,41 @@ require_once __DIR__ . '/../../shared/layout.php';
     gap: 20px;
     align-items: start;
 }
+#attrFormPanel {
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+}
 .attr-toolbar {
     display: flex;
+    align-items: flex-end;
     gap: 10px;
-    align-items: center;
     margin-bottom: 14px;
     flex-wrap: wrap;
 }
-.attr-toolbar .search-input { flex: 1; min-width: 160px; max-width: 300px; }
-.group-filter {
+.attr-toolbar > form { flex: 1; min-width: 0; }
+.attr-filters {
+    display: grid;
+    grid-template-columns: 1fr 200px auto;
+    gap: 10px;
+    align-items: end;
+}
+.attr-filters label {
+    display: block;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+.attr-filters select {
+    width: 100%;
     padding: 7px 10px; border: 1px solid var(--border-input);
     border-radius: var(--radius); font-size: 13px; font-family: var(--font);
-    outline: none; background: #fff; cursor: pointer;
+    outline: none; background: #fff; cursor: pointer; box-sizing: border-box;
 }
-.group-filter:focus { border-color: var(--blue-light); }
-.attr-stats { font-size: 12px; color: var(--text-muted); margin-left: auto; white-space: nowrap; }
+.attr-filters select:focus { border-color: var(--blue-light); }
+.attr-stats { font-size: 12px; color: var(--text-muted); white-space: nowrap; align-self: flex-end; padding-bottom: 2px; }
 .crm-table td.td-name { font-weight: 500; }
 .crm-table td.td-muted { color: var(--text-muted); font-size: 12px; }
 .badge-off  { background: #dbeafe; color: #1d4ed8; }
@@ -35,7 +55,12 @@ require_once __DIR__ . '/../../shared/layout.php';
     text-align: center; padding: 32px;
 }
 .panel-empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .3; }
-.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+/* Вкладки правої панелі */
+.panel-tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.panel-tab { padding: 6px 14px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -1px; user-select: none; }
+.panel-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.panel-tab:hover:not(.active) { color: var(--text); }
 .card-head-title { font-size: 15px; font-weight: 600; }
 .form-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .form-row label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
@@ -110,21 +135,39 @@ require_once __DIR__ . '/../../shared/layout.php';
         <!-- ── Ліво: список ── -->
         <div>
             <div class="attr-toolbar">
-                <input type="text" class="search-input" id="attrSearch" placeholder="Пошук за назвою або ID…" autocomplete="off">
-                <select class="group-filter" id="groupFilter">
-                    <option value="0">Всі групи</option>
-                    <?php foreach ($groups as $g): ?>
-                    <option value="<?php echo (int)$g['group_id']; ?>">
-                        <?php echo htmlspecialchars($g['name_uk'] ?: $g['name_ru']); ?>
-                        (<?php echo (int)$g['attrs_count']; ?>)
-                    </option>
-                    <?php endforeach; ?>
-                </select>
+                <form id="attrFilterForm">
+                    <div class="attr-filters">
+                        <div>
+                            <label>Пошук</label>
+                            <div class="chip-input" id="searchChipBox">
+                                <input type="text" class="chip-typer" id="searchChipTyper"
+                                       placeholder="Назва або ID…" autocomplete="off">
+                            </div>
+                            <input type="hidden" id="attrSearch" value="">
+                        </div>
+                        <div>
+                            <label>Група</label>
+                            <select id="groupFilter">
+                                <option value="0">Всі групи</option>
+                                <?php foreach ($groups as $g): ?>
+                                <option value="<?php echo (int)$g['group_id']; ?>">
+                                    <?php echo htmlspecialchars($g['name_uk'] ?: $g['name_ru']); ?>
+                                    (<?php echo (int)$g['attrs_count']; ?>)
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="btn-row">
+                            <button type="submit" class="btn btn-sm">Застосувати</button>
+                            <button type="button" class="btn btn-ghost btn-sm" id="btnResetFilter">Скинути</button>
+                        </div>
+                    </div>
+                </form>
                 <div class="attr-stats" id="attrStats"></div>
-                <button class="btn btn-primary btn-sm" id="btnNewAttr">+ Новий</button>
+                <button class="btn btn-primary btn-sm" id="btnNewAttr" type="button">+ Новий</button>
             </div>
 
-            <table class="crm-table" id="attrTable">
+            <table class="crm-table" id="attrTable" style="margin-bottom:0">
                 <thead>
                     <tr>
                         <th style="width:50px">ID</th>
@@ -139,10 +182,11 @@ require_once __DIR__ . '/../../shared/layout.php';
                     <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Завантаження…</td></tr>
                 </tbody>
             </table>
+            <div id="attrPagination" class="pagination"></div>
         </div>
 
         <!-- ── Право: панель ── -->
-        <div id="attrFormPanel" style="position:sticky;top:16px">
+        <div id="attrFormPanel">
 
             <div class="card" id="panelEmpty">
                 <div class="panel-empty">
@@ -159,50 +203,79 @@ require_once __DIR__ . '/../../shared/layout.php';
                     </button>
                 </div>
 
-                <input type="hidden" id="fAttrId" value="0">
-
-                <div class="form-row">
-                    <label>Назва (UK) *</label>
-                    <input type="text" id="fNameUk" autocomplete="off">
-                </div>
-                <div class="form-row">
-                    <label>Назва (RU)</label>
-                    <input type="text" id="fNameRu" autocomplete="off">
-                </div>
-                <div class="form-row">
-                    <label>Група</label>
-                    <select id="fGroupId">
-                        <?php foreach ($groups as $g): ?>
-                        <option value="<?php echo (int)$g['group_id']; ?>">
-                            <?php echo htmlspecialchars($g['name_uk'] ?: $g['name_ru']); ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
+                <!-- Вкладки -->
+                <div class="panel-tabs">
+                    <div class="panel-tab active" id="tabBtnAttr">Атрибут</div>
+                    <div class="panel-tab" id="tabBtnValues">Значення <span id="valTotalBadge" class="badge badge-gray" style="margin-left:2px"></span></div>
                 </div>
 
-                <div class="attr-section-title">Маппінг сайтів</div>
-                <div class="form-row">
-                    <label>off.oc_attribute_id (Офісторг)</label>
-                    <input type="number" id="fOffId" min="0" placeholder="0 = не маппінг">
-                </div>
-                <div class="form-row">
-                    <label>mff.oc_attribute_id (Menu Folder)</label>
-                    <input type="number" id="fMffId" min="0" placeholder="0 = не маппінг">
+                <!-- ── Вкладка: Атрибут ── -->
+                <div id="tabPanelAttr">
+                    <input type="hidden" id="fAttrId" value="0">
+
+                    <div class="form-row">
+                        <label>Назва (UK) *</label>
+                        <input type="text" id="fNameUk" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                        <label>Назва (RU)</label>
+                        <input type="text" id="fNameRu" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                        <label style="display:flex;align-items:center;justify-content:space-between">
+                            Група
+                            <button type="button" class="btn btn-xs btn-ghost" id="btnNewGroup" style="font-size:11px;padding:2px 7px">+ Нова</button>
+                        </label>
+                        <select id="fGroupId">
+                            <?php foreach ($groups as $g): ?>
+                            <option value="<?php echo (int)$g['group_id']; ?>">
+                                <?php echo htmlspecialchars($g['name_uk'] ?: $g['name_ru']); ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div id="newGroupBox" style="display:none;border:1px solid var(--border);border-radius:var(--radius);padding:10px;margin-bottom:10px;background:#f8fafc">
+                        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--text-muted);margin-bottom:8px">Нова група</div>
+                        <div class="form-row" style="margin-bottom:6px">
+                            <label>Назва (UK) *</label>
+                            <input type="text" id="fNewGroupUk" autocomplete="off" placeholder="напр. Папір">
+                        </div>
+                        <div class="form-row" style="margin-bottom:8px">
+                            <label>Назва (RU)</label>
+                            <input type="text" id="fNewGroupRu" autocomplete="off" placeholder="напр. Бумага">
+                        </div>
+                        <div class="btn-row">
+                            <button type="button" class="btn btn-primary btn-sm" id="btnSaveGroup">Створити</button>
+                            <button type="button" class="btn btn-ghost btn-sm" id="btnCancelGroup">Скасувати</button>
+                        </div>
+                        <div class="form-error" id="newGroupErr"></div>
+                    </div>
+
+                    <div class="attr-section-title">Маппінг сайтів</div>
+                    <div class="form-row">
+                        <label>off.oc_attribute_id (Офісторг)</label>
+                        <input type="number" id="fOffId" min="0" placeholder="0 = не маппінг">
+                    </div>
+                    <div class="form-row">
+                        <label>mff.oc_attribute_id (Menu Folder)</label>
+                        <input type="number" id="fMffId" min="0" placeholder="0 = не маппінг">
+                    </div>
+
+                    <div class="form-error" id="fError"></div>
+
+                    <div class="attr-section-title">Можливі дублі</div>
+                    <div id="dupList" class="dup-list">
+                        <div class="no-dupes">Завантаження…</div>
+                    </div>
+                    <div style="display:flex;gap:6px;margin-top:8px;align-items:center">
+                        <input type="number" id="mergeManualId" placeholder="# ID вручну"
+                               style="width:110px;padding:5px 8px;border:1px solid var(--border-input);border-radius:var(--radius);font-size:12px;outline:none">
+                        <button class="btn btn-sm" id="btnMergeManual" style="white-space:nowrap">→ Злити з цим</button>
+                    </div>
                 </div>
 
-                <div class="form-error" id="fError"></div>
-
-                <div class="attr-section-title">Можливі дублі</div>
-                <div id="dupList" class="dup-list">
-                    <div class="no-dupes">Завантаження…</div>
-                </div>
-
-                <!-- ── Значення ── -->
-                <div class="val-section-head" id="valSectionHead">
-                    <div class="attr-section-title" style="margin:0">Значення <span id="valTotalBadge" class="badge badge-gray" style="margin-left:4px"></span></div>
-                    <span class="toggle-icon" id="valToggleIcon">▼</span>
-                </div>
-                <div id="valSection" style="display:none;margin-top:8px">
+                <!-- ── Вкладка: Значення ── -->
+                <div id="tabPanelValues" style="display:none">
                     <div class="val-lang-tabs" id="valLangTabs"></div>
                     <div class="val-toolbar">
                         <input type="text" id="valSearch" placeholder="Фільтр значень…" autocomplete="off">
@@ -211,7 +284,6 @@ require_once __DIR__ . '/../../shared/layout.php';
                     <div class="val-more" id="valMore" style="display:none">
                         <button class="btn btn-ghost btn-sm" id="btnValMore">Завантажити ще</button>
                     </div>
-                    <!-- Edit/rename row -->
                     <div style="margin-top:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);background:#f8fafc;display:none" id="valEditBox">
                         <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px">Редагувати значення:</div>
                         <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Обрано: <strong id="valEditOld"></strong></div>
@@ -223,7 +295,6 @@ require_once __DIR__ . '/../../shared/layout.php';
                         <div style="margin-top:6px;font-size:11px;color:var(--text-muted)">Зміна застосується до всіх товарів з цим значенням</div>
                         <div class="form-error" id="valEditErr"></div>
                     </div>
-                    <!-- Merge info -->
                     <div class="val-merge-hint" id="valMergeHint" style="display:none">
                         Виберіть ще одне значення щоб об'єднати → клік ПКМ або кнопка "Злити"
                     </div>
@@ -236,11 +307,16 @@ require_once __DIR__ . '/../../shared/layout.php';
 
 <div class="toast" id="toast"></div>
 
+<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
 <script>
 var ALL_GROUPS = <?php echo json_encode($groups); ?>;
 var SELECTED_ID = <?php echo (int)$selected; ?>;
 var _rows = [];
 var _currentId = 0;
+var _listPage  = 1;
+var _listTotal = 0;
+var _listPages = 1;
+var _listPerPage = 50;
 
 function showToast(msg) {
     var t = document.getElementById('toast');
@@ -259,19 +335,62 @@ function groupName(gid) {
 }
 
 // ── Загрузка списка ──────────────────────────────────────────────────────────
+var _listSeq = 0;
 function loadList() {
     var search  = document.getElementById('attrSearch').value;
     var groupId = document.getElementById('groupFilter').value;
-    var url = '/attributes/api/get?search=' + encodeURIComponent(search) + '&group_id=' + groupId;
+    var url = '/attributes/api/get?search=' + encodeURIComponent(search)
+            + '&group_id=' + groupId
+            + '&page=' + _listPage;
+    var seq = ++_listSeq;
 
     fetch(url)
         .then(function(r) { return r.json(); })
         .then(function(d) {
-            _rows = d.rows || [];
+            if (seq !== _listSeq) return;
+            _rows       = d.rows  || [];
+            _listTotal  = d.total || 0;
+            _listPages  = d.pages || 1;
             renderTable(_rows);
-            document.getElementById('attrStats').textContent = 'Всього: ' + _rows.length;
+            document.getElementById('attrStats').textContent =
+                'Всього: ' + _listTotal + (_listPages > 1 ? ' (стор. ' + _listPage + '/' + _listPages + ')' : '');
+            renderPagination();
         })
         .catch(function() { showToast('Помилка завантаження'); });
+}
+
+function renderPagination() {
+    var el = document.getElementById('attrPagination');
+    if (_listPages <= 1) { el.innerHTML = ''; return; }
+    var html = '';
+    var p, start, end;
+
+    html += _listPage > 1
+        ? '<a href="#" data-page="' + (_listPage - 1) + '">‹</a>'
+        : '<span style="opacity:.35">‹</span>';
+
+    start = Math.max(1, _listPage - 2);
+    end   = Math.min(_listPages, _listPage + 2);
+    if (start > 1) { html += '<a href="#" data-page="1">1</a>'; if (start > 2) html += '<span class="dots">…</span>'; }
+    for (p = start; p <= end; p++) {
+        html += p === _listPage
+            ? '<span class="cur">' + p + '</span>'
+            : '<a href="#" data-page="' + p + '">' + p + '</a>';
+    }
+    if (end < _listPages) { if (end < _listPages - 1) html += '<span class="dots">…</span>'; html += '<a href="#" data-page="' + _listPages + '">' + _listPages + '</a>'; }
+
+    html += _listPage < _listPages
+        ? '<a href="#" data-page="' + (_listPage + 1) + '">›</a>'
+        : '<span style="opacity:.35">›</span>';
+
+    el.innerHTML = html;
+    el.querySelectorAll('a[data-page]').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            _listPage = parseInt(this.getAttribute('data-page'), 10);
+            loadList();
+        });
+    });
 }
 
 function renderTable(rows) {
@@ -290,13 +409,17 @@ function renderTable(rows) {
         if (r.mff_attr_id) badges += '<span class="badge badge-mff">mff</span>';
         if (!r.off_attr_id && !r.mff_attr_id) badges = '<span class="badge badge-gray">—</span>';
 
+        var vcnt = r.values_count || 0;
+        var vcntHtml = vcnt > 0
+            ? '<span class="val-cnt-link" data-id="' + aid + '" style="cursor:pointer;color:var(--blue);text-decoration:underline dotted">' + vcnt + '</span>'
+            : '<span class="td-muted">0</span>';
         html += '<tr' + sel + ' data-id="' + aid + '" style="cursor:pointer">'
             + '<td class="td-muted">' + aid + '</td>'
             + '<td class="td-name">' + esc(r.name_uk || '') + '</td>'
             + '<td class="td-muted">' + esc(r.name_ru || '') + '</td>'
             + '<td class="td-muted fs-12">' + esc(groupName(r.group_id)) + '</td>'
             + '<td>' + badges + '</td>'
-            + '<td class="td-muted">' + (r.values_count || 0) + '</td>'
+            + '<td class="td-muted">' + vcntHtml + '</td>'
             + '</tr>';
     }
     tbody.innerHTML = html;
@@ -305,7 +428,15 @@ function renderTable(rows) {
     var trs = tbody.querySelectorAll('tr[data-id]');
     for (var j = 0; j < trs.length; j++) {
         trs[j].addEventListener('click', (function(tr) {
-            return function() { selectAttr(parseInt(tr.getAttribute('data-id'), 10)); };
+            return function(e) {
+                // Клік по лічильнику значень → одразу вкладка "Значення"
+                if (e.target.classList.contains('val-cnt-link')) {
+                    e.stopPropagation();
+                    selectAttr(parseInt(e.target.getAttribute('data-id'), 10), 'values');
+                    return;
+                }
+                selectAttr(parseInt(tr.getAttribute('data-id'), 10));
+            };
         })(trs[j]));
     }
 }
@@ -314,8 +445,19 @@ function esc(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── Вкладки правої панелі ─────────────────────────────────────────────────────
+function switchPanelTab(tab) {
+    document.getElementById('tabPanelAttr').style.display   = tab === 'attr'   ? '' : 'none';
+    document.getElementById('tabPanelValues').style.display = tab === 'values' ? '' : 'none';
+    document.getElementById('tabBtnAttr').classList.toggle('active',   tab === 'attr');
+    document.getElementById('tabBtnValues').classList.toggle('active', tab === 'values');
+    if (tab === 'values' && _currentId) loadValues(true);
+}
+document.getElementById('tabBtnAttr').addEventListener('click',   function() { switchPanelTab('attr'); });
+document.getElementById('tabBtnValues').addEventListener('click', function() { switchPanelTab('values'); });
+
 // ── Выбор атрибута ────────────────────────────────────────────────────────────
-function selectAttr(id) {
+function selectAttr(id, tab) {
     _currentId = id;
     history.pushState({id:id}, '', '/attributes?selected=' + id);
 
@@ -335,7 +477,8 @@ function selectAttr(id) {
     document.getElementById('valMore').style.display = 'none';
     closeValEdit();
     document.getElementById('valMergeHint').style.display = 'none';
-    if (_valOpen) loadValues(true);
+
+    switchPanelTab(tab || 'attr');
 
     fetch('/attributes/api/get_one?id=' + id)
         .then(function(r) { return r.json(); })
@@ -393,6 +536,13 @@ function renderDuplicates(dupes) {
     }
 }
 
+document.getElementById('btnMergeManual').addEventListener('click', function() {
+    var srcId = parseInt(document.getElementById('mergeManualId').value, 10);
+    if (!srcId || srcId === _currentId) { showToast('Введіть коректний ID'); return; }
+    if (!confirm('Злити #' + srcId + ' → #' + _currentId + '?\nДжерело (#' + srcId + ') буде видалено, всі значення перенесено до поточного.')) return;
+    mergeAttr(srcId, _currentId);
+});
+
 function mergeAttr(sourceId, targetId) {
     fetch('/attributes/api/merge', {
         method: 'POST',
@@ -403,6 +553,7 @@ function mergeAttr(sourceId, targetId) {
     .then(function(d) {
         if (!d.ok) { showToast(d.error || 'Помилка'); return; }
         showToast('Об\'єднано');
+        _listPage = 1;
         loadList();
         selectAttr(targetId);
     })
@@ -467,13 +618,37 @@ document.getElementById('btnSaveAttr').addEventListener('click', function() {
     });
 });
 
-// ── Поиск и фильтр ───────────────────────────────────────────────────────────
-var _searchTimer = null;
-document.getElementById('attrSearch').addEventListener('input', function() {
-    clearTimeout(_searchTimer);
-    _searchTimer = setTimeout(loadList, 300);
+// ── Форма фільтрів ────────────────────────────────────────────────────────────
+var attrFilterForm = document.getElementById('attrFilterForm');
+
+// ChipSearch викликає form.submit() при Enter в порожньому тайпері —
+// перехоплюємо і замінюємо на AJAX-виклик
+attrFilterForm.submit = function() { loadList(); };
+
+// Ініціалізуємо ChipSearch (він додає свій submit-listener першим — щоб flush тайпера)
+ChipSearch.init('searchChipBox', 'searchChipTyper', 'attrSearch', attrFilterForm);
+
+// Наш submit-listener (після ChipSearch, щоб hidden.value вже був оновлений)
+attrFilterForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    _listPage = 1;
+    loadList();
 });
-document.getElementById('groupFilter').addEventListener('change', loadList);
+
+// Скидання фільтрів
+document.getElementById('btnResetFilter').addEventListener('click', function() {
+    document.getElementById('attrSearch').value = '';
+    document.getElementById('groupFilter').value = '0';
+    var box = document.getElementById('searchChipBox');
+    box.querySelectorAll('.chip').forEach(function(c) { c.remove(); });
+    _listPage = 1;
+    loadList();
+});
+
+document.getElementById('groupFilter').addEventListener('change', function() {
+    _listPage = 1;
+    loadList();
+});
 
 // ── Values section ───────────────────────────────────────────────────────────
 var _valLangId   = 2;   // UK default
@@ -482,16 +657,7 @@ var _valSearch   = '';
 var _valTotal    = 0;
 var _valRows     = [];
 var _valSelected = null; // { text, cnt } — первый клик (для мержа)
-var _valOpen     = false;
 var _valTimer    = null;
-
-// Toggle открытия
-document.getElementById('valSectionHead').addEventListener('click', function() {
-    _valOpen = !_valOpen;
-    document.getElementById('valSection').style.display = _valOpen ? 'block' : 'none';
-    document.getElementById('valToggleIcon').textContent = _valOpen ? '▲' : '▼';
-    if (_valOpen && _currentId) loadValues(true);
-});
 
 // Lang tabs
 function buildValLangTabs(langs) {
@@ -635,7 +801,7 @@ document.getElementById('btnValSave').addEventListener('click', function() {
         body: 'attribute_id=' + _currentId
             + '&old_text=' + encodeURIComponent(oldText)
             + '&new_text=' + encodeURIComponent(newText)
-            + '&language_id=' + _valLangId
+            + '&language_id=0'
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
@@ -660,14 +826,14 @@ function doMergeValue(sourceText, targetText) {
         body: 'attribute_id=' + _currentId
             + '&source_text=' + encodeURIComponent(sourceText)
             + '&target_text=' + encodeURIComponent(targetText)
-            + '&language_id=' + _valLangId
+            + '&language_id=0'
     })
     .then(function(r) { return r.json(); })
     .then(function(d) {
         if (!d.ok) { showToast(d.error || 'Помилка'); return; }
         _valSelected = null;
         document.getElementById('valMergeHint').style.display = 'none';
-        showToast('Злито: ' + d.affected + ' товарів');
+        showToast('Злито: ' + d.total_affected + ' товарів');
         loadValues(true);
     });
 }
@@ -689,6 +855,53 @@ document.getElementById('valSearch').addEventListener('input', function() {
     var langs = [{language_id:2, code:'uk'}, {language_id:1, code:'ru'}];
     buildValLangTabs(langs);
 })();
+
+// ── Нова група ────────────────────────────────────────────────────────────────
+document.getElementById('btnNewGroup').addEventListener('click', function() {
+    document.getElementById('newGroupBox').style.display = 'block';
+    document.getElementById('fNewGroupUk').focus();
+    this.style.display = 'none';
+});
+document.getElementById('btnCancelGroup').addEventListener('click', function() {
+    document.getElementById('newGroupBox').style.display = 'none';
+    document.getElementById('btnNewGroup').style.display = '';
+    document.getElementById('fNewGroupUk').value = '';
+    document.getElementById('fNewGroupRu').value = '';
+    document.getElementById('newGroupErr').style.display = 'none';
+});
+document.getElementById('btnSaveGroup').addEventListener('click', function() {
+    var nameUk = document.getElementById('fNewGroupUk').value.trim();
+    var nameRu = document.getElementById('fNewGroupRu').value.trim();
+    var err    = document.getElementById('newGroupErr');
+    if (!nameUk) { err.textContent = 'Назва (UK) обов\'язкова'; err.style.display = 'block'; return; }
+    err.style.display = 'none';
+
+    fetch('/attributes/api/save_group', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: 'name_uk=' + encodeURIComponent(nameUk) + '&name_ru=' + encodeURIComponent(nameRu)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (!d.ok) { err.textContent = d.error || 'Помилка'; err.style.display = 'block'; return; }
+        // Додаємо нову групу в обидва селекти
+        var label = nameUk + (nameRu ? ' / ' + nameRu : '');
+        function addOption(selId) {
+            var opt = document.createElement('option');
+            opt.value = d.group_id;
+            opt.textContent = label;
+            document.getElementById(selId).appendChild(opt);
+        }
+        addOption('fGroupId');
+        addOption('groupFilter');
+        // Вибираємо нову групу в формі атрибута
+        document.getElementById('fGroupId').value = d.group_id;
+        // Закриваємо форму
+        document.getElementById('btnCancelGroup').click();
+        showToast('Групу "' + nameUk + '" створено');
+    })
+    .catch(function() { err.textContent = 'Помилка мережі'; err.style.display = 'block'; });
+});
 
 // ── Init ─────────────────────────────────────────────────────────────────────
 loadList();

@@ -32,11 +32,11 @@ if ($id > 0) {
 // Names
 Database::upsertOne('Papir', 'product_attribute_description',
     array('attribute_id'=>$id,'language_id'=>2,'attribute_name'=>$nameUk),
-    null
+    array('attribute_id','language_id')
 );
 Database::upsertOne('Papir', 'product_attribute_description',
     array('attribute_id'=>$id,'language_id'=>1,'attribute_name'=>$nameRu),
-    null
+    array('attribute_id','language_id')
 );
 
 // Site mappings

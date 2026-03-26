@@ -59,6 +59,7 @@ class Router
 		'/attributes/api/get_values'              => '/modules/attributes/api/get_values.php',
 		'/attributes/api/save_value'              => '/modules/attributes/api/save_value.php',
 		'/attributes/api/merge_value'             => '/modules/attributes/api/merge_value.php',
+		'/attributes/api/save_group'              => '/modules/attributes/api/save_group.php',
 		'/image-audit'                            => '/modules/image_audit/index.php',
 		'/image-audit/api/action'                 => '/modules/image_audit/api/action.php',
 		'/image-audit/api/status'                 => '/modules/image_audit/api/status.php',

@@ -253,7 +253,7 @@ final class CatalogRepository
         $inList = implode(',', $cleanIds);
 
         $sql = "SELECT
-                    pp.`id_off`,
+                    pp.`product_id`,
                     pp.`product_article`,
                     pp.`price_sale`,
                     pp.`price_wholesale`,
@@ -262,7 +262,9 @@ final class CatalogRepository
                     pdp.`qty_1`,   pdp.`price_1`,
                     pdp.`qty_2`,   pdp.`price_2`,
                     pdp.`qty_3`,   pdp.`price_3`,
-                    COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name
+                    COALESCE(NULLIF(pd2.`name`, ''), NULLIF(pd1.`name`, ''), '') AS name,
+                    seo_off.`seo_url` AS slug_off,
+                    seo_mff.`seo_url` AS slug_mff
                 FROM `product_papir` pp
                 LEFT JOIN `product_description` pd2
                     ON pd2.`product_id` = pp.`product_id`
@@ -271,11 +273,17 @@ final class CatalogRepository
                     ON pd1.`product_id` = pp.`product_id`
                    AND pd1.`language_id` = 1
                 LEFT JOIN `action_prices` ap
-                    ON ap.`product_id` = pp.`id_off`
+                    ON ap.`product_id` = pp.`product_id`
                 LEFT JOIN `product_discount_profile` pdp
                     ON pdp.`product_id` = pp.`product_id`
-                WHERE pp.`id_off` IN (" . $inList . ")
-                ORDER BY FIELD(pp.`id_off`, " . $inList . ")";
+                LEFT JOIN `product_seo` seo_off
+                    ON seo_off.`product_id` = pp.`product_id`
+                   AND seo_off.`site_id` = 1 AND seo_off.`language_id` = 2
+                LEFT JOIN `product_seo` seo_mff
+                    ON seo_mff.`product_id` = pp.`product_id`
+                   AND seo_mff.`site_id` = 2 AND seo_mff.`language_id` = 2
+                WHERE pp.`product_id` IN (" . $inList . ")
+                ORDER BY FIELD(pp.`product_id`, " . $inList . ")";
 
         $res = $this->papirDb->query($sql);
 
@@ -286,7 +294,7 @@ final class CatalogRepository
         $items = array();
 
         while ($row = $res->fetch_assoc()) {
-            $idOff = (int)$row['id_off'];
+            $productId = (int)$row['product_id'];
 
             $qtyDiscounts = array();
             for ($i = 1; $i <= 3; $i++) {
@@ -298,15 +306,17 @@ final class CatalogRepository
                 }
             }
 
-            $items[$idOff] = array(
-                'id'                 => $idOff,
+            $items[$productId] = array(
+                'id'                 => $productId,
                 'article'            => isset($row['product_article']) ? (string)$row['product_article'] : '',
                 'name'               => isset($row['name']) ? (string)$row['name'] : '',
-                'price'              => $row['price_sale']      !== null ? (float)$row['price_sale']      : null,
+                'price_sale'         => $row['price_sale']      !== null ? (float)$row['price_sale']      : null,
                 'price_wholesale'    => $row['price_wholesale'] !== null ? (float)$row['price_wholesale'] : null,
                 'price_dealer'       => $row['price_dealer']    !== null ? (float)$row['price_dealer']    : null,
                 'action_price'       => $row['price_act']       !== null ? (float)$row['price_act']       : null,
                 'quantity_discounts' => $qtyDiscounts,
+                'url_off'            => $row['slug_off'] ? 'https://officetorg.com.ua/' . $row['slug_off'] : null,
+                'url_mff'            => $row['slug_mff'] ? 'https://menufolder.com.ua/' . $row['slug_mff'] : null,
             );
         }
 

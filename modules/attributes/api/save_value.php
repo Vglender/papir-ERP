@@ -8,7 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $attrId  = isset($_POST['attribute_id']) ? (int)$_POST['attribute_id']     : 0;
-$oldText = isset($_POST['old_text'])     ? trim($_POST['old_text'])         : '';
+$oldText = isset($_POST['old_text'])     ? $_POST['old_text']               : '';
 $newText = isset($_POST['new_text'])     ? trim($_POST['new_text'])         : '';
 $langId  = isset($_POST['language_id'])  ? (int)$_POST['language_id']       : 0;
 
@@ -31,7 +31,7 @@ $langSql = $langId > 0 ? " AND language_id = {$langId}" : '';
 
 // Если новое значение уже существует у некоторых товаров — нужно объединить
 // (DELETE старые где новое уже есть, потом UPDATE остальные)
-$r = Database::query('Papir',
+$rDel = Database::query('Papir',
     "DELETE FROM product_attribute_value
      WHERE attribute_id = {$attrId}{$langSql}
        AND text = '{$oldEsc}'
@@ -45,13 +45,16 @@ $r = Database::query('Papir',
        )"
 );
 
-$r2 = Database::query('Papir',
+$rUpd = Database::query('Papir',
     "UPDATE product_attribute_value
      SET text = '{$newEsc}'
      WHERE attribute_id = {$attrId}{$langSql} AND text = '{$oldEsc}'"
 );
 
+$totalAffected = ($rDel['ok'] ? $rDel['affected_rows'] : 0)
+               + ($rUpd['ok'] ? $rUpd['affected_rows'] : 0);
+
 // Каскад на сайты
 AttributeCascadeHelper::cascadeRenameValue($attrId, $oldText, $newText, $langId);
 
-echo json_encode(array('ok' => true, 'affected' => $r2['affected_rows']));
+echo json_encode(array('ok' => true, 'affected' => $totalAffected));

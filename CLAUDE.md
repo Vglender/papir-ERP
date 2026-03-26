@@ -505,6 +505,85 @@ modules/catalog/
 
 ---
 
+### `attributes` — Атрибуты товаров
+
+```
+modules/attributes/
+├── attributes_bootstrap.php    # Подключает Database, AttributeRepository, CascadeHelper
+├── index.php                   # Контроллер /attributes
+├── CascadeHelper.php           # AttributeCascadeHelper — каскад в off/mff
+├── repositories/
+│   └── AttributeRepository.php # getList, getOne, findDuplicates, merge, getGroups
+├── api/
+│   ├── get_attributes.php      # GET /attributes/api/get?search=&group_id=
+│   ├── get_attribute.php       # GET /attributes/api/get_one?id=
+│   ├── save_attribute.php      # POST /attributes/api/save
+│   ├── merge_attribute.php     # POST /attributes/api/merge (source_id, target_id)
+│   ├── get_values.php          # GET /attributes/api/get_values
+│   ├── save_value.php          # POST /attributes/api/save_value (rename по всем товарам)
+│   └── merge_value.php         # POST /attributes/api/merge_value (source_text→target_text)
+└── views/
+    └── index.php               # Двухколоночный UI: таблица + sticky панель
+```
+
+#### Ключевые таблицы (Papir)
+
+| Таблица | Назначение |
+|---------|-----------|
+| `product_attribute` | Атрибуты: attribute_id, group_id, sort_order, status |
+| `product_attribute_description` | Названия: attribute_id + language_id(1=RU, 2=UK) + attribute_name |
+| `attribute_group` / `attribute_group_description` | Группы атрибутов |
+| `product_attribute_value` | Значения: product_id + attribute_id + language_id + site_id + text |
+| `attribute_site_mapping` | Маппинг Papir→сайт: attribute_id + site_id(1=off, 2=mff) + site_attribute_id |
+
+**`product_attribute_value.site_id=0`** — мастер-значение в Papir (не сайтовое).
+**`product_attribute_value.language_id=0`** — значение без привязки к языку (при мерже используем 0 чтобы охватить все языки).
+
+#### CascadeHelper (`modules/attributes/CascadeHelper.php`)
+
+```php
+AttributeCascadeHelper::cascadeAttributeName($attributeId);          // синхронизировать название в off/mff
+AttributeCascadeHelper::cascadeRenameValue($attrId, $old, $new, $langId); // переименовать значение в off/mff
+AttributeCascadeHelper::cascadeMergeAttribute($sourceId, $targetId); // перенести product_attribute из off/mff
+```
+
+**Логика каскада через маппинг:**
+1. Читаем `attribute_site_mapping` → `site_id` + `site_attribute_id`
+2. Читаем `site_languages` → `site_lang_id` для каждого сайта
+3. Обновляем `oc_attribute_description` и `oc_product_attribute` в off/mff
+
+#### Мерж атрибутов (`AttributeRepository::merge`)
+
+Порядок операций — критически важен:
+
+1. `INSERT IGNORE INTO product_attribute_value` (перенос значений товаров: source→target)
+2. `DELETE FROM product_attribute_value WHERE attribute_id = $src`
+3. **`AttributeCascadeHelper::cascadeMergeAttribute($src, $tgt)`** ← **ДО удаления маппингов!**
+4. `INSERT IGNORE INTO attribute_site_mapping` (перенос маппингов)
+5. `DELETE FROM attribute_site_mapping WHERE attribute_id = $src`
+6. `DELETE FROM product_attribute_description WHERE attribute_id = $src`
+7. `DELETE FROM product_attribute WHERE attribute_id = $src`
+
+> ⚠️ Если вызвать `cascadeMergeAttribute` ПОСЛЕ удаления маппингов — он не найдёт site_attribute_id источника и каскад не выполнится. Баг был исправлен 2026-03-26.
+
+#### Мерж значений (`merge_value.php`, `save_value.php`)
+
+- Всегда передавать `language_id=0` — мержить по всем языкам сразу
+- Не применять `trim()` к тексту значений — пробелы могут быть частью значения и нужны для точного совпадения в БД
+- `total_affected = deleted_duplicates + updated_rows` (не только `affected_rows` из UPDATE)
+
+#### Поля ваги/розмірів/штрихкоду в product_papir
+
+Наступні атрибути були перенесені в колонки `product_papir` (міграція 2026-03-26):
+- **Штрих-код** (атрибути 266, 961) → `product_papir.ean`
+- **Вага** (атрибути 776, 4, 875, 160) → `product_papir.weight` + `weight_class_id` (1=кг, 2=г)
+- **Довжина/ширина/висота** (якщо є) → `product_papir.length/width/height` + `length_class_id` (1=см, 2=мм)
+
+Таблиці класів: `weight_class`, `weight_class_description`, `weight_class_site_mapping`,
+`length_class`, `length_class_description`, `length_class_site_mapping` (міграція 003).
+
+---
+
 ## UI — Shared система стилів
 
 ### Принцип: Papir як єдине джерело правди
@@ -609,7 +688,7 @@ modules/shared/
 
 ---
 
-### Стандарт поиска — Chip Search
+### Стандарт поиска — Chip Search + панель фильтров
 
 **Это стандартный подход поиска во всех табличных интерфейсах CRM.**
 
@@ -626,30 +705,105 @@ modules/shared/
 | Файл | Назначение |
 |------|-----------|
 | `modules/shared/ui.css` | CSS классы: `.chip-input`, `.chip`, `.chip-x`, `.chip-typer` |
-| `modules/shared/chip-search.js` | JS виджет: `ChipSearch.init(boxId, typerId, hiddenId)` |
+| `modules/shared/chip-search.js` | JS виджет: `ChipSearch.init(boxId, typerId, hiddenId, form)` |
 
-#### Разметка (копировать в каждый новый view)
+#### Стандартная структура панели фильтров
 
+Три уровня (все опциональны кроме первого):
+1. **Row 1** — поиск + select-фильтры + кнопки "Застосувати" / "Скинути"
+2. **Row 2** — чекбоксы (если нужны доп. фильтры типа сайт/статус)
+3. **Bulk toolbar** — "Вибрано N" + массовые действия
+
+CSS для Row 1 (копировать в каждый новый view):
+```css
+.xxx-filters {
+    display: grid;
+    grid-template-columns: 1fr 200px auto;   /* chip-search | select | кнопки */
+    gap: 10px;
+    align-items: end;
+    margin-bottom: 14px;
+}
+.xxx-filters label {
+    display: block;
+    font-size: 12px; color: var(--text-muted); font-weight: 500;
+    margin-bottom: 4px;
+}
+.xxx-filters select {
+    width: 100%; box-sizing: border-box;
+    padding: 7px 10px; border: 1px solid var(--border-input);
+    border-radius: var(--radius); font-size: 13px; font-family: var(--font);
+    outline: none; background: #fff; cursor: pointer;
+}
+.xxx-filters select:focus { border-color: var(--blue-light); }
+```
+
+HTML разметка Row 1:
 ```html
-<div>
-    <label>Поиск</label>
-    <div class="chip-input" id="searchChipBox">
-        <input type="text" class="chip-typer" id="searchChipTyper"
-               placeholder="ID, артикул или название…" autocomplete="off">
+<div class="xxx-filters">
+    <div>
+        <label>Пошук</label>
+        <div class="chip-input" id="searchChipBox">
+            <input type="text" class="chip-typer" id="searchChipTyper"
+                   placeholder="ID, назва…" autocomplete="off">
+        </div>
+        <input type="hidden" id="searchHidden" value="">
     </div>
-    <input type="hidden" name="search" id="search" value="<?php echo ViewHelper::h($search); ?>">
+    <div>
+        <label>Тип</label>
+        <select id="typeFilter">
+            <option value="0">Всі</option>
+            ...
+        </select>
+    </div>
+    <div class="btn-row">
+        <button type="submit" class="btn btn-sm">Застосувати</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btnResetFilter">Скинути</button>
+    </div>
 </div>
 ```
 
-Подключить скрипт (после `category-tree.js` или в конце `<body>`):
-```html
-<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(...); ?>"></script>
+#### Два варианта интеграции ChipSearch
+
+**Вариант A — form-GET (как `/catalog`):** страница перезагружается с параметрами в URL.
+- Обернуть `.xxx-filters` в `<form method="get" action="/url">`
+- PHP читает `$_GET['search']`, рендерит данные server-side
+- ChipSearch восстанавливает чипы из hidden.value при загрузке страницы
+- "Скинути" = `<a href="/url">` (ссылка, не кнопка)
+- Инициализация: `ChipSearch.init('searchChipBox', 'searchChipTyper', 'searchHidden')` (без 4-го аргумента — найдёт форму автоматически)
+
+**Вариант B — AJAX (как `/attributes`):** данные загружаются fetch без перезагрузки.
+- Форма нужна только как контейнер для ChipSearch; submit перехватывается:
+```javascript
+var filterForm = document.getElementById('myFilterForm');
+// Override form.submit() — ChipSearch вызывает его при Enter в пустом тайпере
+filterForm.submit = function() { loadList(); };
+// Инициализируем ChipSearch ПЕРВЫМ (чтобы его flush-listener добавился раньше)
+ChipSearch.init('searchChipBox', 'searchChipTyper', 'searchHidden', filterForm);
+// Наш listener — после ChipSearch, чтобы hidden.value уже был обновлён
+filterForm.addEventListener('submit', function(e) { e.preventDefault(); loadList(); });
+
+// Скинути — очищаем вручную:
+document.getElementById('btnResetFilter').addEventListener('click', function() {
+    document.getElementById('searchHidden').value = '';
+    document.getElementById('typeFilter').value = '0';
+    document.getElementById('searchChipBox').querySelectorAll('.chip').forEach(function(c) { c.remove(); });
+    loadList();
+});
+
+// Select-фильтры — мгновенно применяются
+document.getElementById('typeFilter').addEventListener('change', loadList);
 ```
 
-Инициализация в конце `<script>` блока страницы:
-```javascript
-ChipSearch.init('searchChipBox', 'searchChipTyper', 'search');
+Подключить скрипт **до** основного `<script>` блока страницы:
+```html
+<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
+<script>
+// ... весь JS страницы ...
+ChipSearch.init(...);
+</script>
 ```
+
+> **Важно**: `loadList()` читает `document.getElementById('searchHidden').value` — этот hidden обновляется ChipSearch автоматически при добавлении/удалении чипов.
 
 #### PHP buildWhere (шаблон для репозитория)
 
