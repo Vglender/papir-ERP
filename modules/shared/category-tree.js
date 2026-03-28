@@ -19,7 +19,8 @@ function CategoryTree(opts) {
     this._selectedId = opts.selectedId || 0;
     this._searchable = opts.searchable !== false;
     this._onSelect   = opts.onSelect || function() {};
-    this._searchVal  = '';
+    this._searchVal   = '';
+    this._statusFilter = 'all'; // 'all' | 'active' | 'inactive'
 
     // Build id→node and parent→children maps
     this._byId    = {};
@@ -73,23 +74,28 @@ CategoryTree.prototype._matchTokens = function(name, query) {
     return true;
 };
 
-// Returns set of ids that match search (including ancestors needed to show them)
+// Returns set of ids that match search (including ancestors needed to show them).
+// Supports ||| separated OR-queries (from ChipSearch noComma mode): each chip = one query,
+// results are OR-ed. Within a single query, whitespace tokens are AND-ed.
 CategoryTree.prototype._matchingIds = function(query) {
     if (!query) return null; // null = show all
     var self = this;
-    var direct = {};
-    this._allCats.forEach(function(c) {
-        if (self._matchTokens(c.name, query)) direct[c.id] = true;
-    });
-    // Add all ancestors of matching nodes
+    var queries = query.indexOf('|||') !== -1
+        ? query.split('|||') : [query];
+    queries = queries.map(function(q) { return q.trim(); }).filter(Boolean);
+    if (!queries.length) return null;
+
     var visible = {};
-    Object.keys(direct).forEach(function(id) {
-        visible[id] = true;
-        var cat = self._byId[id];
-        while (cat && cat.parent_id) {
-            visible[cat.parent_id] = true;
-            cat = self._byId[cat.parent_id];
-        }
+    queries.forEach(function(q) {
+        self._allCats.forEach(function(c) {
+            if (!self._matchTokens(c.name, q)) return;
+            visible[c.id] = true;
+            var cat = self._byId[c.id];
+            while (cat && cat.parent_id) {
+                visible[cat.parent_id] = true;
+                cat = self._byId[cat.parent_id];
+            }
+        });
     });
     return visible;
 };
@@ -127,11 +133,40 @@ CategoryTree.prototype._render = function() {
     this._renderNodes();
 };
 
+// Returns set of ids matching status filter (including ancestors), or null = show all
+CategoryTree.prototype._statusMatchingIds = function() {
+    if (!this._statusFilter || this._statusFilter === 'all') return null;
+    var self = this;
+    var targetStatus = (this._statusFilter === 'active') ? 1 : 0;
+    var visible = {};
+    this._allCats.forEach(function(c) {
+        if (parseInt(c.status, 10) === targetStatus) {
+            visible[c.id] = true;
+            var cat = self._byId[c.id];
+            while (cat && cat.parent_id) {
+                visible[cat.parent_id] = true;
+                cat = self._byId[cat.parent_id];
+            }
+        }
+    });
+    return visible;
+};
+
 CategoryTree.prototype._renderNodes = function() {
-    var self    = this;
-    var wrap    = this._nodesWrap;
-    var query   = this._searchVal.trim();
-    var visible = this._matchingIds(query);
+    var self      = this;
+    var wrap      = this._nodesWrap;
+    var query     = this._searchVal.trim();
+    var searchVis = this._matchingIds(query);
+    var statusVis = this._statusMatchingIds();
+
+    // Intersection of both filter sets (null = no restriction)
+    var visible;
+    if (searchVis !== null && statusVis !== null) {
+        visible = {};
+        Object.keys(searchVis).forEach(function(id) { if (statusVis[id]) visible[id] = true; });
+    } else {
+        visible = searchVis !== null ? searchVis : (statusVis !== null ? statusVis : null);
+    }
 
     wrap.innerHTML = '';
 
@@ -171,7 +206,8 @@ CategoryTree.prototype._buildNode = function(id, depth, visible, query) {
 
     // Row
     var row = document.createElement('div');
-    row.className = 'cat-node-row' + (isSelected ? ' selected' : '');
+    var isInactive = (parseInt(cat.status, 10) !== 1);
+    row.className = 'cat-node-row' + (isSelected ? ' selected' : '') + (isInactive ? ' inactive' : '');
     row.style.paddingLeft = (12 + depth * 18) + 'px';
 
     // Toggle arrow

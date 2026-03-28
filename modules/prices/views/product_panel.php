@@ -66,25 +66,15 @@
                 <div class="price-group-title">Основные</div>
                 <div class="price-grid-3">
                     <div class="price-item">
-                        <div class="price-label">
-                            Продажная
-                            <?php if (!empty($details['manual_price_enabled'])) { ?><span class="source-tag manual-tag">M</span><?php } ?>
-                            <?php if (!empty($details['use_rrp'])) { ?><span class="source-tag">RRP</span><?php } ?>
-                        </div>
+                        <div class="price-label"><span>Продажная</span><span class="price-tags"><?php if (!empty($details['manual_price_enabled'])) { ?><span class="source-tag manual-tag">M</span><?php } ?><?php if (!empty($details['use_rrp'])) { ?><span class="source-tag">RRP</span><?php } ?></span></div>
                         <div class="price-value"><?php echo priceVal($details['price_sale']); ?></div>
                     </div>
                     <div class="price-item">
-                        <div class="price-label">
-                            Оптовая
-                            <?php if (!empty($details['manual_wholesale_enabled'])) { ?><span class="source-tag manual-tag">M</span><?php } ?>
-                        </div>
+                        <div class="price-label"><span>Оптовая</span><?php if (!empty($details['manual_wholesale_enabled'])) { ?><span class="price-tags"><span class="source-tag manual-tag">M</span></span><?php } ?></div>
                         <div class="price-value"><?php echo priceVal($details['price_wholesale']); ?></div>
                     </div>
                     <div class="price-item">
-                        <div class="price-label">
-                            Дилерская
-                            <?php if (!empty($details['manual_dealer_enabled'])) { ?><span class="source-tag manual-tag">M</span><?php } ?>
-                        </div>
+                        <div class="price-label"><span>Дилерская</span><?php if (!empty($details['manual_dealer_enabled'])) { ?><span class="price-tags"><span class="source-tag manual-tag">M</span></span><?php } ?></div>
                         <div class="price-value"><?php echo priceVal($details['price_dealer']); ?></div>
                     </div>
                 </div>
@@ -94,10 +84,7 @@
                 <div class="price-group-title">RRP</div>
                 <div class="price-grid-2">
                     <div class="price-item">
-                        <div class="price-label">
-                            Значение
-                            <?php if (!empty($details['manual_rrp_enabled'])) { ?><span class="source-tag manual-tag">M</span><?php } ?>
-                        </div>
+                        <div class="price-label"><span>Значение</span><?php if (!empty($details['manual_rrp_enabled'])) { ?><span class="price-tags"><span class="source-tag manual-tag">M</span></span><?php } ?></div>
                         <div class="price-value"><?php echo priceVal($details['price_rrp']); ?></div>
                     </div>
                     <div class="price-item">

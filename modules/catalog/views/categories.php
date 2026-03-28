@@ -1,5 +1,7 @@
 <?php
-$title = 'Категорії';
+$title     = 'Категорії';
+$activeNav = 'catalog';
+$subNav    = 'categories';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
@@ -19,7 +21,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 }
 .cats-form-panel {
     position: sticky;
-    top: 16px;
+    top: var(--sticky-top);
     display: flex;
     flex-direction: column;
     gap: 16px;
@@ -40,8 +42,12 @@ require_once __DIR__ . '/../../shared/layout.php';
     color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px;
 }
 .seo-site-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.seo-site-tab.unmapped { color: var(--text-faint); }
+.seo-site-tab.unmapped.active { color: var(--text-muted); border-bottom-color: var(--border); }
 .seo-site-pane { display: none; }
 .seo-site-pane.active { display: block; }
+.seo-add-panel { padding: 20px 0 10px; display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
+.seo-add-msg { font-size: 13px; color: var(--text-muted); }
 .seo-lang-tabs { display: flex; gap: 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
 .seo-lang-tab {
     padding: 5px 14px; font-size: 12px; font-weight: 500; cursor: pointer;
@@ -63,6 +69,19 @@ require_once __DIR__ . '/../../shared/layout.php';
 .form-row input:focus, .form-row textarea:focus { border-color: var(--blue-light); }
 .form-row input[readonly] { background: #f8fafc; color: var(--text-muted); cursor: default; }
 .form-row textarea { resize: vertical; min-height: 60px; }
+.desc-preview {
+    padding: 10px 12px; border: 1px solid var(--border-input); border-radius: var(--radius);
+    min-height: 60px; font-size: 13px; line-height: 1.6; background: #fafcff; cursor: pointer;
+    word-break: break-word;
+}
+.desc-preview h1,.desc-preview h2,.desc-preview h3 { font-size: 14px; font-weight: 600; margin: 6px 0 4px; }
+.desc-preview p  { margin: 0 0 6px; }
+.desc-preview ul,.desc-preview ol { margin: 0 0 6px; padding-left: 20px; }
+.desc-preview li { margin-bottom: 2px; }
+.desc-preview strong { font-weight: 600; }
+.desc-preview em    { font-style: italic; }
+.desc-toggle { font-size: 11px; color: var(--blue); cursor: pointer; margin-left: 6px; text-decoration: underline; }
+.desc-empty  { color: var(--text-faint); font-size: 12px; font-style: italic; }
 .form-row-inline { display: flex; gap: 10px; align-items: center; }
 .cat-info-row { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
 .cat-info-row strong { color: var(--text); }
@@ -78,6 +97,19 @@ require_once __DIR__ . '/../../shared/layout.php';
 .cat-url-link:empty { display: none; }
 .cat-url-empty { font-size: 12px; color: var(--text-faint); font-style: italic; }
 #cardAi textarea { min-height: 68px; }
+/* AI generation */
+.btn-icon-ai { background:none; border:none; padding:4px; cursor:pointer; color:#f59e0b; line-height:0; border-radius:4px; transition:color .15s; }
+.btn-icon-ai:hover { color:#d97706; }
+.ai-gen-opts { display:flex; gap:16px; margin-bottom:14px; }
+.ai-gen-opts-group { flex:1; }
+.ai-gen-opts-group > b { display:block; font-size:12px; color:var(--text-muted); font-weight:500; margin-bottom:6px; }
+.ai-gen-opt-row { display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:5px; }
+.ai-gen-opt-row label { cursor:pointer; }
+.ai-gen-prompt-toggle { font-size:12px; color:var(--blue-light); cursor:pointer; user-select:none; margin-bottom:6px; }
+.ai-gen-prompt-box { font-size:11px; font-family:monospace; background:#f9fafb; border:1px solid var(--border); border-radius:var(--radius); padding:8px 10px; white-space:pre-wrap; max-height:180px; overflow-y:auto; margin-bottom:10px; display:none; }
+.ai-gen-status { font-size:12px; color:var(--text-muted); margin-top:8px; min-height:18px; }
+.ai-gen-status.ok  { color:#16a34a; }
+.ai-gen-status.err { color:#dc2626; }
 .seo-site-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
 .seo-no-sync { font-size: 11px; color: var(--text-faint); font-style: italic; padding: 3px 0 10px; }
 .seo-top-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
@@ -134,12 +166,63 @@ require_once __DIR__ . '/../../shared/layout.php';
 .cat-img-upload { margin-top: 8px; }
 .cat-img-upload input[type=file] { display: none; }
 .cat-img-uploading { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: none; }
+
+/* ── Toolbar ── */
+.cats-toolbar {
+    display: flex; align-items: center;
+    gap: 8px; margin-bottom: 10px;
+}
+.cats-toolbar h1 { margin: 0; font-size: 18px; font-weight: 700; }
+/* ── Filter-bar chip-search sizing ── */
+.cats-chip-wrap { width: 240px; flex-shrink: 0; }
+.filter-bar .chip-input { min-height: 30px; max-height: 30px; overflow: hidden; font-size: 12px; }
+.filter-bar .chip-typer { font-size: 12px; }
+.filter-bar .chip { font-size: 11px; padding: 1px 4px; }
 </style>
 
 <div class="page-wrap">
 
-    <div class="breadcrumb">
-        <a href="/catalog">Каталог</a> / Категорії
+    <!-- ── Toolbar ── -->
+    <div class="cats-toolbar">
+        <h1>Категорії</h1>
+    </div>
+
+    <!-- ── Filter bar ── -->
+    <div class="filter-bar">
+        <div class="filter-bar-group">
+            <span class="filter-bar-label">Категорія</span>
+            <div class="cats-chip-wrap">
+                <div class="chip-input" id="catChipBox">
+                    <input type="text" class="chip-typer" id="catChipTyper" placeholder="Пошук категорії…" autocomplete="off">
+                    <div class="chip-actions">
+                        <button type="button" class="chip-act-btn chip-act-clear hidden" id="catChipClear" title="Очистити">&#x2715;</button>
+                        <button type="button" class="chip-act-btn chip-act-submit" id="catChipSubmit" title="Пошук">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" id="catSearchHidden" value="">
+            </div>
+        </div>
+        <div class="filter-bar-sep"></div>
+        <div class="filter-bar-group">
+            <span class="filter-bar-label">Статус</span>
+            <label class="filter-pill active" id="pillAll">
+                <input type="radio" name="catStatusFilter" value="all" checked> Всі
+            </label>
+            <label class="filter-pill" id="pillActive">
+                <input type="radio" name="catStatusFilter" value="active"> Активні
+            </label>
+            <label class="filter-pill" id="pillInactive">
+                <input type="radio" name="catStatusFilter" value="inactive"> Неактивні
+            </label>
+        </div>
+        <button type="button" class="filter-bar-gear" title="Налаштувати фільтри" id="catsFilterGear">
+            <svg viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M11.9 3.4l-.7.7M4.1 11.9l-.7.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+        </button>
     </div>
 
     <div class="cats-layout">
@@ -221,6 +304,11 @@ require_once __DIR__ . '/../../shared/layout.php';
                                 <label>Назва (UA) *</label>
                                 <textarea id="nameUa" rows="2" autocomplete="off" style="resize:vertical;min-height:32px;height:32px"></textarea>
                             </div>
+                            <div class="form-row">
+                                <label>Опис (UA) <span class="desc-toggle" onclick="toggleDescEdit('Ua')">редагувати</span></label>
+                                <div id="descPreviewUa" class="desc-preview" onclick="toggleDescEdit('Ua')"><span class="desc-empty">Опис відсутній</span></div>
+                                <textarea id="descUa" rows="6" style="display:none" placeholder="HTML-опис категорії (UA)…" onblur="updateDescPreview('Ua')"></textarea>
+                            </div>
                         </div>
 
                         <!-- RU pane -->
@@ -228,6 +316,11 @@ require_once __DIR__ . '/../../shared/layout.php';
                             <div class="form-row">
                                 <label>Назва (RU)</label>
                                 <textarea id="nameRu" rows="2" autocomplete="off" style="resize:vertical;min-height:32px;height:32px"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <label>Опис (RU) <span class="desc-toggle" onclick="toggleDescEdit('Ru')">редагувати</span></label>
+                                <div id="descPreviewRu" class="desc-preview" onclick="toggleDescEdit('Ru')"><span class="desc-empty">Опис відсутній</span></div>
+                                <textarea id="descRu" rows="6" style="display:none" placeholder="HTML-опис категорії (RU)…" onblur="updateDescPreview('Ru')"></textarea>
                             </div>
                         </div>
 
@@ -246,7 +339,12 @@ require_once __DIR__ . '/../../shared/layout.php';
             <!-- ── Card 2: SEO ── -->
             <div class="card" id="cardSeo" style="display:none">
                 <div class="card-head">
-                    <div class="card-head-title">SEO</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <div class="card-head-title">SEO</div>
+                        <button type="button" class="btn-icon-ai" id="btnAiGenSeo" title="Генерувати SEO через AI">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                        </button>
+                    </div>
                     <button type="button" class="btn-icon" id="btnSaveSeo" title="Зберегти SEO">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -295,6 +393,42 @@ require_once __DIR__ . '/../../shared/layout.php';
     </div>
 </div>
 
+<!-- ── AI Generation Modal ──────────────────────────────────────────────── -->
+<div class="modal-overlay" id="aiGenModal" style="display:none">
+    <div class="modal-box" style="max-width:500px">
+        <div class="modal-head">
+            <span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Генерація SEO-контенту
+            </span>
+            <button type="button" class="modal-close" id="aiGenModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="ai-gen-opts">
+                <div class="ai-gen-opts-group">
+                    <b>Сайти</b>
+                    <div id="aiGenSitesCont"></div>
+                </div>
+                <div class="ai-gen-opts-group">
+                    <b>Мови</b>
+                    <div id="aiGenLangsCont"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <label style="font-size:12px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px">Нотатка (опціонально)</label>
+                <textarea id="aiGenNote" rows="2" placeholder="Додаткові акценти для цього запуску…" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--border-input);border-radius:var(--radius);font-size:13px;font-family:var(--font);resize:vertical;outline:none"></textarea>
+            </div>
+            <div class="ai-gen-prompt-toggle" id="aiGenPromptToggle">&#9654; Переглянути промт</div>
+            <div class="ai-gen-prompt-box" id="aiGenPromptBox"></div>
+            <div class="ai-gen-status" id="aiGenStatus"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary btn-sm" id="aiGenRun">Згенерувати</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="aiGenClose2">Закрити</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <div class="crm-lightbox" id="catLightbox">
@@ -302,6 +436,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 </div>
 
 <script src="/modules/shared/category-tree.js?v=<?php echo filemtime(__DIR__ . '/../../shared/category-tree.js'); ?>"></script>
+<script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
 <script>
 var CATS = <?php
     $jsArr = array();
@@ -384,13 +519,14 @@ function buildSeoCard(sites, langs) {
     sitePanes.innerHTML = '';
 
     for (var si = 0; si < sites.length; si++) {
-        var site  = sites[si];
-        var sid   = parseInt(site.site_id, 10);
+        var site    = sites[si];
+        var sid     = parseInt(site.site_id, 10);
+        var isMapped = (site.mapped == 1 || site.mapped === true);
 
         // Site tab
         var stab = document.createElement('div');
-        stab.className = 'seo-site-tab' + (si === 0 ? ' active' : '');
-        stab.textContent = site.name;
+        stab.className = 'seo-site-tab' + (si === 0 ? ' active' : '') + (isMapped ? '' : ' unmapped');
+        stab.textContent = isMapped ? site.name : site.name + ' +';
         stab.setAttribute('data-site', sid);
         siteTabs.appendChild(stab);
 
@@ -399,85 +535,104 @@ function buildSeoCard(sites, langs) {
         spane.className = 'seo-site-pane' + (si === 0 ? ' active' : '');
         spane.setAttribute('id', 'seoSitePane_' + sid);
 
-        // ── Status + URL in one row at TOP of site pane ──
-        var topRow = document.createElement('div');
-        topRow.className = 'seo-top-row';
-        topRow.innerHTML =
-            '<label class="status-toggle">' +
-                '<input type="checkbox" id="seoStatus_' + sid + '"> Активна' +
-            '</label>' +
-            '<span id="catUrlSite_' + sid + '"></span>';
-        spane.appendChild(topRow);
-
-        // ── Lang tabs inside site pane ──
-        var langTabsDiv = document.createElement('div');
-        langTabsDiv.className = 'seo-lang-tabs';
-        langTabsDiv.setAttribute('id', 'seoLangTabs_' + sid);
-
-        var langPanesDiv = document.createElement('div');
-
-        for (var li = 0; li < langs.length; li++) {
-            var lang  = langs[li];
-            var lid   = parseInt(lang.language_id, 10);
-            var lCode = lang.code.toUpperCase();
-            var isRu  = (lang.code === 'ru');
-
-            // Lang tab
-            var ltab = document.createElement('div');
-            ltab.className = 'seo-lang-tab' + (li === 0 ? ' active' : '');
-            ltab.textContent = lCode;
-            ltab.setAttribute('data-site', sid);
-            ltab.setAttribute('data-lang', lid);
-            langTabsDiv.appendChild(ltab);
-
-            // Lang pane
-            var lpane = document.createElement('div');
-            lpane.className = 'seo-lang-pane' + (li === 0 ? ' active' : '');
-            lpane.setAttribute('id', 'seoLangPane_' + sid + '_' + lid);
-
-            var noSyncNote = isRu
-                ? '<div class="seo-no-sync">Не синхронізується з сайтом</div>'
-                : '';
-
-            lpane.innerHTML = noSyncNote +
-                '<div class="form-row">' +
-                    '<label>Назва на сайті</label>' +
-                    '<input type="text" id="catName_' + sid + '_' + lid + '" autocomplete="off">' +
-                '</div>' +
-                '<div class="form-row">' +
-                    '<label>Опис</label>' +
-                    '<textarea id="seoDesc_' + sid + '_' + lid + '" rows="3"></textarea>' +
-                '</div>' +
-                '<div class="form-row">' +
-                    '<label>SEO H1</label>' +
-                    '<input type="text" id="seoH1_' + sid + '_' + lid + '" autocomplete="off">' +
-                '</div>' +
-                '<div class="form-row">' +
-                    '<label>Meta title</label>' +
-                    '<input type="text" id="metaTitle_' + sid + '_' + lid + '" autocomplete="off">' +
-                '</div>' +
-                '<div class="form-row">' +
-                    '<label>Meta description</label>' +
-                    '<textarea id="metaDesc_' + sid + '_' + lid + '" rows="2"></textarea>' +
-                '</div>' +
-                '<div class="form-row">' +
-                    '<label>SEO URL (slug)</label>' +
-                    '<input type="text" id="seoUrl_' + sid + '_' + lid + '" readonly>' +
+        if (!isMapped) {
+            // Unmapped: show "add to site" panel
+            spane.innerHTML =
+                '<div class="seo-add-panel">' +
+                    '<div class="seo-add-msg">Категорія відсутня на сайті <b>' + site.name + '</b>.</div>' +
+                    '<div class="form-row">' +
+                        '<label>Розмістити всередині</label>' +
+                        '<select id="addParentSel_' + sid + '" style="width:100%;padding:7px 10px;border:1px solid var(--border-input);border-radius:var(--radius);font-size:13px;font-family:var(--font);outline:none;background:#fff;box-sizing:border-box">' +
+                            '<option value="0">— Завантаження\u2026</option>' +
+                        '</select>' +
+                    '</div>' +
+                    '<button type="button" class="btn btn-sm btn-primary" id="btnAddToSite_' + sid + '" disabled>Додати на сайт</button>' +
+                    '<span id="addToSiteErr_' + sid + '" class="form-error"></span>' +
                 '</div>';
+        } else {
+            // Mapped: normal SEO fields
 
-            langPanesDiv.appendChild(lpane);
+            // ── Status + URL in one row at TOP of site pane ──
+            var topRow = document.createElement('div');
+            topRow.className = 'seo-top-row';
+            topRow.innerHTML =
+                '<label class="status-toggle">' +
+                    '<input type="checkbox" id="seoStatus_' + sid + '"> Активна' +
+                '</label>' +
+                '<span id="catUrlSite_' + sid + '"></span>';
+            spane.appendChild(topRow);
+
+            // ── Lang tabs inside site pane ──
+            var langTabsDiv = document.createElement('div');
+            langTabsDiv.className = 'seo-lang-tabs';
+            langTabsDiv.setAttribute('id', 'seoLangTabs_' + sid);
+
+            var langPanesDiv = document.createElement('div');
+
+            for (var li = 0; li < langs.length; li++) {
+                var lang  = langs[li];
+                var lid   = parseInt(lang.language_id, 10);
+                var lCode = lang.code.toUpperCase();
+                var isRu  = (lang.code === 'ru');
+
+                // Lang tab
+                var ltab = document.createElement('div');
+                ltab.className = 'seo-lang-tab' + (li === 0 ? ' active' : '');
+                ltab.textContent = lCode;
+                ltab.setAttribute('data-site', sid);
+                ltab.setAttribute('data-lang', lid);
+                langTabsDiv.appendChild(ltab);
+
+                // Lang pane
+                var lpane = document.createElement('div');
+                lpane.className = 'seo-lang-pane' + (li === 0 ? ' active' : '');
+                lpane.setAttribute('id', 'seoLangPane_' + sid + '_' + lid);
+
+                var noSyncNote = isRu
+                    ? '<div class="seo-no-sync">Не синхронізується з сайтом</div>'
+                    : '';
+
+                lpane.innerHTML = noSyncNote +
+                    '<div class="form-row">' +
+                        '<label>Назва на сайті</label>' +
+                        '<input type="text" id="catName_' + sid + '_' + lid + '" autocomplete="off">' +
+                    '</div>' +
+                    '<div class="form-row">' +
+                        '<label>Опис <span class="desc-toggle" id="seoDescToggle_' + sid + '_' + lid + '" onclick="toggleSeoDesc(' + sid + ',' + lid + ')">редагувати</span></label>' +
+                        '<div class="desc-preview" id="seoDescPrev_' + sid + '_' + lid + '" onclick="toggleSeoDesc(' + sid + ',' + lid + ')"><span class="desc-empty">Опис відсутній</span></div>' +
+                        '<textarea id="seoDesc_' + sid + '_' + lid + '" rows="4" style="display:none" onblur="updateSeoDescPrev(' + sid + ',' + lid + ')"></textarea>' +
+                    '</div>' +
+                    '<div class="form-row">' +
+                        '<label>SEO H1</label>' +
+                        '<input type="text" id="seoH1_' + sid + '_' + lid + '" autocomplete="off">' +
+                    '</div>' +
+                    '<div class="form-row">' +
+                        '<label>Meta title</label>' +
+                        '<input type="text" id="metaTitle_' + sid + '_' + lid + '" autocomplete="off">' +
+                    '</div>' +
+                    '<div class="form-row">' +
+                        '<label>Meta description</label>' +
+                        '<textarea id="metaDesc_' + sid + '_' + lid + '" rows="2"></textarea>' +
+                    '</div>' +
+                    '<div class="form-row">' +
+                        '<label>SEO URL (slug)</label>' +
+                        '<input type="text" id="seoUrl_' + sid + '_' + lid + '" readonly>' +
+                    '</div>';
+
+                langPanesDiv.appendChild(lpane);
+            }
+
+            spane.appendChild(langTabsDiv);
+            spane.appendChild(langPanesDiv);
+
+            // ── Sort order at BOTTOM of site pane ──
+            var sortWrap = document.createElement('div');
+            sortWrap.className = 'sort-row';
+            sortWrap.innerHTML =
+                '<label>Порядок:</label>' +
+                '<input type="number" id="seoSortOrder_' + sid + '" class="sort-order-input">';
+            spane.appendChild(sortWrap);
         }
-
-        spane.appendChild(langTabsDiv);
-        spane.appendChild(langPanesDiv);
-
-        // ── Sort order at BOTTOM of site pane ──
-        var sortWrap = document.createElement('div');
-        sortWrap.className = 'sort-row';
-        sortWrap.innerHTML =
-            '<label>Порядок:</label>' +
-            '<input type="number" id="seoSortOrder_' + sid + '" class="sort-order-input">';
-        spane.appendChild(sortWrap);
 
         sitePanes.appendChild(spane);
     }
@@ -493,11 +648,89 @@ function buildSeoCard(sites, langs) {
                 for (var j = 0; j < panes.length; j++) panes[j].classList.remove('active');
                 tab.classList.add('active');
                 var sid = parseInt(tab.getAttribute('data-site'), 10);
-                currentSiteId = sid;
+                if (!tab.classList.contains('unmapped')) {
+                    currentSiteId = sid;
+                }
                 var pane = document.getElementById('seoSitePane_' + sid);
                 if (pane) pane.classList.add('active');
+
+                // Lazy-load site categories for unmapped pane
+                if (tab.classList.contains('unmapped') && pane && !pane.getAttribute('data-cats-loaded')) {
+                    pane.setAttribute('data-cats-loaded', '1');
+                    fetch('/catalog/api/get_site_categories?site_id=' + sid)
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) {
+                            var sel = document.getElementById('addParentSel_' + sid);
+                            var btn = document.getElementById('btnAddToSite_' + sid);
+                            if (!sel) return;
+                            sel.innerHTML = '';
+                            var opt0 = document.createElement('option');
+                            opt0.value = '0';
+                            opt0.textContent = '\u2014 Головна (корінь) \u2014';
+                            sel.appendChild(opt0);
+                            if (d.ok && d.categories && d.categories.length) {
+                                var cats = d.categories;
+                                function buildSelTree(parentId, depth) {
+                                    var prefix = '';
+                                    for (var di = 0; di < depth; di++) prefix += '\u00a0\u00a0\u00a0';
+                                    for (var ci = 0; ci < cats.length; ci++) {
+                                        if (parseInt(cats[ci].parent_id, 10) === parentId) {
+                                            var opt = document.createElement('option');
+                                            opt.value = cats[ci].category_id;
+                                            opt.textContent = prefix + (cats[ci].name || '(без назви)');
+                                            sel.appendChild(opt);
+                                            buildSelTree(parseInt(cats[ci].category_id, 10), depth + 1);
+                                        }
+                                    }
+                                }
+                                buildSelTree(0, 0);
+                            }
+                            if (btn) btn.disabled = false;
+                        })
+                        .catch(function() {
+                            var sel = document.getElementById('addParentSel_' + sid);
+                            if (sel) sel.options[0].textContent = 'Помилка завантаження категорій';
+                        });
+                }
             };
         })(allSiteTabs[i]));
+    }
+
+    // Attach "add to site" button handlers
+    var addBtns = sitePanes.querySelectorAll('[id^="btnAddToSite_"]');
+    for (var ai = 0; ai < addBtns.length; ai++) {
+        addBtns[ai].addEventListener('click', (function(btn) {
+            return function() {
+                var sid = parseInt(btn.id.replace('btnAddToSite_', ''), 10);
+                var errEl = document.getElementById('addToSiteErr_' + sid);
+                btn.disabled = true;
+                btn.textContent = 'Додаю\u2026';
+                if (errEl) errEl.style.display = 'none';
+                var sel = document.getElementById('addParentSel_' + sid);
+                var parentSiteCatId = sel ? parseInt(sel.value, 10) : 0;
+                fetch('/categories/api/add_to_site', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'category_id=' + currentCatId + '&site_id=' + sid + '&parent_site_cat_id=' + parentSiteCatId
+                })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d.ok) {
+                        showToast('Категорію додано на сайт');
+                        loadCategory(currentCatId);
+                    } else {
+                        if (errEl) { errEl.textContent = d.error || 'Помилка'; errEl.style.display = 'block'; }
+                        btn.disabled = false;
+                        btn.textContent = 'Додати на сайт';
+                    }
+                })
+                .catch(function() {
+                    if (errEl) { errEl.textContent = 'Помилка мережі'; errEl.style.display = 'block'; }
+                    btn.disabled = false;
+                    btn.textContent = 'Додати на сайт';
+                });
+            };
+        })(addBtns[ai]));
     }
 
     // Attach lang tab click handlers
@@ -542,7 +775,7 @@ function fillSeoFields(seo, sites, langs) {
             var elUrl      = document.getElementById('seoUrl_'    + sid + '_' + lid);
 
             if (elName)    elName.value    = data.cat_name         || '';
-            if (elSeoDesc) elSeoDesc.value = data.description      || '';
+            if (elSeoDesc) { elSeoDesc.value = data.description    || ''; updateSeoDescPrev(sid, lid); }
             if (elH1)      elH1.value      = data.seo_h1           || '';
             if (elTitle)   elTitle.value   = data.meta_title       || '';
             if (elDesc)    elDesc.value    = data.meta_description || '';
@@ -802,6 +1035,15 @@ function populateForm(d) {
     document.getElementById('catStatus').checked = parseInt(d.status, 10) === 1;
     document.getElementById('sortOrder').value   = d.sort_order || 0;
 
+    // Description full
+    document.getElementById('descUa').value = ua.description_full || '';
+    document.getElementById('descRu').value = ru.description_full || '';
+    updateDescPreview('Ua');
+    updateDescPreview('Ru');
+    // Reset to preview mode
+    setDescMode('Ua', 'preview');
+    setDescMode('Ru', 'preview');
+
     document.getElementById('formError').style.display    = 'none';
     document.getElementById('seoFormError').style.display = 'none';
 
@@ -859,7 +1101,7 @@ tree = new CategoryTree({
     container:  document.getElementById('catsTreePanel'),
     categories: CATS,
     selectedId: SELECTED_ID || 0,
-    searchable: true,
+    searchable: false,
     onSelect: function(id) {
         currentCatId = id;
         history.pushState({id: id}, '', '/categories?selected=' + id);
@@ -890,6 +1132,8 @@ document.getElementById('btnSave').addEventListener('click', function() {
     var params = 'category_id=' + currentCatId
         + '&name_ua='      + encodeURIComponent(nameUa)
         + '&name_ru='      + encodeURIComponent(document.getElementById('nameRu').value)
+        + '&desc_ua='      + encodeURIComponent(document.getElementById('descUa').value)
+        + '&desc_ru='      + encodeURIComponent(document.getElementById('descRu').value)
         + '&status='       + (document.getElementById('catStatus').checked ? 1 : 0)
         + '&sort_order='   + encodeURIComponent(document.getElementById('sortOrder').value);
 
@@ -928,7 +1172,7 @@ function loadAiInstruction(catId) {
     document.getElementById('aiInstruction').value = '';
     document.getElementById('aiFormError').style.display = 'none';
 
-    fetch('/ai/api/get_instruction?entity_type=category&entity_id=' + catId + '&use_case=content')
+    fetch('/ai/api/get_instruction?entity_type=category&entity_id=' + catId + '&use_case=seo')
         .then(function(r) { return r.json(); })
         .then(function(d) {
             if (!d.ok) return;
@@ -947,7 +1191,7 @@ document.getElementById('btnSaveAi').addEventListener('click', function() {
 
     var params = 'entity_type=category'
         + '&entity_id='   + currentCatId
-        + '&use_case=content'
+        + '&use_case=seo'
         + '&context='     + encodeURIComponent(document.getElementById('aiContext').value)
         + '&instruction=' + encodeURIComponent(document.getElementById('aiInstruction').value);
 
@@ -1030,6 +1274,332 @@ document.getElementById('btnSaveSeo').addEventListener('click', function() {
         err.style.display = 'block';
     });
 });
+
+// ── AI Generation ─────────────────────────────────────────────────────────────
+
+function aiGenBuildModal() {
+    var sitesCont = document.getElementById('aiGenSitesCont');
+    var langsCont = document.getElementById('aiGenLangsCont');
+    sitesCont.innerHTML = '';
+    langsCont.innerHTML = '';
+
+    for (var si = 0; si < ALL_SITES.length; si++) {
+        var s   = ALL_SITES[si];
+        var row = document.createElement('div');
+        row.className = 'ai-gen-opt-row';
+        row.innerHTML = '<input type="checkbox" id="aiGs_' + s.site_id + '" value="' + s.site_id + '" checked>'
+            + '<label for="aiGs_' + s.site_id + '">' + s.name + '</label>';
+        sitesCont.appendChild(row);
+    }
+    for (var li = 0; li < ALL_LANGS.length; li++) {
+        var l   = ALL_LANGS[li];
+        var row = document.createElement('div');
+        row.className = 'ai-gen-opt-row';
+        row.innerHTML = '<input type="checkbox" id="aiGl_' + l.language_id + '" value="' + l.language_id + '" checked>'
+            + '<label for="aiGl_' + l.language_id + '">' + l.name + '</label>';
+        langsCont.appendChild(row);
+    }
+
+    document.getElementById('aiGenNote').value    = '';
+    document.getElementById('aiGenStatus').textContent = '';
+    document.getElementById('aiGenStatus').className   = 'ai-gen-status';
+    document.getElementById('aiGenPromptBox').style.display  = 'none';
+    document.getElementById('aiGenPromptBox').textContent    = '';
+    document.getElementById('aiGenPromptToggle').textContent = '\u25BA Переглянути промт';
+    document.getElementById('aiGenRun').disabled    = false;
+    document.getElementById('aiGenRun').textContent = 'Згенерувати';
+}
+
+document.getElementById('btnAiGenSeo').addEventListener('click', function() {
+    if (!currentCatId) return;
+    aiGenBuildModal();
+    document.getElementById('aiGenModal').style.display = 'flex';
+});
+
+document.getElementById('aiGenModalClose').addEventListener('click', function() {
+    document.getElementById('aiGenModal').style.display = 'none';
+});
+document.getElementById('aiGenClose2').addEventListener('click', function() {
+    document.getElementById('aiGenModal').style.display = 'none';
+});
+document.getElementById('aiGenModal').addEventListener('click', function(e) {
+    if (e.target === this) { this.style.display = 'none'; }
+});
+
+document.getElementById('aiGenPromptToggle').addEventListener('click', function() {
+    var box = document.getElementById('aiGenPromptBox');
+    if (box.style.display === 'none') {
+        box.style.display = 'block';
+        this.textContent = '\u25BC Сховати промт';
+        if (!box.textContent.trim()) { aiGenLoadPreview(); }
+    } else {
+        box.style.display = 'none';
+        this.textContent = '\u25BA Переглянути промт';
+    }
+});
+document.getElementById('aiGenNote').addEventListener('input', function() {
+    // Reset prompt preview on note change
+    var box = document.getElementById('aiGenPromptBox');
+    if (box.style.display !== 'none') {
+        box.textContent = '';
+        aiGenLoadPreview();
+    }
+});
+
+function aiGenLoadPreview() {
+    var box = document.getElementById('aiGenPromptBox');
+    box.textContent = 'Завантаження\u2026';
+    var siteCbs = document.querySelectorAll('[id^="aiGs_"]:checked');
+    var langCbs = document.querySelectorAll('[id^="aiGl_"]:checked');
+    if (!siteCbs.length || !langCbs.length) { box.textContent = '\u2014'; return; }
+    var sid = parseInt(siteCbs[0].value, 10);
+    var lid = parseInt(langCbs[0].value, 10);
+    var body = 'entity_type=category'
+        + '&entity_id='   + currentCatId
+        + '&site_id='     + sid
+        + '&language_id=' + lid
+        + '&use_case=seo'
+        + '&custom_note=' + encodeURIComponent(document.getElementById('aiGenNote').value)
+        + '&return_prompt=1&preview_only=1';
+    fetch('/ai/api/generate_content', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: body
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            box.textContent = '=== SYSTEM ===\n\n' + d.system_prompt + '\n\n=== USER ===\n\n' + d.user_prompt;
+        } else {
+            box.textContent = d.error || 'Помилка';
+        }
+    })
+    .catch(function() { box.textContent = 'Помилка мережі'; });
+}
+
+document.getElementById('aiGenRun').addEventListener('click', function() {
+    if (!currentCatId) return;
+
+    var checkedSites = [];
+    var checkedLangs = [];
+    var siteCbs = document.querySelectorAll('[id^="aiGs_"]:checked');
+    var langCbs = document.querySelectorAll('[id^="aiGl_"]:checked');
+    for (var i = 0; i < siteCbs.length; i++) { checkedSites.push(parseInt(siteCbs[i].value, 10)); }
+    for (var i = 0; i < langCbs.length;  i++) { checkedLangs.push(parseInt(langCbs[i].value,  10)); }
+
+    var status = document.getElementById('aiGenStatus');
+    if (!checkedSites.length || !checkedLangs.length) {
+        status.textContent = 'Оберіть хоча б один сайт і мову';
+        status.className = 'ai-gen-status err';
+        return;
+    }
+
+    var note  = document.getElementById('aiGenNote').value;
+    var btn   = this;
+    btn.disabled    = true;
+    btn.textContent = 'Генерація\u2026';
+    status.textContent = '';
+    status.className = 'ai-gen-status';
+
+    var pairs = [];
+    for (var si = 0; si < checkedSites.length; si++) {
+        for (var li = 0; li < checkedLangs.length; li++) {
+            pairs.push({site_id: checkedSites[si], language_id: checkedLangs[li]});
+        }
+    }
+
+    var done   = 0;
+    var errors = 0;
+
+    function runNext(idx) {
+        if (idx >= pairs.length) {
+            btn.disabled    = false;
+            btn.textContent = 'Ще раз';
+            if (errors === 0) {
+                status.textContent = '\u2713 Згенеровано ' + done + ' варіантів. Перевірте поля і збережіть SEO для кожного сайту.';
+                status.className = 'ai-gen-status ok';
+            } else {
+                status.textContent = done + ' згенеровано, ' + errors + ' помилок.';
+                status.className = 'ai-gen-status err';
+            }
+            return;
+        }
+        var pair = pairs[idx];
+        status.textContent = 'Генерація ' + (idx + 1) + ' / ' + pairs.length + '\u2026';
+        status.className = 'ai-gen-status';
+
+        var body = 'entity_type=category'
+            + '&entity_id='   + currentCatId
+            + '&site_id='     + pair.site_id
+            + '&language_id=' + pair.language_id
+            + '&use_case=seo'
+            + '&custom_note=' + encodeURIComponent(note);
+
+        fetch('/ai/api/generate_content', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: body
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (d.ok && d.fields) {
+                aiGenApplyFields(pair.site_id, pair.language_id, d.fields);
+                done++;
+            } else {
+                errors++;
+            }
+            runNext(idx + 1);
+        })
+        .catch(function() { errors++; runNext(idx + 1); });
+    }
+
+    runNext(0);
+});
+
+function aiGenApplyFields(siteId, languageId, fields) {
+    var map = {
+        'description':      'seoDesc_',
+        'seo_h1':           'seoH1_',
+        'meta_title':       'metaTitle_',
+        'meta_description': 'metaDesc_'
+    };
+    for (var key in map) {
+        if (fields[key] !== undefined && fields[key] !== '') {
+            var el = document.getElementById(map[key] + siteId + '_' + languageId);
+            if (el) { el.value = fields[key]; }
+        }
+    }
+}
+
+// ── Description preview / edit toggle ──────────────────────────────────
+function updateDescPreview(lang) {
+    var ta  = document.getElementById('desc' + lang);
+    var pre = document.getElementById('descPreview' + lang);
+    if (!ta || !pre) return;
+    var val = ta.value.trim();
+    if (val === '') {
+        pre.innerHTML = '<span class="desc-empty">Опис відсутній</span>';
+    } else {
+        pre.innerHTML = val;
+    }
+}
+
+function setDescMode(lang, mode) {
+    var ta      = document.getElementById('desc' + lang);
+    var pre     = document.getElementById('descPreview' + lang);
+    var toggle  = pre ? pre.previousElementSibling.querySelector('.desc-toggle') : null;
+    if (!ta || !pre) return;
+    if (mode === 'edit') {
+        pre.style.display = 'none';
+        ta.style.display  = '';
+        ta.focus();
+        if (toggle) toggle.textContent = 'переглянути';
+    } else {
+        updateDescPreview(lang);
+        ta.style.display  = 'none';
+        pre.style.display = '';
+        if (toggle) toggle.textContent = 'редагувати';
+    }
+}
+
+function toggleDescEdit(lang) {
+    var ta = document.getElementById('desc' + lang);
+    if (!ta) return;
+    if (ta.style.display === 'none') {
+        setDescMode(lang, 'edit');
+    } else {
+        setDescMode(lang, 'preview');
+    }
+}
+
+function updateSeoDescPrev(sid, lid) {
+    var ta   = document.getElementById('seoDesc_' + sid + '_' + lid);
+    var prev = document.getElementById('seoDescPrev_' + sid + '_' + lid);
+    if (!ta || !prev) return;
+    var html = ta.value.trim();
+    prev.innerHTML = html !== '' ? html : '<span class="desc-empty">Опис відсутній</span>';
+}
+
+function toggleSeoDesc(sid, lid) {
+    var ta     = document.getElementById('seoDesc_' + sid + '_' + lid);
+    var prev   = document.getElementById('seoDescPrev_' + sid + '_' + lid);
+    var toggle = document.getElementById('seoDescToggle_' + sid + '_' + lid);
+    if (!ta || !prev) return;
+    if (ta.style.display === 'none') {
+        prev.style.display = 'none';
+        ta.style.display = '';
+        if (toggle) toggle.textContent = 'перегляд';
+        ta.focus();
+    } else {
+        updateSeoDescPrev(sid, lid);
+        ta.style.display = 'none';
+        prev.style.display = '';
+        if (toggle) toggle.textContent = 'редагувати';
+    }
+}
+
+// ── Status filter (drives tree) ──────────────────────────────────────────────
+(function() {
+    var pills = ['pillAll', 'pillActive', 'pillInactive'];
+    document.querySelectorAll('input[name="catStatusFilter"]').forEach(function(radio) {
+        radio.addEventListener('change', function() {
+            // Update pill active class
+            pills.forEach(function(id) { var el = document.getElementById(id); if (el) el.classList.remove('active'); });
+            var label = radio.closest('label');
+            if (label) label.classList.add('active');
+            // Apply to tree
+            if (tree) {
+                tree._statusFilter = radio.value;
+                tree._renderNodes();
+            }
+        });
+    });
+}());
+
+// ── Cat search (drives tree) ──────────────────────────────────────────────────
+function applyCatSearch() {
+    if (!tree) return;
+    tree._searchVal = document.getElementById('catSearchHidden').value.trim();
+    tree._renderNodes();
+}
+
+(function() {
+    var catFakeForm = {
+        _cbs: [],
+        addEventListener: function(ev, cb) { if (ev === 'submit') this._cbs.push(cb); },
+        submit: function() { this._cbs.forEach(function(cb) { cb(); }); applyCatSearch(); },
+        querySelector: function() { return null; }
+    };
+    ChipSearch.init('catChipBox', 'catChipTyper', 'catSearchHidden', catFakeForm, {noComma: true});
+
+    // Re-apply immediately on chip removal
+    document.getElementById('catChipBox').addEventListener('click', function(e) {
+        if (e.target.closest('.chip-x')) setTimeout(applyCatSearch, 0);
+    });
+
+    // Lens button — apply search
+    document.getElementById('catChipSubmit').addEventListener('click', applyCatSearch);
+
+    // Clear button
+    var clearBtn = document.getElementById('catChipClear');
+    var box      = document.getElementById('catChipBox');
+    var typer    = document.getElementById('catChipTyper');
+    var hidden   = document.getElementById('catSearchHidden');
+    function updateCatClear() {
+        var hasChips = box.querySelectorAll('.chip').length > 0;
+        if (hasChips || typer.value.trim() !== '') clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+    }
+    new MutationObserver(updateCatClear).observe(box, {childList: true});
+    typer.addEventListener('input', updateCatClear);
+    clearBtn.addEventListener('click', function() {
+        box.querySelectorAll('.chip').forEach(function(c) { c.remove(); });
+        typer.value = '';
+        hidden.value = '';
+        clearBtn.classList.add('hidden');
+        applyCatSearch();
+    });
+}());
 </script>
 
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

@@ -15,4 +15,10 @@
 /modules/moysklad/storage/
 modules/prices/google_credentials.json
 /modules/openai/storage/
+/modules/counterparties/storage/
+/scripts/image_audit_results.json
+/logs/
+*.png
+Sampl*.png
+Screenshot_*.png
 

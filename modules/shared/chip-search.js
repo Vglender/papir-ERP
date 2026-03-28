@@ -28,7 +28,8 @@
  */
 var ChipSearch = (function () {
 
-    function init(boxId, typerId, hiddenId, form) {
+    function init(boxId, typerId, hiddenId, form, options) {
+        options = options || {};
         var box    = document.getElementById(boxId);
         var typer  = document.getElementById(typerId);
         var hidden = document.getElementById(hiddenId);
@@ -45,6 +46,8 @@ var ChipSearch = (function () {
                 .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         }
 
+        var SEP = options.noComma ? '|||' : ',';
+
         function render() {
             box.querySelectorAll('.chip').forEach(function (el) { el.remove(); });
             chips.forEach(function (text, idx) {
@@ -55,15 +58,20 @@ var ChipSearch = (function () {
                     '<span class="chip-x" data-idx="' + idx + '" title="Удалить">&#x2715;</span>';
                 box.insertBefore(chip, typer);
             });
-            hidden.value = chips.join(',');
+            hidden.value = chips.join(SEP);
             typer.placeholder = chips.length ? '' : (typer.getAttribute('data-placeholder') || '');
         }
 
         function addRaw(raw) {
-            raw.split(',').forEach(function (p) {
-                p = p.trim();
+            if (options.noComma) {
+                var p = raw.trim();
                 if (p !== '' && chips.indexOf(p) === -1) chips.push(p);
-            });
+            } else {
+                raw.split(',').forEach(function (p) {
+                    p = p.trim();
+                    if (p !== '' && chips.indexOf(p) === -1) chips.push(p);
+                });
+            }
             render();
         }
 
@@ -82,7 +90,8 @@ var ChipSearch = (function () {
         typer.setAttribute('data-placeholder', typer.placeholder);
         var initVal = hidden.value.trim();
         if (initVal) {
-            initVal.split(',').forEach(function (p) {
+            var initSep = options.noComma ? '|||' : ',';
+            initVal.split(initSep).forEach(function (p) {
                 p = p.trim();
                 if (p) chips.push(p);
             });
@@ -104,7 +113,7 @@ var ChipSearch = (function () {
                 else                           { submitForm(); }
                 return;
             }
-            if (e.key === ',' && typer.value.trim() !== '') {
+            if (e.key === ',' && !options.noComma && typer.value.trim() !== '') {
                 e.preventDefault();
                 addRaw(typer.value);
                 typer.value = '';
@@ -119,7 +128,8 @@ var ChipSearch = (function () {
         typer.addEventListener('paste', function (e) {
             e.preventDefault();
             var text = (e.clipboardData || window.clipboardData).getData('text');
-            text.split(/[,\n]+/).forEach(function (p) {
+            var sep = options.noComma ? /\n+/ : /[,\n]+/;
+            text.split(sep).forEach(function (p) {
                 p = p.trim();
                 if (p !== '' && chips.indexOf(p) === -1) chips.push(p);
             });
@@ -129,7 +139,7 @@ var ChipSearch = (function () {
 
         // ── Inline comma ──────────────────────────────────────────────────────
         typer.addEventListener('input', function () {
-            if (typer.value.indexOf(',') !== -1) {
+            if (!options.noComma && typer.value.indexOf(',') !== -1) {
                 addRaw(typer.value.replace(/,/g, ' '));
                 typer.value = '';
             }
@@ -138,7 +148,7 @@ var ChipSearch = (function () {
         // ── Form submit: flush current typer text ─────────────────────────────
         searchForm.addEventListener('submit', function () {
             if (typer.value.trim() !== '') { addRaw(typer.value); typer.value = ''; }
-            hidden.value = chips.join(',');
+            hidden.value = chips.join(SEP);
         });
     }
 

@@ -233,14 +233,12 @@ function h($value)
 {
     return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
 }
+$title     = 'МС атрибути';
+$activeNav = 'tools';
+$subNav    = 'ms-attrs';
+require_once $projectRoot . '/modules/shared/layout.php';
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Papir · Атрибуты МойСклад</title>
-    <style>
+<style>
         :root {
             --bg: #f5f7fb;
             --panel: #ffffff;
@@ -570,15 +568,7 @@ function h($value)
             th, td { padding: 10px; }
         }
     </style>
-</head>
-<body>
 <div class="page">
-    <div class="header">
-        <div class="title-wrap">
-            <h1>Дашборд атрибутов МойСклад</h1>
-            <p>Атрибуты сгруппированы по видам документов. Можно редактировать <span class="code">name_main</span>, видеть связанные значения справочников и запускать обновление таблиц.</p>
-        </div>
-    </div>
 
     <?php if (!empty($messages) || !empty($errors)): ?>
         <div class="messages">
@@ -853,5 +843,4 @@ function toggleAllDocuments(checked) {
     });
 }
 </script>
-</body>
-</html>
+<?php require_once $projectRoot . '/modules/shared/layout_end.php'; ?>

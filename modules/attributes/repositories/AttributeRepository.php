@@ -40,16 +40,13 @@ class AttributeRepository {
             }
         }
 
-        $joins = "FROM product_attribute pa
-             LEFT JOIN attribute_group_description ag_uk ON ag_uk.group_id = pa.group_id AND ag_uk.language_id = 2
-             LEFT JOIN attribute_group_description ag_ru ON ag_ru.group_id = pa.group_id AND ag_ru.language_id = 1
+        // JOIN-ы нужные для WHERE (поиск по имени)
+        $searchJoins = "FROM product_attribute pa
              LEFT JOIN product_attribute_description d_uk ON d_uk.attribute_id = pa.attribute_id AND d_uk.language_id = 2
-             LEFT JOIN product_attribute_description d_ru ON d_ru.attribute_id = pa.attribute_id AND d_ru.language_id = 1
-             LEFT JOIN attribute_site_mapping asm_off ON asm_off.attribute_id = pa.attribute_id AND asm_off.site_id = 1
-             LEFT JOIN attribute_site_mapping asm_mff ON asm_mff.attribute_id = pa.attribute_id AND asm_mff.site_id = 2";
+             LEFT JOIN product_attribute_description d_ru ON d_ru.attribute_id = pa.attribute_id AND d_ru.language_id = 1";
 
         $countR = Database::fetchRow('Papir',
-            "SELECT COUNT(*) AS total {$joins} {$where}"
+            "SELECT COUNT(*) AS total {$searchJoins} {$where}"
         );
         $total = ($countR['ok'] && $countR['row']) ? (int)$countR['row']['total'] : 0;
 
@@ -65,11 +62,15 @@ class AttributeRepository {
                 ag_ru.name  AS group_name_ru,
                 d_uk.attribute_name AS name_uk,
                 d_ru.attribute_name AS name_ru,
-                (SELECT COUNT(*) FROM product_attribute_value pav
-                 WHERE pav.attribute_id = pa.attribute_id AND pav.site_id = 0) AS values_count,
+                COALESCE(pav_cnt.values_count, 0) AS values_count,
                 asm_off.site_attribute_id AS off_attr_id,
                 asm_mff.site_attribute_id AS mff_attr_id
-             {$joins}
+             {$searchJoins}
+             LEFT JOIN attribute_group_description ag_uk ON ag_uk.group_id = pa.group_id AND ag_uk.language_id = 2
+             LEFT JOIN attribute_group_description ag_ru ON ag_ru.group_id = pa.group_id AND ag_ru.language_id = 1
+             LEFT JOIN attribute_site_mapping asm_off ON asm_off.attribute_id = pa.attribute_id AND asm_off.site_id = 1
+             LEFT JOIN attribute_site_mapping asm_mff ON asm_mff.attribute_id = pa.attribute_id AND asm_mff.site_id = 2
+             LEFT JOIN (SELECT attribute_id, COUNT(*) AS values_count FROM product_attribute_value WHERE site_id = 0 GROUP BY attribute_id) pav_cnt ON pav_cnt.attribute_id = pa.attribute_id
              {$where}
              ORDER BY pa.group_id, COALESCE(d_uk.attribute_name, d_ru.attribute_name)
              LIMIT {$off}, {$lim}"

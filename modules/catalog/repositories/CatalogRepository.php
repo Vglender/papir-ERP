@@ -75,50 +75,29 @@ class CatalogRepository
         return ($r['ok'] && !empty($r['rows'])) ? $r['rows'] : array();
     }
 
-    public function getTotalRows($search, $filter = 'all', $siteFilter = array(), $allSiteIds = array())
+    public function getTotalRows($search, $siteFilter = array(), $allSiteIds = array())
     {
-        $where = $this->buildWhere($search, $siteFilter, $allSiteIds, $filter);
-        $sql = "SELECT pp.`id_off`, pp.`product_id`, pp.`quantity`
+        $where = $this->buildWhere($search, $siteFilter, $allSiteIds);
+        $sql = "SELECT pp.`product_id`
                 FROM `product_papir` pp
                 LEFT JOIN `product_description` pd2 ON pd2.`product_id` = pp.`product_id` AND pd2.`language_id` = 2
                 LEFT JOIN `product_description` pd1 ON pd1.`product_id` = pp.`product_id` AND pd1.`language_id` = 1
                 " . $where;
 
         $result = Database::fetchAll('Papir', $sql);
-        if (!$result['ok'] || empty($result['rows'])) {
+        if (!$result['ok']) {
             return 0;
         }
-
-        if ($filter === 'all') {
-            return count($result['rows']);
-        }
-
-        if ($filter === 'with_action') {
-            $idOffs = array();
-            foreach ($result['rows'] as $row) {
-                $idOffs[] = (int)$row['id_off'];
-            }
-            $actionMap = $this->getActionPriceMap($idOffs);
-            $count = 0;
-            foreach ($result['rows'] as $row) {
-                if (isset($actionMap[(int)$row['id_off']])) $count++;
-            }
-            return $count;
-        }
-
-        // with_stock and no_photo are already filtered at SQL level
         return count($result['rows']);
     }
 
-    public function getList($search, $filter, $sort, $order, $offset, $limit, $siteFilter = array(), $allSiteIds = array())
+    public function getList($search, $sort, $order, $offset, $limit, $siteFilter = array(), $allSiteIds = array())
     {
         $sort  = $this->normalizeSort($sort);
         $order = $this->normalizeOrder($order);
-        $where = $this->buildWhere($search, $siteFilter, $allSiteIds, $filter);
+        $where = $this->buildWhere($search, $siteFilter, $allSiteIds);
         $orderCol = isset($this->allowedSort[$sort]) ? $this->allowedSort[$sort] : 'pp.`product_id`';
         $orderDir = strtoupper($order);
-
-        $useSqlLimit = ($filter === 'all' || $filter === 'no_photo' || $filter === 'with_stock');
 
         $sql = "SELECT pp.`product_id`, pp.`id_off`, pp.`product_article`,
                        COALESCE(pp.`price_cost`, 0) AS price_cost,
@@ -131,11 +110,8 @@ class CatalogRepository
                 LEFT JOIN `product_description` pd2 ON pd2.`product_id` = pp.`product_id` AND pd2.`language_id` = 2
                 LEFT JOIN `product_description` pd1 ON pd1.`product_id` = pp.`product_id` AND pd1.`language_id` = 1
                 {$where}
-                ORDER BY {$orderCol} {$orderDir}";
-
-        if ($useSqlLimit) {
-            $sql .= " LIMIT " . (int)$offset . ", " . (int)$limit;
-        }
+                ORDER BY {$orderCol} {$orderDir}
+                LIMIT " . (int)$offset . ", " . (int)$limit;
 
         $result = Database::fetchAll('Papir', $sql);
         if (!$result['ok'] || empty($result['rows'])) {
@@ -189,19 +165,7 @@ class CatalogRepository
             }
         }
 
-        if ($filter === 'with_action') {
-            foreach ($rows as $idOff => $row) {
-                if ($row['action_price'] === null) unset($rows[$idOff]);
-            }
-        }
-
-        $rows = array_values($rows);
-
-        if (!$useSqlLimit) {
-            $rows = array_slice($rows, (int)$offset, (int)$limit);
-        }
-
-        return $rows;
+        return array_values($rows);
     }
 
     public function getProductDetails($productId)
@@ -238,11 +202,12 @@ class CatalogRepository
         $totalQuantity  = (int)$p['quantity'];
         $virtualStock   = max(0, $totalQuantity - $warehouseStock);
 
-        // Action price
-        $actMap  = $this->getActionPriceMap(array($productId));
+        // Action price (action_prices.product_id stores id_off, not Papir product_id)
+        $idOff   = isset($p['id_off']) ? (int)$p['id_off'] : 0;
+        $actMap  = ($idOff > 0) ? $this->getActionPriceMap(array($idOff)) : array();
         $special = null;
-        if (isset($actMap[$productId])) {
-            $special = array('price' => $actMap[$productId], 'date_start' => '', 'date_end' => '');
+        if ($idOff > 0 && isset($actMap[$idOff])) {
+            $special = array('price' => $actMap[$idOff], 'date_start' => '', 'date_end' => '');
         }
 
         // Discounts from product_discount_profile + product_papir
@@ -358,7 +323,7 @@ class CatalogRepository
                     ps.seo_url, ps.seo_h1, ps.meta_title,
                     ps.meta_description, ps.meta_keyword, ps.tag,
                     ps.name, ps.short_description, ps.description,
-                    s.name AS site_name, s.url AS site_url, s.code AS site_code
+                    s.name AS site_name, s.url AS site_url, s.code AS site_code, s.badge AS site_badge
              FROM product_seo ps
              JOIN sites s ON s.site_id = ps.site_id
              WHERE ps.product_id = {$productId}
@@ -394,6 +359,7 @@ class CatalogRepository
                         'name'    => $row['site_name'],
                         'url'     => $row['site_url'],
                         'code'    => $row['site_code'],
+                        'badge'   => isset($row['site_badge']) ? $row['site_badge'] : $row['site_code'],
                         'langs'   => array(),
                     );
                 }
@@ -405,16 +371,11 @@ class CatalogRepository
                     'meta_description' => (string)$row['meta_description'],
                     'meta_keyword'     => (string)$row['meta_keyword'],
                     'tag'              => (string)$row['tag'],
-                    // content fields: site-specific if set, else fallback from product_description
-                    'name'             => ($row['name'] !== null && $row['name'] !== '')
-                                            ? (string)$row['name']
-                                            : (isset($fb['name']) ? (string)$fb['name'] : ''),
-                    'short_description'=> ($row['short_description'] !== null && $row['short_description'] !== '')
-                                            ? (string)$row['short_description']
-                                            : (isset($fb['short_description']) ? (string)$fb['short_description'] : ''),
-                    'description'      => ($row['description'] !== null && $row['description'] !== '')
-                                            ? (string)$row['description']
-                                            : (isset($fb['description']) ? (string)$fb['description'] : ''),
+                    // name and description always from product_description (language_id is authoritative there)
+                    // product_seo.name/description are legacy fields with historically wrong language_ids
+                    'name'              => isset($fb['name'])              ? (string)$fb['name']              : '',
+                    'short_description' => isset($fb['short_description']) ? (string)$fb['short_description'] : '',
+                    'description'       => isset($fb['description'])       ? (string)$fb['description']       : '',
                 );
             }
         }
@@ -422,7 +383,7 @@ class CatalogRepository
         // If product_seo has no rows, build structure from product_site + fallback
         if (empty($data)) {
             $psResult = Database::fetchAll('Papir',
-                "SELECT ps.site_id, s.name AS site_name, s.url AS site_url, s.code AS site_code
+                "SELECT ps.site_id, s.name AS site_name, s.url AS site_url, s.code AS site_code, s.badge AS site_badge
                  FROM product_site ps
                  JOIN sites s ON s.site_id = ps.site_id
                  WHERE ps.product_id = {$productId}
@@ -436,6 +397,7 @@ class CatalogRepository
                         'name'    => $ps['site_name'],
                         'url'     => $ps['site_url'],
                         'code'    => $ps['site_code'],
+                        'badge'   => isset($ps['site_badge']) ? $ps['site_badge'] : $ps['site_code'],
                         'langs'   => array(),
                     );
                 }
@@ -512,24 +474,9 @@ class CatalogRepository
         );
     }
 
-    private function buildWhere($search, $siteFilter = array(), $allSiteIds = array(), $filter = 'all')
+    private function buildWhere($search, $siteFilter = array(), $allSiteIds = array())
     {
         $base = "WHERE pp.`id_off` IS NOT NULL AND pp.`id_off` > 0";
-
-        // Stock/photo filters at SQL level
-        if ($filter === 'no_photo') {
-            $base .= " AND NOT EXISTS (SELECT 1 FROM product_image _pi WHERE _pi.product_id = pp.product_id)";
-        }
-        if ($filter === 'with_stock') {
-            $base .= " AND EXISTS (
-                SELECT 1 FROM `price_supplier_items` psi
-                JOIN `price_supplier_pricelists` psp ON psp.`id` = psi.`pricelist_id`
-                WHERE psi.`product_id` = pp.`product_id`
-                  AND psp.`source_type` = 'moy_sklad'
-                  AND psi.`match_type` != 'ignored'
-                  AND psi.`stock` > 0
-            )";
-        }
 
         // --- New site filter logic ---
         // Empty $siteFilter = all checked = no filter (show all)
@@ -586,8 +533,9 @@ class CatalogRepository
         $search = trim((string)$search);
         if ($search === '') return $base;
 
-        // Split by comma → OR between chips; within each chip split by space → AND
-        $rawChips = preg_split('/\s*,\s*/u', $search);
+        // Split by ||| (noComma mode) or comma → OR between chips; within each chip split by space → AND
+        $chipSep = (strpos($search, '|||') !== false) ? '/\s*\|\|\|\s*/u' : '/\s*,\s*/u';
+        $rawChips = preg_split($chipSep, $search);
         $chipConditions = array();
 
         foreach ($rawChips as $chip) {

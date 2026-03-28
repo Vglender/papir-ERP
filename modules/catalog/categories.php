@@ -3,6 +3,16 @@ require_once __DIR__ . '/catalog_bootstrap.php';
 
 $selected = Request::getInt('selected', 0);
 
+// Default: select first top-level category if none specified
+if ($selected === 0) {
+    $defR = Database::fetchRow('Papir',
+        "SELECT category_id FROM categoria WHERE parent_id = 0 ORDER BY sort_order, category_id LIMIT 1"
+    );
+    if ($defR['ok'] && !empty($defR['row'])) {
+        $selected = (int)$defR['row']['category_id'];
+    }
+}
+
 // All categories for tree (id, parent_id, name UA)
 $treeRes = Database::fetchAll('Papir',
     "SELECT c.category_id as id, c.parent_id, c.status, cd.name
@@ -156,12 +166,30 @@ if ($selected > 0) {
         );
         $chRes = Database::fetchRow('Papir', "SELECT COUNT(*) as cnt FROM categoria WHERE parent_id = {$selected}");
 
+        // Build mapped set for this category
+        $mappedRes = Database::fetchAll('Papir',
+            "SELECT site_id FROM category_site_mapping WHERE category_id = {$selected}"
+        );
+        $mappedSiteIds = array();
+        if ($mappedRes['ok']) {
+            foreach ($mappedRes['rows'] as $mr) {
+                $mappedSiteIds[(int)$mr['site_id']] = true;
+            }
+        }
+        $sitesWithMapped = array();
+        foreach ($allSites as $s) {
+            $sid = (int)$s['site_id'];
+            $s['mapped'] = isset($mappedSiteIds[$sid]) ? 1 : 0;
+            $s['site_category_id'] = 0;
+            $sitesWithMapped[] = $s;
+        }
+
         $initialCat['ua']            = ($rUa['ok'] && !empty($rUa['row'])) ? $rUa['row'] : array();
         $initialCat['ru']            = ($rRu['ok'] && !empty($rRu['row'])) ? $rRu['row'] : array();
         $initialCat['children_count'] = ($chRes['ok'] && !empty($chRes['row'])) ? (int)$chRes['row']['cnt'] : 0;
         $initialCat['seo']           = buildInitialSeoMap($selected, $allSites, $allLanguages);
         $initialCat['site_settings'] = buildInitialSiteSettings($initialCat, $allSites);
-        $initialCat['sites']         = $allSites;
+        $initialCat['sites']         = $sitesWithMapped;
         $initialCat['languages']     = $allLanguages;
 
         $imgsRes = Database::fetchAll('Papir',

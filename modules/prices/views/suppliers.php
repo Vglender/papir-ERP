@@ -1,11 +1,10 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<title>Поставщики и прайс-листы</title>
-<link rel="stylesheet" href="/modules/shared/ui.css">
+<?php
+$title     = 'Постачальники';
+$activeNav = 'prices';
+$subNav    = 'suppliers';
+require_once __DIR__ . '/../../shared/layout.php';
+?>
 <style>
-body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f7fb; color:#222; }
 .wrap { max-width:1600px; margin:0 auto; padding:24px; }
 .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; gap:12px; flex-wrap:wrap; }
 .title { margin:0; font-size:26px; }
@@ -13,7 +12,7 @@ body { margin:0; padding:0; font-family:Arial,sans-serif; background:#f5f7fb; co
 .breadcrumb a { color:#1f6feb; text-decoration:none; }
 .layout { display:grid; grid-template-columns:320px 1fr; gap:20px; align-items:start; }
 .card { background:#fff; border:1px solid #d9e0ea; border-radius:12px; padding:16px 20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
-.sticky { position:sticky; top:16px; }
+.sticky { position:sticky; top:var(--sticky-top); }
 .btn { display:inline-block; padding:8px 14px; border-radius:8px; border:1px solid #c8d1dd; background:#fff; color:#222; cursor:pointer; font-size:13px; box-sizing:border-box; text-align:center; text-decoration:none; transition:background .15s,border-color .15s; }
 .btn:hover { background:#f0f4ff; border-color:#a8bde8; }
 .btn-primary { background:#1f6feb; border-color:#1f6feb; color:#fff; }
@@ -111,8 +110,6 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
 .act-dd button.dd-danger{ color:#b42318; }
 .act-dd .dd-sep{ margin:3px 0; border:none; border-top:1px solid #eee; }
 </style>
-</head>
-<body>
 <div class="wrap">
 
     <div class="topbar">
@@ -1448,10 +1445,9 @@ td input[type=number]::-webkit-inner-spin-button{ display:none; }
 <script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
 <script>
 <?php if ($showAll) { ?>
-ChipSearch.init('showAllChipBox', 'showAllChipTyper', 'showAllSearchHidden');
+ChipSearch.init('showAllChipBox', 'showAllChipTyper', 'showAllSearchHidden', null, {noComma: true});
 <?php } elseif ($pricelist) { ?>
-ChipSearch.init('plChipBox', 'plChipTyper', 'plSearchHidden');
+ChipSearch.init('plChipBox', 'plChipTyper', 'plSearchHidden', null, {noComma: true});
 <?php } ?>
 </script>
-</body>
-</html>
+<?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

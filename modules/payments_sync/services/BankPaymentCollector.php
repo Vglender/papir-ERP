@@ -55,14 +55,14 @@ class BankPaymentCollector
                 if (!isset($value['time'])) {
                     continue;
                 }
- //               $idPaid = 'MN' . substr(($value['time'] + $value['balance']), -6);
- //               $idPaid = $value['id'];
+
+                $idPaid = $this->resolveExternalCode('mono', $value);
 
                 $row = [
                     'source' => 'mono',
                     'bank' => 'mono',
                     'bank_account_key' => $accountId,
-                    'id_paid' => $this->resolveExternalCode('mono', $value),
+                    'id_paid' => $idPaid,
                     'name' => (string)(strtotime('now') + $a),
                     'type' => ($value['amount'] > 0) ? 'in' : 'out',
                     'moment' => date('Y-m-d H:i:s', $value['time']),
@@ -87,6 +87,38 @@ class BankPaymentCollector
 
                 $data[] = $row;
                 $a++;
+
+                // Комиссия Monobank — всегда расход, отдельным документом.
+                // commissionRate положительный (напр. 16000 коп = 160 грн).
+                // Описание 'Комiсiя Monobank' подхватывается правилом в payment_match_rules.php
+                // → автоматически ставится bank_fee_agent_id + bank_fee_expense_item_id.
+                if (!empty($value['commissionRate']) && $value['amount'] < 0) {
+                    $feeRow = array(
+                        'source'           => 'mono',
+                        'bank'             => 'mono',
+                        'bank_account_key' => $accountId,
+                        'id_paid'          => $idPaid . '_fee',
+                        'name'             => (string)(strtotime('now') + $a),
+                        'type'             => 'out',
+                        'moment'           => date('Y-m-d H:i:s', $value['time']),
+                        'sum'              => (int)$value['commissionRate'],
+                        'rate'             => 0,
+                        'description'      => 'Комiсiя Monobank',
+                        'name_kl'          => null,
+                        'edrpoy_klient'    => null,
+                        'acc_klient'       => null,
+                        'id_agent'         => null,
+                        'inner'            => false,
+                        'id_order'         => null,
+                        'id_exp'           => null,
+                    );
+                    if (isset($this->accountsMap['mono'][$accountId])) {
+                        $feeRow['id_org'] = $this->accountsMap['mono'][$accountId]['id_org'];
+                        $feeRow['id_acc'] = $this->accountsMap['mono'][$accountId]['id_acc'];
+                    }
+                    $data[] = $feeRow;
+                    $a++;
+                }
             }
         }
 

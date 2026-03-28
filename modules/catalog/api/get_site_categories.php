@@ -15,13 +15,18 @@ if (!$siteRes['ok'] || empty($siteRes['row'])) {
 }
 $site    = $siteRes['row'];
 $dbAlias = $site['db_alias'];
-$langId  = (int)$site['lang_id'];
+
+// Get site language id for Ukrainian (language_id=2 in Papir)
+$slRes  = Database::fetchRow('Papir',
+    "SELECT site_lang_id FROM site_languages WHERE site_id = {$siteId} AND language_id = 2"
+);
+$langId = ($slRes['ok'] && !empty($slRes['row'])) ? (int)$slRes['row']['site_lang_id'] : 1;
+
 $catsRes = Database::fetchAll($dbAlias,
     "SELECT oc.category_id, ocd.name, oc.parent_id, oc.status, oc.sort_order
      FROM oc_category oc
      LEFT JOIN oc_category_description ocd
            ON ocd.category_id = oc.category_id AND ocd.language_id = {$langId}
-     WHERE oc.status = 1
      ORDER BY oc.parent_id, oc.sort_order, oc.category_id"
 );
 

@@ -4,28 +4,18 @@
 /* @var int $totalPages */
 /* @var int $page */
 /* @var string $search */
-/* @var string $filter */
 /* @var string $sort */
 /* @var string $order */
 /* @var array $rows */
 /* @var array|null $details */
 /* @var array $state */
 /* @var string $basePath */
+$title     = 'Каталог';
+$activeNav = 'catalog';
+$subNav    = 'products';
+require_once __DIR__ . '/../../shared/layout.php';
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <title>Catalog</title>
-    <link rel="stylesheet" href="/modules/shared/ui.css?v=<?php echo filemtime(__DIR__ . '/../../shared/ui.css'); ?>">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: #f5f7fb;
-            color: #222;
-        }
+<style>
         .wrap {
             max-width: 1800px;
             margin: 0 auto;
@@ -74,8 +64,8 @@
         }
 		.sticky-panel {
 			position: sticky;
-			top: 16px;
-			max-height: calc(100vh - 32px);
+			top: var(--sticky-top);
+			max-height: calc(100vh - var(--sticky-top));
 			overflow-y: auto;
 			padding-right: 6px;
 		}
@@ -112,36 +102,7 @@
 			white-space: nowrap;
 			margin-right: 2px;
 		}
-		.site-filter-pill {
-			display: inline-flex;
-			align-items: center;
-			gap: 5px;
-			padding: 4px 10px;
-			border: 1px solid #c8d1dd;
-			border-radius: 999px;
-			background: #fff;
-			font-size: 12px;
-			cursor: pointer;
-			user-select: none;
-			transition: background .12s, border-color .12s, color .12s;
-			color: #555;
-		}
-		.site-filter-pill input[type=checkbox] {
-			width: 13px; height: 13px;
-			margin: 0;
-			cursor: pointer;
-			accent-color: #1f6feb;
-		}
-		.site-filter-pill:hover {
-			border-color: #1f6feb;
-			color: #1f6feb;
-		}
-		.site-filter-pill.checked {
-			background: #eef4ff;
-			border-color: #1f6feb;
-			color: #1f6feb;
-			font-weight: 600;
-		}
+		/* .site-filter-pill → використовує .filter-pill з ui.css */
 		/* Site badges in table — interactive toggles */
 		.site-badges {
 			display: flex;
@@ -282,18 +243,16 @@
         }
         th {
             background: #f8fafc;
-            font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
-            color: #555;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
         }
         .sort-link {
-            color: #555;
+            color: var(--text-muted);
             text-decoration: none;
         }
-        .sort-link:hover {
-            text-decoration: underline;
-        }
+        .sort-link:hover { color: var(--text); }
+        .sort-link.active { color: var(--text); font-weight: 600; }
         .num {
             white-space: nowrap;
         }
@@ -501,6 +460,25 @@
             line-height: 1.45;
             white-space: pre-wrap;
         }
+        .desc-html-box {
+            max-height: 220px; overflow-y: auto; padding: 10px 12px;
+            border: 1px solid #e8edf3; border-radius: 8px; background: #fafcff;
+            font-size: 13px; line-height: 1.55; word-break: break-word; cursor: pointer;
+        }
+        .desc-html-box:hover { border-color: var(--blue-light); }
+        .desc-html-box h1,.desc-html-box h2,.desc-html-box h3 { font-size: 13px; font-weight: 600; margin: 4px 0 3px; }
+        .desc-html-box p  { margin: 0 0 5px; }
+        .desc-html-box ul,.desc-html-box ol { margin: 0 0 5px; padding-left: 18px; }
+        .desc-html-box li { margin-bottom: 2px; }
+        .desc-html-box strong { font-weight: 600; }
+        .desc-edit-ta {
+            width: 100%; box-sizing: border-box; min-height: 140px; resize: vertical;
+            padding: 8px 10px; border: 1px solid var(--blue-light); border-radius: 8px;
+            font-size: 12px; font-family: monospace; outline: none; line-height: 1.4;
+        }
+        .desc-toggle-link { font-size: 11px; color: var(--blue); cursor: pointer; margin-left: 6px; text-decoration: underline; }
+        .desc-save-row { display: flex; gap: 6px; margin-top: 4px; align-items: center; }
+        .desc-save-status { font-size: 11px; color: var(--text-muted); }
         .mini-note {
             color: #666;
             font-size: 12px;
@@ -643,13 +621,6 @@
 			background: #f8fbff;
 		}
 
-		td.js-cell-action {
-			cursor: pointer;
-		}
-		td.js-cell-action:hover {
-			background: #eef4ff;
-			text-decoration: underline dotted #4a90d9;
-		}
 		#cell-popup {
 			position: fixed;
 			background: #fff;
@@ -742,6 +713,109 @@
 		.set-main-site-item { display:flex; align-items:center; gap:8px; font-size:14px; cursor:pointer; }
 		.set-main-footer { display:flex; justify-content:flex-end; gap:8px; }
 
+
+		/* ── Новий toolbar ─────────────────────────────────────────── */
+		.cat-toolbar {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 10px;
+		}
+		.cat-toolbar-title {
+			font-size: 18px;
+			font-weight: 700;
+			margin: 0;
+			white-space: nowrap;
+			color: var(--text);
+			flex-shrink: 0;
+		}
+		.cat-search-wrap { flex: 1; min-width: 160px; }
+		/* Normalize all toolbar interactive elements to same height */
+		.cat-toolbar .btn { height: 34px; padding: 0 12px; }
+		.cat-toolbar .chip-input { min-height: 34px; max-height: 34px; overflow: hidden; }
+		/* split button */
+		.cat-split-btn {
+			display: flex; align-items: stretch;
+			border: 1px solid var(--border-input);
+			border-radius: var(--radius);
+			overflow: visible;
+			position: relative; flex-shrink: 0;
+			background: var(--bg-card);
+		}
+		.cat-split-count {
+			display: flex; align-items: center; justify-content: center;
+			min-width: 34px; padding: 0 8px;
+			font-size: 13px; font-weight: 600;
+			color: var(--text-muted);
+			background: var(--bg);
+			border-right: 1px solid var(--border-input);
+			border-radius: var(--radius) 0 0 var(--radius);
+			user-select: none;
+			transition: background .15s, color .15s;
+		}
+		.cat-split-count.has-sel {
+			background: #fff4e5; color: var(--orange);
+		}
+		.cat-split-trigger {
+			display: flex; align-items: center; gap: 5px;
+			padding: 0 11px; height: 34px;
+			border: none; background: transparent;
+			color: var(--text); font-size: 13px;
+			font-family: var(--font); cursor: pointer;
+			border-radius: 0 var(--radius) var(--radius) 0;
+			white-space: nowrap;
+			transition: background .12s;
+		}
+		.cat-split-trigger:hover { background: var(--bg-hover); }
+		.cat-split-trigger svg { width: 12px; height: 12px; opacity: .5; flex-shrink: 0; }
+		/* dropdown */
+		.cat-split-dd {
+			display: none; position: absolute;
+			top: calc(100% + 4px); right: 0;
+			min-width: 210px;
+			background: #fff;
+			border: 1px solid var(--border);
+			border-radius: var(--radius-lg);
+			box-shadow: var(--shadow-modal);
+			z-index: 500; padding: 4px 0;
+		}
+		.cat-split-btn.open .cat-split-dd { display: block; }
+		.cat-dd-item {
+			display: flex; align-items: center; gap: 8px;
+			width: 100%; padding: 8px 14px;
+			border: none; background: transparent;
+			color: var(--text); font-size: 13px;
+			font-family: var(--font); cursor: pointer;
+			text-align: left; white-space: nowrap;
+			transition: background .1s;
+		}
+		.cat-dd-item:hover { background: var(--bg-hover); }
+		.cat-dd-item.danger { color: var(--red); }
+		.cat-dd-item.danger:hover { background: var(--red-bg); }
+		.cat-dd-sep { height: 1px; background: var(--border); margin: 4px 0; }
+		.cat-dd-label {
+			padding: 5px 14px 3px;
+			font-size: 11px; font-weight: 600;
+			color: var(--text-faint); text-transform: uppercase;
+			letter-spacing: .5px;
+		}
+		/* print submenu */
+		.cat-dd-print { position: relative; }
+		.cat-dd-print > .cat-dd-item::after {
+			content: '▸'; margin-left: auto; opacity: .4; font-size: 11px;
+		}
+		.cat-dd-print-sub {
+			display: none; position: absolute;
+			left: 100%; top: -4px;
+			min-width: 190px;
+			background: #fff;
+			border: 1px solid var(--border);
+			border-radius: var(--radius-lg);
+			box-shadow: var(--shadow-modal);
+			z-index: 501; padding: 4px 0;
+		}
+		.cat-dd-print:hover .cat-dd-print-sub { display: block; }
+		/* .filter-bar і .filter-pill — з ui.css */
 
 		/* Bulk BK confirm modal */
 		.bk-confirm-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.38); z-index: 4000; align-items: center; justify-content: center; }
@@ -1105,6 +1179,55 @@
 				grid-template-columns: 1fr;
 			}
 		}
+		/* ── Specs edit form ──────────────────────────────────── */
+		.specs-form { display: flex; flex-direction: column; gap: 12px; }
+		.specs-form-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+		.specs-form-label { min-width: 80px; font-size: 13px; color: var(--text-muted); }
+		.specs-form-row input[type="number"] {
+			width: 90px; padding: 5px 8px;
+			border: 1px solid var(--border-input); border-radius: var(--radius);
+			font-size: 13px; font-family: var(--font); outline: none;
+		}
+		.specs-form-row input[type="number"]:focus { border-color: var(--blue-light); }
+		.specs-form-row select {
+			padding: 5px 8px; border: 1px solid var(--border-input); border-radius: var(--radius);
+			font-size: 13px; font-family: var(--font); outline: none; background: #fff; cursor: pointer;
+		}
+		.specs-form-row select:focus { border-color: var(--blue-light); }
+		.specs-sep { color: var(--text-muted); font-size: 14px; padding: 0 2px; }
+		/* ── Attributes panel ───────────────────────────────────── */
+		.attr-site-tabs { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
+		.attr-site-tab {
+			padding: 5px 14px; border-radius: 6px; font-size: 13px; cursor: pointer;
+			border: 1px solid var(--border-input); background: #fff; color: var(--text-muted);
+		}
+		.attr-site-tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+		.attr-lang-tabs { display: flex; gap: 4px; margin-bottom: 10px; }
+		.attr-lang-tab {
+			padding: 3px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+			border: 1px solid var(--border-input); background: #fff; color: var(--text-muted);
+		}
+		.attr-lang-tab.active { background: #e8f0fe; color: var(--blue); border-color: var(--blue-light); }
+		.attr-value-input {
+			width: 100%; box-sizing: border-box; padding: 5px 8px;
+			border: 1px solid transparent; border-radius: var(--radius);
+			font-size: 13px; font-family: var(--font); outline: none; background: transparent;
+		}
+		.attr-value-input:hover { border-color: var(--border-input); background: #fff; }
+		.attr-value-input:focus { border-color: var(--blue-light); background: #fff; }
+		.attr-add-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+		.attr-add-search {
+			flex: 1; min-width: 140px; padding: 5px 10px;
+			border: 1px solid var(--border-input); border-radius: var(--radius);
+			font-size: 13px; font-family: var(--font); outline: none;
+		}
+		.attr-add-search:focus { border-color: var(--blue-light); }
+		.attr-add-list {
+			flex: 1; min-width: 180px; padding: 5px 8px;
+			border: 1px solid var(--border-input); border-radius: var(--radius);
+			font-size: 13px; font-family: var(--font); outline: none; background: #fff; cursor: pointer;
+		}
+		.attr-add-list:focus { border-color: var(--blue-light); }
 		.bulk-toolbar {
 			display: flex;
 			justify-content: space-between;
@@ -1143,96 +1266,131 @@
 		.seo-site-pane { display: none; }
 		.seo-site-pane.active { display: block; }
 		.seo-site-url { font-size: 12px; color: var(--blue); word-break: break-all; }
+		.seo-site-link {
+		    display: inline-flex; align-items: center; gap: 5px;
+		    text-decoration: none; color: var(--blue);
+		    border: 1px solid var(--blue-light); border-radius: var(--radius);
+		    padding: 3px 8px; font-size: 11px; font-weight: 600; letter-spacing: .03em;
+		    transition: background .15s, color .15s;
+		}
+		.seo-site-link:hover { background: var(--blue); color: #fff; border-color: var(--blue); }
+		.seo-site-link svg { flex-shrink: 0; }
     </style>
-</head>
-<body>
 <div class="wrap">
-    <div class="topbar">
-        <div>
-            <h1 class="title">Catalog</h1>
-            <div class="subtitle">Главный справочник товаров с обзором и переходом в профильные модули.</div>
-        </div>
-
-        <div>
-            <span class="badge">Всего в каталоге: <?php echo (int)$totalCatalog; ?></span>
-            <span class="badge">Найдено: <?php echo (int)$totalRows; ?></span>
-        </div>
-    </div>
-
     <div class="layout">
         <div class="card">
 			<form method="get" action="/catalog" id="catalogFilterForm">
-				<div class="filters">
-					<input type="hidden" name="sort" value="<?php echo ViewHelper::h($sort); ?>">
-					<input type="hidden" name="order" value="<?php echo ViewHelper::h($order); ?>">
-					<input type="hidden" name="page" value="1">
-					<input type="hidden" name="site_filter" id="siteFilterHidden" value="<?php echo ViewHelper::h($siteFilterRaw); ?>">
-					<?php if ($selected > 0) { ?>
-						<input type="hidden" name="selected" value="<?php echo (int)$selected; ?>">
-					<?php } ?>
+				<input type="hidden" name="sort" value="<?php echo ViewHelper::h($sort); ?>">
+				<input type="hidden" name="order" value="<?php echo ViewHelper::h($order); ?>">
+				<input type="hidden" name="page" value="1">
+				<input type="hidden" name="site_filter" id="siteFilterHidden" value="<?php echo ViewHelper::h($siteFilterRaw); ?>">
+				<?php if ($selected > 0) { ?>
+					<input type="hidden" name="selected" value="<?php echo (int)$selected; ?>">
+				<?php } ?>
 
-					<div>
-						<label>Поиск</label>
+				<!-- ── Toolbar row ── -->
+				<div class="cat-toolbar">
+					<h1 class="cat-toolbar-title">Товари
+						<span style="font-size:12px;font-weight:400;color:var(--text-faint);margin-left:6px;"><?php echo (int)$totalRows; ?> / <?php echo (int)$totalCatalog; ?></span>
+					</h1>
+
+					<button type="button" class="btn btn-primary btn-sm" id="btnAddProduct">+ Додати</button>
+
+					<div class="cat-search-wrap">
 						<div class="chip-input" id="searchChipBox">
-							<input type="text" class="chip-typer" id="searchChipTyper" placeholder="ID, артикул или название…" autocomplete="off">
+							<input type="text" class="chip-typer" id="searchChipTyper" placeholder="ID, артикул або назва…" autocomplete="off">
+							<div class="chip-actions">
+								<button type="button" class="chip-act-btn chip-act-clear hidden" id="chipClearBtn" title="Очистити">&#x2715;</button>
+								<button type="submit" class="chip-act-btn chip-act-submit" title="Пошук">
+									<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+								</button>
+							</div>
 						</div>
 						<input type="hidden" name="search" id="search" value="<?php echo ViewHelper::h($search); ?>">
 					</div>
 
-					<div>
-						<label for="filter">Фильтр</label>
-						<select name="filter" id="filter">
-							<option value="all" <?php echo $filter === 'all' ? 'selected' : ''; ?>>Все товары</option>
-							<option value="with_stock" <?php echo $filter === 'with_stock' ? 'selected' : ''; ?>>Только с остатком</option>
-							<option value="with_action" <?php echo $filter === 'with_action' ? 'selected' : ''; ?>>Только с акцией</option>
-							<option value="no_photo" <?php echo $filter === 'no_photo' ? 'selected' : ''; ?>>Без фото</option>
-						</select>
+
+					<!-- Split button: count | Змінити ▾ -->
+					<div class="cat-split-btn" id="catSplitBtn">
+						<span class="cat-split-count" id="selectedCount" title="Вибрано товарів">0</span>
+						<button type="button" class="cat-split-trigger" id="catSplitTrigger">
+							Змінити
+							<svg viewBox="0 0 12 12" fill="none"><path d="M2 4l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+						</button>
+						<div class="cat-split-dd" id="catSplitDd">
+							<button type="button" class="cat-dd-item" id="bulkCopyIds">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="9" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M11 5V3a2 2 0 0 0-2-2H3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2" stroke="currentColor" stroke-width="1.4"/></svg>
+								Копіювати ID
+							</button>
+							<button type="button" class="cat-dd-item" id="bulkPriceList">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 1h6l4 4v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4"/><path d="M9 1v4h4M5 9h6M5 12h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+								Прайс-лист
+							</button>
+							<div class="cat-dd-sep"></div>
+							<button type="button" class="cat-dd-item" id="bulkAddToSite">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 5v6M5 8h6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+								Додати на сайт
+							</button>
+							<button type="button" class="cat-dd-item btn-bk-enable" id="bulkBkEnable">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 8l4 4 8-8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+								Увімкнути в БК
+							</button>
+							<button type="button" class="cat-dd-item btn-bk-disable" id="bulkBkDisable">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+								Вимкнути в БК
+							</button>
+							<div class="cat-dd-sep"></div>
+							<button type="button" class="cat-dd-item danger" id="bulkDelete">
+								<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M5 4V2h6v2M6 7v5M10 7v5M3 4l1 10h8l1-10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+								Видалити
+							</button>
+							<div class="cat-dd-sep"></div>
+							<div class="cat-dd-label">Печать</div>
+							<div class="cat-dd-print">
+								<button type="button" class="cat-dd-item">
+									<svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 6V2h8v4M3 6h10a1 1 0 0 1 1 1v5H2V7a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.4"/><path d="M4 11v3h8v-3" stroke="currentColor" stroke-width="1.4"/></svg>
+									Друкована форма
+								</button>
+								<div class="cat-dd-print-sub">
+									<button type="button" class="cat-dd-item" id="printPriceListPdf">Прайс-лист PDF</button>
+									<button type="button" class="cat-dd-item" id="printLabelsPdf">Цінники PDF</button>
+								</div>
+							</div>
+						</div>
 					</div>
 
-					<div class="btn-row">
-						<button type="submit" class="btn">Применить</button>
-						<a href="/catalog" class="btn">Сброс</a>
-					</div>
+					<button type="button" class="btn btn-ghost btn-sm" id="bulkClearSelection" title="Скинути вибір">✕</button>
 				</div>
 
-				<div class="filters-row2">
-					<span class="site-filter-label">Магазин:</span>
-					<?php
-					// $checkedSiteFilter is set in index.php (defaults to all checked when site_filter param is empty)
-					$_checked = array();
-					foreach ($checkedSiteFilter as $_v) $_checked[(string)$_v] = true;
-					?>
-					<label class="site-filter-pill <?php echo isset($_checked['bk']) ? 'checked' : ''; ?>">
-						<input type="checkbox" class="js-site-filter" value="bk" <?php echo isset($_checked['bk']) ? 'checked' : ''; ?>>
-						БК
-					</label>
-					<?php foreach ($sites as $_site) { ?>
-					<?php $_sfKey = (string)$_site['site_id']; ?>
-					<label class="site-filter-pill <?php echo isset($_checked[$_sfKey]) ? 'checked' : ''; ?>">
-						<input type="checkbox" class="js-site-filter" value="<?php echo (int)$_site['site_id']; ?>" <?php echo isset($_checked[$_sfKey]) ? 'checked' : ''; ?>>
-						<?php echo ViewHelper::h($_site['name']); ?>
-					</label>
-					<?php } ?>
+				<!-- ── Filter bar ── -->
+				<div class="filter-bar">
+					<div class="filter-bar-group">
+						<span class="filter-bar-label">Магазин</span>
+						<?php
+						$_checked = array();
+						foreach ($checkedSiteFilter as $_v) $_checked[(string)$_v] = true;
+						?>
+						<label class="filter-pill <?php echo isset($_checked['bk']) ? 'active' : ''; ?>">
+							<input type="checkbox" class="js-site-filter" value="bk" <?php echo isset($_checked['bk']) ? 'checked' : ''; ?>>
+							БК
+						</label>
+						<?php foreach ($sites as $_site) { ?>
+						<?php $_sfKey = (string)$_site['site_id']; ?>
+						<label class="filter-pill <?php echo isset($_checked[$_sfKey]) ? 'active' : ''; ?>">
+							<input type="checkbox" class="js-site-filter" value="<?php echo (int)$_site['site_id']; ?>" <?php echo isset($_checked[$_sfKey]) ? 'checked' : ''; ?>>
+							<?php echo ViewHelper::h($_site['badge']); ?>
+						</label>
+						<?php } ?>
+					</div>
+					<!-- Gear: налаштування складу фільтрів (placeholder) -->
+					<button type="button" class="filter-bar-gear" title="Налаштувати фільтри" id="filterBarGear">
+						<svg viewBox="0 0 16 16" fill="none">
+							<circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+							<path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M11.9 3.4l-.7.7M4.1 11.9l-.7.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+						</svg>
+					</button>
 				</div>
 			</form>
-			<div class="bulk-toolbar">
-				<div class="bulk-left">
-					<strong>Выбрано:</strong>
-					<span id="selectedCount">0</span>
-					<button type="button" class="btn btn-small btn-ghost" id="bulkClearSelection" style="margin-left:12px;">Сбросить</button>
-				</div>
-
-			<div class="bulk-actions">
-				<button type="button" class="btn btn-small" id="bulkCopyIds">Копировать ID</button>
-				<button type="button" class="btn btn-small" id="bulkPriceList">Прайс-лист</button>
-				<span class="bulk-sep"></span>
-				<button type="button" class="btn btn-small btn-bk-disable" id="bulkBkDisable" disabled>Вимкнути в БК</button>
-				<button type="button" class="btn btn-small btn-bk-enable"  id="bulkBkEnable"  disabled>Увімкнути в БК</button>
-				<span class="bulk-sep"></span>
-				<button type="button" class="btn btn-small btn-primary" id="bulkAddToSite" disabled>Додати на сайт</button>
-				<button type="button" class="btn btn-small btn-danger"  id="bulkDelete"    disabled>Видалити</button>
-			</div>
-			</div>
             <table>
                 <thead>
 				 <tr>
@@ -1258,7 +1416,6 @@
                         $isSelected = ((int)$row['product_id'] === (int)$selected);
                         $selectUrl = ViewHelper::buildUrl($basePath, array(
                             'search'      => $search,
-                            'filter'      => $filter,
                             'site_filter' => $siteFilterRaw,
                             'sort'        => $sort,
                             'order'       => $order,
@@ -1287,9 +1444,9 @@
 								>
 							</td>
 
-							<td class="num js-cell-action" data-copy="<?php echo (int)$row['product_id']; ?>"><?php echo (int)$row['product_id']; ?></td>
-                            <td class="js-cell-action" data-copy="<?php echo ViewHelper::h((string)$row['product_article']); ?>"><?php echo renderValue($row['product_article']); ?></td>
-                            <td class="js-cell-action" data-copy="<?php echo ViewHelper::h((string)$row['name']); ?>"><?php echo renderValue($row['name']); ?></td>
+							<td class="num"><?php echo (int)$row['product_id']; ?></td>
+                            <td><?php echo renderValue($row['product_article']); ?></td>
+                            <td><?php echo renderValue($row['name']); ?></td>
                             <td class="num"><?php echo renderPrice($row['price_cost']); ?></td>
                             <td class="num"><?php echo renderPrice($row['price_sale']); ?></td>
                             <td class="num">
@@ -1646,7 +1803,7 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
 
                 <!-- ── Контент: site × language ───────────────────────────── -->
                 <div class="section section-collapsible">
-                    <h3>Контент</h3>
+                    <h3>Контент <?php if (!empty($details['seo'])): ?><button type="button" class="btn btn-xs" id="btnAiContentGen" style="vertical-align:middle;margin-left:6px" title="Генерувати контент через AI">&#9889; AI</button><?php endif; ?></h3>
                     <div class="section-body">
                     <?php if (!empty($details['seo'])): ?>
                         <!-- site tabs -->
@@ -1689,8 +1846,22 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                                         <div class="content-inline-value"><?php echo renderValue(isset($s['name']) ? $s['name'] : ''); ?></div>
                                     </div>
                                     <div class="content-field">
-                                        <div class="content-label">Повний опис</div>
-                                        <div class="scroll-box"><?php echo renderValue(isset($s['description']) ? $s['description'] : ''); ?></div>
+                                        <div class="content-label">
+                                            Повний опис
+                                            <span class="desc-toggle-link" id="cnt-desc-lnk-<?php echo $sid; ?>-<?php echo $lid; ?>" onclick="toggleProdDesc(<?php echo $sid; ?>,<?php echo $lid; ?>)">редагувати</span>
+                                        </div>
+                                        <div class="desc-html-box" id="cnt-desc-<?php echo $sid; ?>-<?php echo $lid; ?>" onclick="toggleProdDesc(<?php echo $sid; ?>,<?php echo $lid; ?>)"><?php
+                                            $rawDesc = isset($s['description']) ? trim($s['description']) : '';
+                                            echo $rawDesc !== '' ? $rawDesc : '<span style="color:var(--text-faint)">—</span>';
+                                        ?></div>
+                                        <div id="cnt-desc-edit-<?php echo $sid; ?>-<?php echo $lid; ?>" style="display:none">
+                                            <textarea class="desc-edit-ta" id="cnt-desc-ta-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo ViewHelper::h(isset($s['description']) ? $s['description'] : ''); ?></textarea>
+                                            <div class="desc-save-row">
+                                                <button class="btn btn-sm btn-primary" onclick="saveProdDesc(<?php echo $sid; ?>,<?php echo $lid; ?>)">Зберегти</button>
+                                                <button class="btn btn-sm btn-ghost" onclick="toggleProdDesc(<?php echo $sid; ?>,<?php echo $lid; ?>)">Скасувати</button>
+                                                <span class="desc-save-status" id="cnt-desc-st-<?php echo $sid; ?>-<?php echo $lid; ?>"></span>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="content-field">
                                         <div class="content-label">Короткий опис</div>
@@ -1698,9 +1869,10 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                                     </div>
                                     <div class="seo-card">
                                         <?php if ($prodUrl !== ''): ?>
-                                        <div style="margin-bottom:8px;">
-                                            <a href="<?php echo ViewHelper::h($prodUrl); ?>" target="_blank" rel="noopener" class="seo-site-url">
-                                                <?php echo ViewHelper::h($prodUrl); ?>
+                                        <div style="margin-bottom:10px;">
+                                            <a href="<?php echo ViewHelper::h($prodUrl); ?>" target="_blank" rel="noopener" class="seo-site-link">
+                                                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V9.5M10 2h4m0 0v4m0-4L7 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                <?php echo ViewHelper::h(isset($site['badge']) ? strtoupper($site['badge']) : strtoupper($site['code'])); ?>
                                             </a>
                                         </div>
                                         <?php endif; ?>
@@ -1714,15 +1886,11 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                                         </div>
                                         <div class="seo-row">
                                             <div class="seo-label">Meta title</div>
-                                            <div class="seo-value"><?php echo renderValue(isset($s['meta_title']) ? $s['meta_title'] : ''); ?></div>
+                                            <div class="seo-value" id="cnt-mt-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['meta_title']) ? $s['meta_title'] : ''); ?></div>
                                         </div>
                                         <div class="seo-row">
                                             <div class="seo-label">Meta description</div>
-                                            <div class="seo-value"><?php echo renderValue(isset($s['meta_description']) ? $s['meta_description'] : ''); ?></div>
-                                        </div>
-                                        <div class="seo-row">
-                                            <div class="seo-label">Meta keyword</div>
-                                            <div class="seo-value"><?php echo renderValue(isset($s['meta_keyword']) ? $s['meta_keyword'] : ''); ?></div>
+                                            <div class="seo-value" id="cnt-md-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['meta_description']) ? $s['meta_description'] : ''); ?></div>
                                         </div>
                                         <?php if (!empty($s['tag'])): ?>
                                         <div class="seo-row">
@@ -1739,22 +1907,54 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                     <?php endif; ?>
                     </div><!-- /section-body Контент -->
                 </div><!-- /section Контент -->
-			<div class="section section-collapsible">
+			<div class="section section-collapsible" id="specsSection">
 				<h3>Характеристики</h3>
 				<div class="section-body">
-				<div class="specs-card">
-					<div class="spec-row">
-						<div class="spec-label">Вес</div>
-						<div class="spec-value"><?php echo renderWeightValue($details['weight'], $details['weight_class_id']); ?></div>
+				<div class="specs-form">
+					<div class="specs-form-row">
+						<span class="specs-form-label">Вага</span>
+						<input type="number" id="specWeight" min="0" step="0.001"
+							value="<?php echo (float)$details['weight'] > 0 ? ViewHelper::h(rtrim(rtrim(number_format((float)$details['weight'], 3, '.', ''), '0'), '.')) : ''; ?>"
+							placeholder="0">
+						<select id="specWeightClass">
+							<?php foreach ($weightClasses as $wc): ?>
+							<option value="<?php echo (int)$wc['weight_class_id']; ?>"<?php echo ((int)$wc['weight_class_id'] === (int)$details['weight_class_id']) ? ' selected' : ''; ?>><?php echo ViewHelper::h($wc['title']); ?></option>
+							<?php endforeach; ?>
+						</select>
 					</div>
-
-					<div class="spec-row">
-						<div class="spec-label">Размеры</div>
-						<div class="spec-value"><?php echo renderDimensionsValue($details['length'], $details['width'], $details['height'], $details['length_class_id']); ?></div>
+					<div class="specs-form-row">
+						<span class="specs-form-label">Д&nbsp;&times;&nbsp;Ш&nbsp;&times;&nbsp;В</span>
+						<input type="number" id="specLength" min="0" step="0.01"
+							value="<?php echo (float)$details['length'] > 0 ? ViewHelper::h(rtrim(rtrim(number_format((float)$details['length'], 2, '.', ''), '0'), '.')) : ''; ?>"
+							placeholder="Д">
+						<span class="specs-sep">&times;</span>
+						<input type="number" id="specWidth" min="0" step="0.01"
+							value="<?php echo (float)$details['width'] > 0 ? ViewHelper::h(rtrim(rtrim(number_format((float)$details['width'], 2, '.', ''), '0'), '.')) : ''; ?>"
+							placeholder="Ш">
+						<span class="specs-sep">&times;</span>
+						<input type="number" id="specHeight" min="0" step="0.01"
+							value="<?php echo (float)$details['height'] > 0 ? ViewHelper::h(rtrim(rtrim(number_format((float)$details['height'], 2, '.', ''), '0'), '.')) : ''; ?>"
+							placeholder="В">
+						<select id="specLengthClass">
+							<?php foreach ($lengthClasses as $lc): ?>
+							<option value="<?php echo (int)$lc['length_class_id']; ?>"<?php echo ((int)$lc['length_class_id'] === (int)$details['length_class_id']) ? ' selected' : ''; ?>><?php echo ViewHelper::h($lc['title']); ?></option>
+							<?php endforeach; ?>
+						</select>
+					</div>
+					<div>
+						<button class="btn btn-sm btn-primary" onclick="saveSpecs()">Зберегти</button>
 					</div>
 				</div>
 				</div><!-- /section-body Характеристики -->
 			</div><!-- /section Характеристики -->
+
+			<div class="section section-collapsible" id="attrsSection">
+				<h3>Атрибути</h3>
+				<div class="section-body">
+					<div id="attrsLoading" style="color:var(--text-muted);font-size:13px;padding:4px 0">Завантаження…</div>
+					<div id="attrsContent" style="display:none"></div>
+				</div>
+			</div><!-- /section Атрибути -->
                 <div class="section section-collapsible">
                     <h3>Ссылки и интеграции</h3>
                     <div class="section-body">
@@ -1765,19 +1965,10 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                         <div class="k">product_id</div>
                         <div class="v"><?php echo (int)$details['product_id']; ?></div>
 
-                        <div class="k">links_prom</div>
-                        <div class="v"><?php echo renderLinkValue($details['links_prom']); ?></div>
-
                         <div style="display:none"><span class="k">id_ms</span><span class="v"><?php echo renderValue($details['id_ms']); ?></span></div>
 
                         <div class="k">id_mf</div>
                         <div class="v"><?php echo renderValue($details['id_mf']); ?></div>
-
-                        <div class="k">id_prom</div>
-                        <div class="v"><?php echo renderValue($details['id_prom']); ?></div>
-
-                        <div class="k">EAN</div>
-                        <div class="v"><?php echo renderValue($details['ean']); ?></div>
 
                         <div class="k">ТН ВЭД</div>
                         <div class="v"><?php echo renderValue($details['tnved']); ?></div>
@@ -1787,12 +1978,6 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
 
                         <div class="k">Упаковки</div>
                         <div class="v"><?php echo renderValue($details['packs']); ?></div>
-
-                        <div class="k">Дата добавления</div>
-                        <div class="v"><?php echo renderValue($details['date_added']); ?></div>
-
-                        <div class="k">Дата обновления</div>
-						<div class="v"><?php echo renderValue($details['date_updated']); ?></div>
 
                     </div><!-- /info-grid -->
                     </div><!-- /section-body Ссылки -->
@@ -1911,7 +2096,7 @@ document.getElementById('navNext') && document.getElementById('navNext').addEven
 
 			row.addEventListener('click', function(e){
 
-			if (e.target.closest('a') || e.target.closest('button') || e.target.closest('input') || e.target.closest('.js-cell-action')) {
+			if (e.target.closest('a') || e.target.closest('button') || e.target.closest('input')) {
 				return;
 			}
 
@@ -2081,17 +2266,10 @@ function refreshSelectedCounter() {
 
     if (selectedCount) {
         selectedCount.textContent = ids.length;
-    }
-
-    // Highlight "Сбросить" button when selection is non-empty
-    var clearBtn = document.getElementById('bulkClearSelection');
-    if (clearBtn) {
         if (ids.length > 0) {
-            clearBtn.classList.add('has-selection');
-            clearBtn.textContent = 'Сбросить (' + ids.length + ')';
+            selectedCount.classList.add('has-sel');
         } else {
-            clearBtn.classList.remove('has-selection');
-            clearBtn.textContent = 'Сбросить';
+            selectedCount.classList.remove('has-sel');
         }
     }
 
@@ -2415,6 +2593,7 @@ if (filterInput && searchForm) {
         </div>
         <div id="catTreeContainer" style="height:540px;overflow:hidden;display:flex;flex-direction:column"></div>
         <div class="mfr-modal-footer">
+            <a id="catManageLink" href="/categories" target="_blank"
                style="font-size:12px;color:#4a90d9;text-decoration:none;margin-right:auto;align-self:center">
                 Управляти →
             </a>
@@ -2626,9 +2805,311 @@ if (filterInput && searchForm) {
 // Collapsible sections
 document.querySelectorAll('.section-collapsible > h3').forEach(function(h3) {
     h3.addEventListener('click', function() {
-        this.closest('.section-collapsible').classList.toggle('open');
+        var section = this.closest('.section-collapsible');
+        section.classList.toggle('open');
+        if (section.id === 'attrsSection' && section.classList.contains('open')) {
+            initAttrs();
+        }
     });
 });
+
+function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Specs (weight / dimensions) save
+// ═══════════════════════════════════════════════════════════════════════
+<?php if ($selected > 0): ?>
+function saveSpecs() {
+    var productId   = <?php echo (int)$selected; ?>;
+    var weight      = parseFloat(document.getElementById('specWeight').value)  || 0;
+    var weightClass = parseInt(document.getElementById('specWeightClass').value, 10);
+    var length      = parseFloat(document.getElementById('specLength').value)  || 0;
+    var width       = parseFloat(document.getElementById('specWidth').value)   || 0;
+    var height      = parseFloat(document.getElementById('specHeight').value)  || 0;
+    var lengthClass = parseInt(document.getElementById('specLengthClass').value, 10);
+
+    fetch('/catalog/api/save_product_specs', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'product_id=' + productId
+            + '&weight=' + weight + '&weight_class_id=' + weightClass
+            + '&length=' + length + '&width=' + width + '&height=' + height
+            + '&length_class_id=' + lengthClass
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) showToast('Характеристики збережено');
+        else showToast('Помилка: ' + (d.error || '?'));
+    })
+    .catch(function() { showToast('Помилка мережі'); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Attributes panel
+// ═══════════════════════════════════════════════════════════════════════
+var ATTRS = { loaded: false, data: null, activeSite: 0, activeLang: 0 };
+var ATTRS_PRODUCT_ID = <?php echo (int)$selected; ?>;
+
+function initAttrs() {
+    if (ATTRS.loaded) return;
+    fetch('/catalog/api/get_product_attributes?product_id=' + ATTRS_PRODUCT_ID)
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        document.getElementById('attrsLoading').style.display = 'none';
+        if (!d.ok || !d.sites || !d.sites.length) {
+            document.getElementById('attrsContent').innerHTML = '<span style="color:var(--text-muted);font-size:13px">Атрибути відсутні</span>';
+            document.getElementById('attrsContent').style.display = '';
+            return;
+        }
+        ATTRS.loaded     = true;
+        ATTRS.data       = d;
+        ATTRS.activeSite = d.sites[0].site_id;
+        ATTRS.activeLang = d.sites[0].languages[0].language_id;
+        renderAttrPanel();
+        document.getElementById('attrsContent').style.display = '';
+    })
+    .catch(function() {
+        document.getElementById('attrsLoading').textContent = 'Помилка завантаження';
+    });
+}
+
+function renderAttrPanel() {
+    var content = document.getElementById('attrsContent');
+    var html = '';
+
+    // Site tabs
+    html += '<div class="attr-site-tabs">';
+    ATTRS.data.sites.forEach(function(site) {
+        var cls = 'attr-site-tab' + (site.site_id === ATTRS.activeSite ? ' active' : '');
+        html += '<button class="' + cls + '" onclick="attrSetSite(' + site.site_id + ')">' + escHtml(site.name) + '</button>';
+    });
+    html += '</div>';
+
+    // Find active site data
+    var activeSiteData = null;
+    ATTRS.data.sites.forEach(function(s) { if (s.site_id === ATTRS.activeSite) activeSiteData = s; });
+    if (!activeSiteData) { content.innerHTML = html; return; }
+
+    // Language tabs
+    html += '<div class="attr-lang-tabs">';
+    activeSiteData.languages.forEach(function(lang) {
+        var cls = 'attr-lang-tab' + (lang.language_id === ATTRS.activeLang ? ' active' : '');
+        html += '<button class="' + cls + '" onclick="attrSetLang(' + lang.language_id + ')">' + escHtml(lang.label) + '</button>';
+    });
+    html += '</div>';
+
+    // Find active language data
+    var activeLangData = null;
+    activeSiteData.languages.forEach(function(l) { if (l.language_id === ATTRS.activeLang) activeLangData = l; });
+
+    // Attribute table
+    if (activeLangData && activeLangData.values.length > 0) {
+        html += '<div style="overflow-x:auto"><table class="crm-table"><thead><tr>'
+            + '<th>Назва</th><th>Значення</th><th style="width:36px"></th>'
+            + '</tr></thead><tbody>';
+        activeLangData.values.forEach(function(row) {
+            html += '<tr>'
+                + '<td style="font-size:13px;white-space:nowrap;padding:4px 8px">' + escHtml(row.attribute_name) + '</td>'
+                + '<td style="padding:2px 4px"><input type="text" class="attr-value-input"'
+                + ' data-attr-id="' + row.attribute_id + '"'
+                + ' data-lang-id="' + activeLangData.language_id + '"'
+                + ' value="' + escHtml(row.text) + '"'
+                + ' onblur="attrSaveOnBlur(this)"></td>'
+                + '<td style="padding:2px 4px;text-align:center">'
+                + '<button class="btn btn-xs btn-ghost" style="color:var(--text-red)" title="Видалити" onclick="attrDelete(' + row.attribute_id + ')">&times;</button>'
+                + '</td></tr>';
+        });
+        html += '</tbody></table></div>';
+    } else {
+        html += '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">Немає значень для цієї мови</div>';
+    }
+
+    // Add new attribute row
+    var availableForSite = activeSiteData.available_attrs || [];
+    var presentIds = {};
+    if (activeLangData) activeLangData.values.forEach(function(v) { presentIds[v.attribute_id] = true; });
+    var langId4id  = activeLangData ? activeLangData.language_id : 0;
+    var selectId   = 'attrAddSel-' + ATTRS.activeSite + '-' + langId4id;
+    var searchId   = 'attrAddSrch-' + ATTRS.activeSite + '-' + langId4id;
+
+    html += '<div class="attr-add-row">';
+    html += '<input type="text" class="attr-add-search" id="' + searchId
+        + '" placeholder="Пошук\u2026" oninput="attrFilterList(this,\'' + selectId + '\')">';
+    html += '<select class="attr-add-list" id="' + selectId + '">'
+        + '<option value="">\u2014 вибрати атрибут \u2014</option>';
+    availableForSite.forEach(function(a) {
+        if (!presentIds[a.attribute_id]) {
+            html += '<option value="' + a.attribute_id + '">' + escHtml(a.attribute_name) + '</option>';
+        }
+    });
+    html += '</select>';
+    html += '<button class="btn btn-sm" onclick="attrAdd(\'' + selectId + '\')">Додати</button>';
+    html += '</div>';
+
+    content.innerHTML = html;
+}
+
+function attrSetSite(siteId) {
+    ATTRS.activeSite = siteId;
+    ATTRS.data.sites.forEach(function(s) {
+        if (s.site_id === siteId && s.languages.length) {
+            ATTRS.activeLang = s.languages[0].language_id;
+        }
+    });
+    renderAttrPanel();
+}
+
+function attrSetLang(langId) {
+    ATTRS.activeLang = langId;
+    renderAttrPanel();
+}
+
+function attrFilterList(input, selectId) {
+    var val = input.value.toLowerCase();
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+    for (var i = 0; i < sel.options.length; i++) {
+        var opt = sel.options[i];
+        if (!opt.value) { opt.style.display = ''; continue; }
+        opt.style.display = opt.text.toLowerCase().indexOf(val) >= 0 ? '' : 'none';
+    }
+}
+
+function attrSaveOnBlur(input) {
+    var attrId = parseInt(input.getAttribute('data-attr-id'), 10);
+    var langId = parseInt(input.getAttribute('data-lang-id'), 10);
+    var text   = input.value;
+    _attrUpdateLocal(attrId, langId, text);
+    fetch('/catalog/api/save_product_attribute', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'product_id=' + ATTRS_PRODUCT_ID
+            + '&attribute_id=' + attrId
+            + '&language_id=' + langId
+            + '&text=' + encodeURIComponent(text)
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) { if (!d.ok) showToast('Помилка: ' + (d.error || '?')); })
+    .catch(function() { showToast('Помилка мережі'); });
+}
+
+function attrDelete(attrId) {
+    if (!confirm('Видалити атрибут з усіх мов?')) return;
+    fetch('/catalog/api/delete_product_attribute', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'product_id=' + ATTRS_PRODUCT_ID + '&attribute_id=' + attrId
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            ATTRS.data.sites.forEach(function(site) {
+                site.languages.forEach(function(lang) {
+                    lang.values = lang.values.filter(function(v) { return v.attribute_id !== attrId; });
+                });
+            });
+            renderAttrPanel();
+            showToast('Атрибут видалено');
+        } else {
+            showToast('Помилка: ' + (d.error || '?'));
+        }
+    })
+    .catch(function() { showToast('Помилка мережі'); });
+}
+
+function attrAdd(selectId) {
+    var sel = document.getElementById(selectId);
+    if (!sel || !sel.value) { showToast('Виберіть атрибут'); return; }
+    var attrId   = parseInt(sel.value, 10);
+    var attrName = sel.options[sel.selectedIndex].text;
+    ATTRS.data.sites.forEach(function(site) {
+        if (site.site_id !== ATTRS.activeSite) return;
+        site.languages.forEach(function(lang) {
+            var exists = lang.values.some(function(v) { return v.attribute_id === attrId; });
+            if (!exists) {
+                lang.values.push({ attribute_id: attrId, attribute_name: attrName, text: '' });
+                lang.values.sort(function(a, b) { return a.attribute_name.localeCompare(b.attribute_name); });
+            }
+        });
+    });
+    renderAttrPanel();
+    // Focus the new input
+    var inputs = document.querySelectorAll('.attr-value-input');
+    for (var i = 0; i < inputs.length; i++) {
+        if (parseInt(inputs[i].getAttribute('data-attr-id'), 10) === attrId) {
+            inputs[i].focus();
+            break;
+        }
+    }
+}
+
+function _attrUpdateLocal(attrId, langId, text) {
+    ATTRS.data.sites.forEach(function(site) {
+        site.languages.forEach(function(lang) {
+            if (lang.language_id !== langId) return;
+            lang.values.forEach(function(v) { if (v.attribute_id === attrId) v.text = text; });
+        });
+    });
+}
+
+function toggleProdDesc(sid, lid) {
+    var box  = document.getElementById('cnt-desc-' + sid + '-' + lid);
+    var edit = document.getElementById('cnt-desc-edit-' + sid + '-' + lid);
+    var ta   = document.getElementById('cnt-desc-ta-' + sid + '-' + lid);
+    var lnk  = document.getElementById('cnt-desc-lnk-' + sid + '-' + lid);
+    if (!box || !edit) return;
+    var isEdit = edit.style.display !== 'none';
+    if (isEdit) {
+        // cancel — restore preview from textarea
+        box.style.display = '';
+        edit.style.display = 'none';
+        if (lnk) lnk.textContent = 'редагувати';
+    } else {
+        // switch to edit
+        if (ta) ta.value = box.innerHTML === '<span style="color:var(--text-faint)">—</span>' ? '' : box.innerHTML;
+        box.style.display = 'none';
+        edit.style.display = '';
+        if (lnk) lnk.textContent = 'скасувати';
+        if (ta) ta.focus();
+    }
+}
+
+function saveProdDesc(sid, lid) {
+    var ta  = document.getElementById('cnt-desc-ta-' + sid + '-' + lid);
+    var box = document.getElementById('cnt-desc-' + sid + '-' + lid);
+    var st  = document.getElementById('cnt-desc-st-' + sid + '-' + lid);
+    var edit = document.getElementById('cnt-desc-edit-' + sid + '-' + lid);
+    var lnk  = document.getElementById('cnt-desc-lnk-' + sid + '-' + lid);
+    if (!ta) return;
+    var html = ta.value;
+    var pid  = <?php echo isset($details) ? (int)$details['product_id'] : 0; ?>;
+    if (st) { st.textContent = 'Збереження…'; st.className = 'desc-save-status'; }
+    var fields = {}; fields['description'] = html;
+    fetch('/catalog/api/save_product_content', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: 'product_id=' + pid + '&site_id=' + sid + '&language_id=' + lid
+            + '&fields=' + encodeURIComponent(JSON.stringify(fields))
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            box.innerHTML = html !== '' ? html : '<span style="color:var(--text-faint)">—</span>';
+            box.style.display = '';
+            edit.style.display = 'none';
+            if (lnk) lnk.textContent = 'редагувати';
+            if (st) { st.textContent = ''; }
+        } else {
+            if (st) { st.textContent = d.error || 'Помилка'; st.className = 'desc-save-status err'; }
+        }
+    })
+    .catch(function() {
+        if (st) { st.textContent = 'Помилка мережі'; st.className = 'desc-save-status err'; }
+    });
+}
+<?php endif; ?>
 
 // Product image slider
 (function() {
@@ -3035,14 +3516,6 @@ document.querySelectorAll('.section-collapsible > h3').forEach(function(h3) {
         popup.classList.remove('open');
     }
 
-    document.querySelectorAll('td.js-cell-action').forEach(function(td) {
-        td.addEventListener('click', function(e) {
-            e.stopPropagation();
-            var row = td.closest('tr');
-            var url = row ? row.getAttribute('data-url') : '';
-            showPopup(e, td.getAttribute('data-copy') || '', url || '');
-        });
-    });
 
     btnCopy.addEventListener('click', function() {
         if (!currentCopyText) { hidePopup(); return; }
@@ -3800,7 +4273,74 @@ function _addToSite(badge, productId, siteId, badgeCode, siteName, categoryId) {
 }());
 
 // ── Chip search input ─────────────────────────────────────────────────────────
-ChipSearch.init('searchChipBox', 'searchChipTyper', 'search');
+ChipSearch.init('searchChipBox', 'searchChipTyper', 'search', null, {noComma: true});
+
+// ── Chip clear button ─────────────────────────────────────────────────────────
+(function () {
+    var clearBtn  = document.getElementById('chipClearBtn');
+    var chipBox   = document.getElementById('searchChipBox');
+    var typer     = document.getElementById('searchChipTyper');
+    var hidden    = document.getElementById('search');
+    var searchForm = hidden ? hidden.closest('form') : null;
+    if (!clearBtn || !chipBox || !typer || !hidden) return;
+
+    function updateClearBtn() {
+        var hasChips = chipBox.querySelectorAll('.chip').length > 0;
+        var hasText  = typer.value.trim() !== '';
+        if (hasChips || hasText) {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+    }
+
+    // Observe chip additions/removals
+    var observer = new MutationObserver(updateClearBtn);
+    observer.observe(chipBox, { childList: true });
+
+    // Also watch typer input
+    typer.addEventListener('input', updateClearBtn);
+
+    // Clear button click: remove all chips, clear typer, submit
+    clearBtn.addEventListener('click', function () {
+        // Remove all chip elements
+        chipBox.querySelectorAll('.chip').forEach(function (c) { c.remove(); });
+        typer.value = '';
+        hidden.value = '';
+        clearBtn.classList.add('hidden');
+        // Submit the form (reset to page 1)
+        if (searchForm) {
+            var pageInput = searchForm.querySelector('input[name="page"]');
+            if (pageInput) pageInput.value = 1;
+            searchForm.submit();
+        }
+    });
+
+    // Initial state
+    updateClearBtn();
+}());
+
+// ── Split button "Змінити" ────────────────────────────────────────────────────
+(function () {
+    var btn     = document.getElementById('catSplitBtn');
+    var trigger = document.getElementById('catSplitTrigger');
+    if (!btn || !trigger) return;
+
+    trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        btn.classList.toggle('open');
+    });
+    document.addEventListener('click', function (e) {
+        if (!btn.contains(e.target)) btn.classList.remove('open');
+    });
+    // Close after action item click (but not print submenu trigger)
+    document.getElementById('catSplitDd').addEventListener('click', function (e) {
+        var item = e.target.closest('.cat-dd-item');
+        if (item && !item.closest('.cat-dd-print') || (item && item.parentElement.classList.contains('cat-dd-print-sub'))) {
+            btn.classList.remove('open');
+        }
+    });
+}());
 
 // ── Delete product (single row context menu) ──────────────────────────────────
 (function () {
@@ -3890,5 +4430,254 @@ ChipSearch.init('searchChipBox', 'searchChipTyper', 'search');
     });
 }());
 </script>
-</body>
-</html>
+
+<?php if (!empty($details) && !empty($details['seo'])): ?>
+<style>
+.ai-gen-opts { display:flex; gap:16px; margin-bottom:14px; }
+.ai-gen-opts-group { flex:1; }
+.ai-gen-opts-group > b { display:block; font-size:12px; color:var(--text-muted); font-weight:500; margin-bottom:6px; }
+.ai-gen-opt-row { display:flex; align-items:center; gap:6px; font-size:13px; margin-bottom:5px; }
+.ai-gen-opt-row label { cursor:pointer; }
+.ai-gen-prompt-toggle { font-size:12px; color:var(--blue-light); cursor:pointer; user-select:none; margin-bottom:6px; }
+.ai-gen-prompt-box { font-size:11px; font-family:monospace; background:#f9fafb; border:1px solid var(--border); border-radius:var(--radius); padding:8px 10px; white-space:pre-wrap; max-height:180px; overflow-y:auto; margin-bottom:10px; display:none; }
+.ai-gen-status { font-size:12px; color:var(--text-muted); margin-top:8px; min-height:18px; }
+.ai-gen-status.ok  { color:#16a34a; }
+.ai-gen-status.err { color:#dc2626; }
+</style>
+
+<!-- AI Content Generation Modal -->
+<div class="modal-overlay" id="aiContentModal" style="display:none">
+    <div class="modal-box" style="max-width:500px">
+        <div class="modal-head">
+            <span>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                Генерація контенту
+            </span>
+            <button type="button" class="modal-close" id="aiContentModalClose">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="ai-gen-opts">
+                <div class="ai-gen-opts-group">
+                    <b>Сайти</b>
+                    <div id="aiCntSitesCont"></div>
+                </div>
+                <div class="ai-gen-opts-group">
+                    <b>Мови</b>
+                    <div id="aiCntLangsCont"></div>
+                </div>
+            </div>
+            <div class="form-row">
+                <label style="font-size:12px;color:var(--text-muted);font-weight:500;display:block;margin-bottom:4px">Нотатка (опціонально)</label>
+                <textarea id="aiContentNote" rows="2" placeholder="Додаткові акценти для цього запуску&hellip;" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1px solid var(--border-input);border-radius:var(--radius);font-size:13px;font-family:var(--font);resize:vertical;outline:none"></textarea>
+            </div>
+            <div class="ai-gen-prompt-toggle" id="aiCntPromptToggle">&#9654; Переглянути промт</div>
+            <div class="ai-gen-prompt-box" id="aiCntPromptBox"></div>
+            <div class="ai-gen-status" id="aiCntStatus"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary btn-sm" id="aiContentGenBtn">Згенерувати</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="aiContentClose2">Закрити</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var CATALOG_AI_PRODUCT_ID = <?php echo (int)$details['product_id']; ?>;
+    var CATALOG_AI_SITES = <?php
+        $jsSites = array();
+        foreach ($details['seo'] as $s) {
+            $jsSites[] = array('site_id' => (int)$s['site_id'], 'name' => (string)$s['name']);
+        }
+        echo json_encode($jsSites, JSON_UNESCAPED_UNICODE);
+    ?>;
+    var CATALOG_AI_LANGS = [{language_id:2,name:'UK'},{language_id:1,name:'RU'}];
+
+    var modal      = document.getElementById('aiContentModal');
+    var triggerBtn = document.getElementById('btnAiContentGen');
+
+    function buildModal() {
+        var sc = document.getElementById('aiCntSitesCont');
+        var lc = document.getElementById('aiCntLangsCont');
+        sc.innerHTML = '';
+        lc.innerHTML = '';
+        for (var si = 0; si < CATALOG_AI_SITES.length; si++) {
+            var s = CATALOG_AI_SITES[si];
+            var row = document.createElement('div');
+            row.className = 'ai-gen-opt-row';
+            row.innerHTML = '<input type="checkbox" id="aiCs_' + s.site_id + '" value="' + s.site_id + '" checked>'
+                + '<label for="aiCs_' + s.site_id + '">' + s.name + '</label>';
+            sc.appendChild(row);
+        }
+        for (var li = 0; li < CATALOG_AI_LANGS.length; li++) {
+            var l = CATALOG_AI_LANGS[li];
+            var row = document.createElement('div');
+            row.className = 'ai-gen-opt-row';
+            row.innerHTML = '<input type="checkbox" id="aiCl_' + l.language_id + '" value="' + l.language_id + '" checked>'
+                + '<label for="aiCl_' + l.language_id + '">' + l.name + '</label>';
+            lc.appendChild(row);
+        }
+        document.getElementById('aiContentNote').value = '';
+        document.getElementById('aiCntStatus').textContent = '';
+        document.getElementById('aiCntStatus').className = 'ai-gen-status';
+        document.getElementById('aiCntPromptBox').style.display = 'none';
+        document.getElementById('aiCntPromptBox').textContent = '';
+        document.getElementById('aiCntPromptToggle').textContent = '\u25BA Переглянути промт';
+        document.getElementById('aiContentGenBtn').disabled = false;
+        document.getElementById('aiContentGenBtn').textContent = 'Згенерувати';
+    }
+
+    function openAiModal() {
+        buildModal();
+        modal.style.display = 'flex';
+    }
+
+    function closeAiModal() {
+        modal.style.display = 'none';
+    }
+
+    if (triggerBtn) triggerBtn.addEventListener('click', openAiModal);
+    document.getElementById('aiContentModalClose').addEventListener('click', closeAiModal);
+    document.getElementById('aiContentClose2').addEventListener('click', closeAiModal);
+    modal.addEventListener('click', function(e) { if (e.target === modal) closeAiModal(); });
+
+    // Prompt preview toggle
+    document.getElementById('aiCntPromptToggle').addEventListener('click', function() {
+        var box = document.getElementById('aiCntPromptBox');
+        if (box.style.display === 'none') {
+            box.style.display = 'block';
+            this.textContent = '\u25BC Сховати промт';
+            if (!box.textContent.trim()) loadPreview();
+        } else {
+            box.style.display = 'none';
+            this.textContent = '\u25BA Переглянути промт';
+        }
+    });
+
+    document.getElementById('aiContentNote').addEventListener('input', function() {
+        var box = document.getElementById('aiCntPromptBox');
+        if (box.style.display !== 'none') { box.textContent = ''; loadPreview(); }
+    });
+
+    function loadPreview() {
+        var box = document.getElementById('aiCntPromptBox');
+        var siteCbs = document.querySelectorAll('[id^="aiCs_"]:checked');
+        var langCbs = document.querySelectorAll('[id^="aiCl_"]:checked');
+        if (!siteCbs.length || !langCbs.length) { box.textContent = '\u2014'; return; }
+        box.textContent = 'Завантаження\u2026';
+        var sid = parseInt(siteCbs[0].value, 10);
+        var lid = parseInt(langCbs[0].value, 10);
+        var body = 'entity_type=product&entity_id=' + CATALOG_AI_PRODUCT_ID
+            + '&site_id=' + sid + '&language_id=' + lid + '&use_case=content'
+            + '&custom_note=' + encodeURIComponent(document.getElementById('aiContentNote').value)
+            + '&return_prompt=1&preview_only=1';
+        fetch('/ai/api/generate_content', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+            body: body
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            box.textContent = d.ok
+                ? '=== SYSTEM ===\n\n' + d.system_prompt + '\n\n=== USER ===\n\n' + d.user_prompt
+                : (d.error || 'Помилка');
+        })
+        .catch(function() { box.textContent = 'Помилка мережі'; });
+    }
+
+    // Generate
+    document.getElementById('aiContentGenBtn').addEventListener('click', function() {
+        var siteCbs = document.querySelectorAll('[id^="aiCs_"]:checked');
+        var langCbs = document.querySelectorAll('[id^="aiCl_"]:checked');
+        var status  = document.getElementById('aiCntStatus');
+
+        if (!siteCbs.length || !langCbs.length) {
+            status.textContent = 'Оберіть хоча б один сайт і мову';
+            status.className = 'ai-gen-status err';
+            return;
+        }
+
+        var pairs = [];
+        for (var si = 0; si < siteCbs.length; si++) {
+            for (var li = 0; li < langCbs.length; li++) {
+                pairs.push({site_id: parseInt(siteCbs[si].value,10), language_id: parseInt(langCbs[li].value,10)});
+            }
+        }
+
+        var btn   = this;
+        var note  = document.getElementById('aiContentNote').value;
+        btn.disabled = true;
+        btn.textContent = 'Генерація\u2026';
+        status.textContent = '';
+        status.className = 'ai-gen-status';
+
+        var done = 0, errors = 0;
+
+        function runNext(idx) {
+            if (idx >= pairs.length) {
+                btn.disabled = false;
+                btn.textContent = 'Ще раз';
+                if (errors === 0) {
+                    status.textContent = '\u2713 Збережено ' + done + ' варіант(ів). Контент оновлено.';
+                    status.className = 'ai-gen-status ok';
+                } else {
+                    status.textContent = done + ' збережено, ' + errors + ' помилок.';
+                    status.className = 'ai-gen-status err';
+                }
+                return;
+            }
+            var pair = pairs[idx];
+            status.textContent = 'Генерація ' + (idx + 1) + ' / ' + pairs.length + '\u2026';
+
+            var body = 'entity_type=product&entity_id=' + CATALOG_AI_PRODUCT_ID
+                + '&site_id=' + pair.site_id + '&language_id=' + pair.language_id + '&use_case=content';
+            if (note) body += '&custom_note=' + encodeURIComponent(note);
+
+            fetch('/ai/api/generate_content', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                body: body
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok || !d.fields) { errors++; runNext(idx + 1); return; }
+                var saveBody = 'product_id=' + CATALOG_AI_PRODUCT_ID
+                    + '&site_id=' + pair.site_id
+                    + '&language_id=' + pair.language_id
+                    + '&fields=' + encodeURIComponent(JSON.stringify(d.fields));
+                fetch('/catalog/api/save_product_content', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                    body: saveBody
+                })
+                .then(function(r2) { return r2.json(); })
+                .then(function(d2) {
+                    if (d2.ok) {
+                        done++;
+                        var sid = pair.site_id, lid = pair.language_id;
+                        if (d.fields.description) {
+                            var el = document.getElementById('cnt-desc-' + sid + '-' + lid);
+                            if (el) el.innerHTML = d.fields.description;
+                        }
+                        if (d.fields.meta_title) {
+                            var el = document.getElementById('cnt-mt-' + sid + '-' + lid);
+                            if (el) el.textContent = d.fields.meta_title;
+                        }
+                        if (d.fields.meta_description) {
+                            var el = document.getElementById('cnt-md-' + sid + '-' + lid);
+                            if (el) el.textContent = d.fields.meta_description;
+                        }
+                    } else { errors++; }
+                    runNext(idx + 1);
+                })
+                .catch(function() { errors++; runNext(idx + 1); });
+            })
+            .catch(function() { errors++; runNext(idx + 1); });
+        }
+
+        runNext(0);
+    });
+}());
+</script>
+<?php endif; ?>
+<?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

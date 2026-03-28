@@ -23,10 +23,10 @@ if (!$r['ok'] || empty($r['row'])) {
 $cat = $r['row'];
 
 $rUa = Database::fetchRow('Papir',
-    "SELECT name, name_full FROM category_description WHERE category_id = {$categoryId} AND language_id = 2"
+    "SELECT name, name_full, description_full FROM category_description WHERE category_id = {$categoryId} AND language_id = 2"
 );
 $rRu = Database::fetchRow('Papir',
-    "SELECT name FROM category_description WHERE category_id = {$categoryId} AND language_id = 1"
+    "SELECT name, description_full FROM category_description WHERE category_id = {$categoryId} AND language_id = 1"
 );
 
 $cat['ua'] = ($rUa['ok'] && !empty($rUa['row'])) ? $rUa['row'] : array();
@@ -38,11 +38,13 @@ $chRes = Database::fetchRow('Papir',
 );
 $cat['children_count'] = ($chRes['ok'] && !empty($chRes['row'])) ? (int)$chRes['row']['cnt'] : 0;
 
-// Load only sites where this category is actually mapped
+// Load all active sites, mark which are mapped for this category
 $sitesRes = Database::fetchAll('Papir',
-    "SELECT s.site_id, s.name, s.code, s.url, s.db_alias, csm.site_category_id
+    "SELECT s.site_id, s.name, s.code, s.url, s.db_alias,
+            COALESCE(csm.site_category_id, 0) AS site_category_id,
+            IF(csm.site_category_id IS NOT NULL, 1, 0) AS mapped
      FROM sites s
-     INNER JOIN category_site_mapping csm ON csm.site_id = s.site_id AND csm.category_id = {$categoryId}
+     LEFT JOIN category_site_mapping csm ON csm.site_id = s.site_id AND csm.category_id = {$categoryId}
      WHERE s.status = 1
      ORDER BY s.sort_order, s.site_id"
 );

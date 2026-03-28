@@ -1,0 +1,58 @@
+<?php
+header('Content-Type: application/json; charset=utf-8');
+require_once __DIR__ . '/../counterparties_bootstrap.php';
+
+$id      = isset($_GET['id'])      ? (int)$_GET['id']              : 0;
+$channel = isset($_GET['channel']) ? trim($_GET['channel'])         : '';
+$limit   = isset($_GET['limit'])   ? min(200, (int)$_GET['limit']) : 60;
+
+if ($id <= 0) {
+    echo json_encode(array('ok' => false, 'error' => 'id required'));
+    exit;
+}
+
+$allowed = array('viber', 'sms', 'email', 'telegram', 'note');
+if ($channel && !in_array($channel, $allowed)) {
+    echo json_encode(array('ok' => false, 'error' => 'invalid channel'));
+    exit;
+}
+
+$chatRepo = new ChatRepository();
+
+// For telegram channel: also include messages matched by telegram_chat_id (counterparty_id=0)
+if ($channel === 'telegram') {
+    $tgR = Database::fetchRow('Papir',
+        "SELECT telegram_chat_id FROM counterparty WHERE id = {$id} AND telegram_chat_id IS NOT NULL LIMIT 1");
+    if ($tgR['ok'] && !empty($tgR['row']['telegram_chat_id'])) {
+        $tgChatIdEsc = Database::escape('Papir', $tgR['row']['telegram_chat_id']);
+        // Ensure all messages from this chat_id are linked
+        Database::query('Papir',
+            "UPDATE cp_messages SET counterparty_id = {$id}
+             WHERE channel='telegram' AND phone='{$tgChatIdEsc}' AND counterparty_id=0");
+    }
+}
+
+$messages = $chatRepo->getMessages($id, $channel ?: null, $limit);
+
+// Mark incoming as read
+if ($channel) {
+    $chatRepo->markRead($id, $channel);
+}
+
+// Format for JS
+$result = array();
+foreach ($messages as $msg) {
+    $result[] = array(
+        'id'         => (int)$msg['id'],
+        'channel'    => $msg['channel'],
+        'direction'  => $msg['direction'],
+        'status'     => $msg['status'],
+        'body'       => $msg['body'],
+        'media_url'  => $msg['media_url'],
+        'phone'      => $msg['phone'],
+        'created_at' => $msg['created_at'],
+        'read_at'    => $msg['read_at'],
+    );
+}
+
+echo json_encode(array('ok' => true, 'messages' => $result));

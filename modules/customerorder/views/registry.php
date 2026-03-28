@@ -113,15 +113,13 @@ function status_badge_class($status)
     return isset($map[$status]) ? $map[$status] : 'bg-secondary';
 }
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>CustomerOrder - Реестр заказов</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- Можно потом вынести в общий CSS -->
-    <style>
+<?php
+$title     = 'Замовлення';
+$activeNav = 'sales';
+$subNav    = 'orders';
+require_once __DIR__ . '/../../shared/layout.php';
+?>
+<style>
         body {
             font-family: Arial, sans-serif;
             font-size: 14px;
@@ -304,8 +302,6 @@ function status_badge_class($status)
             font-size: 12px;
         }
     </style>
-</head>
-<body>
 
 <h1 class="page-title">Реестр заказов</h1>
 
@@ -507,6 +503,4 @@ function status_badge_class($status)
         </div>
     <?php endif; ?>
 </div>
-
-</body>
-</html>
+<?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

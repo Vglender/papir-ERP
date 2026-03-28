@@ -1,5 +1,7 @@
 <?php
-$title = 'Зв\'язок категорій';
+$title     = 'Зв\'язок категорій';
+$activeNav = 'catalog';
+$subNav    = 'categories';
 require_once __DIR__ . '/../../shared/layout.php';
 
 function cmUrl($siteCode, $filter, $search, $page, $selected) {
@@ -29,8 +31,8 @@ $unmappedCount = $totalCount - $mappedCount;
 }
 .cm-panel {
     position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 32px);
+    top: var(--sticky-top);
+    max-height: calc(100vh - var(--sticky-top));
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #cfd8e3 transparent;

@@ -1,5 +1,7 @@
 <?php
-$title = 'Атрибути';
+$title     = 'Атрибути';
+$activeNav = 'catalog';
+$subNav    = 'attributes';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
@@ -11,39 +13,28 @@ require_once __DIR__ . '/../../shared/layout.php';
 }
 #attrFormPanel {
     position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 32px);
+    top: var(--sticky-top);
+    max-height: calc(100vh - var(--sticky-top));
     overflow-y: auto;
 }
 .attr-toolbar {
     display: flex;
-    align-items: flex-end;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
 }
-.attr-toolbar > form { flex: 1; min-width: 0; }
-.attr-filters {
-    display: grid;
-    grid-template-columns: 1fr 200px auto;
-    gap: 10px;
-    align-items: end;
+.attr-toolbar h1 { margin: 0; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.attr-toolbar .btn { height: 34px; padding: 0 12px; }
+.attr-toolbar .chip-input { min-height: 34px; max-height: 34px; overflow: hidden; }
+.attr-search-wrap { flex: 1; min-width: 160px; }
+.attr-stats { font-size: 12px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+.attr-filter-select {
+    height: 30px; padding: 0 10px;
+    border: 1px solid var(--border-input); border-radius: var(--radius);
+    font-size: 13px; font-family: var(--font);
+    background: #fff; cursor: pointer; outline: none;
 }
-.attr-filters label {
-    display: block;
-    font-size: 12px;
-    color: var(--text-muted);
-    font-weight: 500;
-    margin-bottom: 4px;
-}
-.attr-filters select {
-    width: 100%;
-    padding: 7px 10px; border: 1px solid var(--border-input);
-    border-radius: var(--radius); font-size: 13px; font-family: var(--font);
-    outline: none; background: #fff; cursor: pointer; box-sizing: border-box;
-}
-.attr-filters select:focus { border-color: var(--blue-light); }
-.attr-stats { font-size: 12px; color: var(--text-muted); white-space: nowrap; align-self: flex-end; padding-bottom: 2px; }
+.attr-filter-select:focus { border-color: var(--blue-light); }
 .crm-table td.td-name { font-weight: 500; }
 .crm-table td.td-muted { color: var(--text-muted); font-size: 12px; }
 .badge-off  { background: #dbeafe; color: #1d4ed8; }
@@ -123,49 +114,54 @@ require_once __DIR__ . '/../../shared/layout.php';
 
 <div class="page-wrap-lg">
 
-    <div class="page-head">
-        <div class="breadcrumb">
-            <a href="/catalog">Каталог</a>
-            <span>Атрибути</span>
+    <!-- ── Toolbar ── -->
+    <div class="attr-toolbar">
+        <h1>Атрибути</h1>
+        <button class="btn btn-primary" id="btnNewAttr" type="button">+ Новий</button>
+        <div class="attr-search-wrap">
+            <form id="attrFilterForm">
+                <div class="chip-input" id="searchChipBox">
+                    <input type="text" class="chip-typer" id="searchChipTyper"
+                           placeholder="Назва або ID…" autocomplete="off">
+                    <div class="chip-actions">
+                        <button type="button" class="chip-act-btn chip-act-clear hidden" id="chipClearBtn" title="Очистити">&#x2715;</button>
+                        <button type="submit" class="chip-act-btn chip-act-submit" title="Пошук">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" id="attrSearch" value="">
+            </form>
         </div>
+        <div class="attr-stats" id="attrStats"></div>
+    </div>
+
+    <!-- ── Filter bar ── -->
+    <div class="filter-bar">
+        <div class="filter-bar-group">
+            <span class="filter-bar-label">Група</span>
+            <select id="groupFilter" class="attr-filter-select">
+                <option value="0">Всі</option>
+                <?php foreach ($groups as $g): ?>
+                <option value="<?php echo (int)$g['group_id']; ?>">
+                    <?php echo htmlspecialchars($g['name_uk'] ?: $g['name_ru']); ?>
+                    (<?php echo (int)$g['attrs_count']; ?>)
+                </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
+            <svg viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/>
+                <path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M11.9 3.4l-.7.7M4.1 11.9l-.7.7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+        </button>
     </div>
 
     <div class="attr-layout">
 
         <!-- ── Ліво: список ── -->
         <div>
-            <div class="attr-toolbar">
-                <form id="attrFilterForm">
-                    <div class="attr-filters">
-                        <div>
-                            <label>Пошук</label>
-                            <div class="chip-input" id="searchChipBox">
-                                <input type="text" class="chip-typer" id="searchChipTyper"
-                                       placeholder="Назва або ID…" autocomplete="off">
-                            </div>
-                            <input type="hidden" id="attrSearch" value="">
-                        </div>
-                        <div>
-                            <label>Група</label>
-                            <select id="groupFilter">
-                                <option value="0">Всі групи</option>
-                                <?php foreach ($groups as $g): ?>
-                                <option value="<?php echo (int)$g['group_id']; ?>">
-                                    <?php echo htmlspecialchars($g['name_uk'] ?: $g['name_ru']); ?>
-                                    (<?php echo (int)$g['attrs_count']; ?>)
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="btn-row">
-                            <button type="submit" class="btn btn-sm">Застосувати</button>
-                            <button type="button" class="btn btn-ghost btn-sm" id="btnResetFilter">Скинути</button>
-                        </div>
-                    </div>
-                </form>
-                <div class="attr-stats" id="attrStats"></div>
-                <button class="btn btn-primary btn-sm" id="btnNewAttr" type="button">+ Новий</button>
-            </div>
 
             <table class="crm-table" id="attrTable" style="margin-bottom:0">
                 <thead>
@@ -314,6 +310,7 @@ var SELECTED_ID = <?php echo (int)$selected; ?>;
 var _rows = [];
 var _currentId = 0;
 var _listPage  = 1;
+var _autoSelect = true; // select first row on initial load
 var _listTotal = 0;
 var _listPages = 1;
 var _listPerPage = 50;
@@ -355,6 +352,12 @@ function loadList() {
             document.getElementById('attrStats').textContent =
                 'Всього: ' + _listTotal + (_listPages > 1 ? ' (стор. ' + _listPage + '/' + _listPages + ')' : '');
             renderPagination();
+            if (_autoSelect && !_currentId && _rows.length > 0) {
+                _autoSelect = false;
+                selectAttr(parseInt(_rows[0].attribute_id, 10));
+            } else {
+                _autoSelect = false;
+            }
         })
         .catch(function() { showToast('Помилка завантаження'); });
 }
@@ -621,12 +624,11 @@ document.getElementById('btnSaveAttr').addEventListener('click', function() {
 // ── Форма фільтрів ────────────────────────────────────────────────────────────
 var attrFilterForm = document.getElementById('attrFilterForm');
 
-// ChipSearch викликає form.submit() при Enter в порожньому тайпері —
-// перехоплюємо і замінюємо на AJAX-виклик
+// ChipSearch викликає form.submit() при Enter в порожньому тайпері
 attrFilterForm.submit = function() { loadList(); };
 
-// Ініціалізуємо ChipSearch (він додає свій submit-listener першим — щоб flush тайпера)
-ChipSearch.init('searchChipBox', 'searchChipTyper', 'attrSearch', attrFilterForm);
+// Ініціалізуємо ChipSearch першим (щоб flush-listener додався раніше)
+ChipSearch.init('searchChipBox', 'searchChipTyper', 'attrSearch', attrFilterForm, {noComma: true});
 
 // Наш submit-listener (після ChipSearch, щоб hidden.value вже був оновлений)
 attrFilterForm.addEventListener('submit', function(e) {
@@ -635,16 +637,31 @@ attrFilterForm.addEventListener('submit', function(e) {
     loadList();
 });
 
-// Скидання фільтрів
-document.getElementById('btnResetFilter').addEventListener('click', function() {
-    document.getElementById('attrSearch').value = '';
-    document.getElementById('groupFilter').value = '0';
-    var box = document.getElementById('searchChipBox');
-    box.querySelectorAll('.chip').forEach(function(c) { c.remove(); });
-    _listPage = 1;
-    loadList();
-});
+// Кнопка × (clear) в chip-input
+(function() {
+    var clearBtn  = document.getElementById('chipClearBtn');
+    var chipBox   = document.getElementById('searchChipBox');
+    var typer     = document.getElementById('searchChipTyper');
+    var hidden    = document.getElementById('attrSearch');
+    if (!clearBtn || !chipBox || !typer || !hidden) return;
+    function updateClearBtn() {
+        var hasChips = chipBox.querySelectorAll('.chip').length > 0;
+        if (hasChips || typer.value.trim() !== '') clearBtn.classList.remove('hidden');
+        else clearBtn.classList.add('hidden');
+    }
+    new MutationObserver(updateClearBtn).observe(chipBox, {childList: true});
+    typer.addEventListener('input', updateClearBtn);
+    clearBtn.addEventListener('click', function() {
+        chipBox.querySelectorAll('.chip').forEach(function(c) { c.remove(); });
+        typer.value = '';
+        hidden.value = '';
+        clearBtn.classList.add('hidden');
+        _listPage = 1;
+        loadList();
+    });
+}());
 
+// Група — застосовується одразу
 document.getElementById('groupFilter').addEventListener('change', function() {
     _listPage = 1;
     loadList();

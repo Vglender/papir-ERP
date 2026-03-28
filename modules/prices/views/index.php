@@ -1,10 +1,10 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <title>Prices</title>
-    <style>
-        body { margin:0; padding:0; font-family: Arial, sans-serif; background:#f5f7fb; color:#222; }
+<?php
+$title     = 'Ціни';
+$activeNav = 'prices';
+$subNav    = 'pricelists';
+require_once __DIR__ . '/../../shared/layout.php';
+?>
+<style>
         .wrap { max-width:1850px; margin:0 auto; padding:24px; }
         .topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
         .title { margin:0 0 6px; font-size:30px; }
@@ -12,7 +12,7 @@
         .badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:12px; background:#eef4ff; color:#1f4db8; margin-left:6px; }
         .layout { display:grid; grid-template-columns: minmax(760px,1fr) 480px; gap:20px; align-items:start; }
         .card { background:#fff; border:1px solid #d9e0ea; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,.04); }
-        .sticky-panel { position:sticky; top:16px; max-height:calc(100vh - 32px); overflow-y:auto; padding-right:6px; }
+        .sticky-panel { position:sticky; top:var(--sticky-top); max-height:calc(100vh - var(--sticky-top)); overflow-y:auto; padding-right:6px; }
         .filters { display:flex; gap:10px; margin-bottom:16px; align-items:flex-end; flex-wrap:nowrap; }
         .filters > .filter-search { flex:1 1 auto; min-width:200px; }
         .filters > .filter-select { flex:0 0 180px; }
@@ -83,7 +83,9 @@
         .price-grid-2 { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
         .price-grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
         .price-item { background:#fff; border:1px solid #eef2f6; border-radius:8px; padding:10px; }
-        .price-label { font-size:12px; color:#666; margin-bottom:4px; }
+        .price-label { font-size:12px; color:#666; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; gap:4px; }
+        .price-label > span:first-child { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; min-width:0; }
+        .price-tags { display:flex; gap:3px; flex-shrink:0; }
         .price-value { font-size:16px; font-weight:bold; }
         .price-source { font-size:11px; color:#999; margin-top:3px; }
         .discount-levels { display:flex; flex-wrap:wrap; gap:8px; }
@@ -120,8 +122,6 @@
         @media (max-width:1200px) { .layout { grid-template-columns:1fr; } .sticky-panel { position:static; max-height:none; overflow:visible; } }
         @media (max-width:900px)  { .filters, .price-grid-2, .price-grid-3, .settings-row, .gs-form-grid, .gs-strat-grid, .bulk-settings-grid { grid-template-columns:1fr; } .info-grid { grid-template-columns:1fr; } }
     </style>
-</head>
-<body>
 <div class="wrap">
 
     <div class="topbar">
@@ -1039,7 +1039,7 @@
     refreshCounter();
 
     // ── Chip Search ────────────────────────────────────────────────────────
-    ChipSearch.init('searchChipBox', 'searchChipTyper', 'search');
+    ChipSearch.init('searchChipBox', 'searchChipTyper', 'search', null, {noComma: true});
 
     var filterInput   = document.getElementById('filter');
     var strategyInput = document.getElementById('strategy_id');
@@ -1060,5 +1060,4 @@
     }
 })();
 </script>
-</body>
-</html>
+<?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

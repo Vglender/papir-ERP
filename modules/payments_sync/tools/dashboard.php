@@ -174,19 +174,13 @@ if ($action !== '') {
     $duration = round(microtime(true) - $startedAt, 3);
 }
 ?>
-<!doctype html>
-<html lang="ru">
-<head>
-    <meta charset="utf-8">
-    <title>Payments Sync Dashboard</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f9;
-            color: #1f2937;
-            margin: 0;
-            padding: 20px;
-        }
+<?php
+$title     = 'Платежі';
+$activeNav = 'tools';
+$subNav    = 'payments';
+require_once __DIR__ . '/../../../modules/shared/layout.php';
+?>
+<style>
         h1, h2, h3 { margin-top: 0; }
         .wrap { max-width: 1450px; margin: 0 auto; }
         .card {
@@ -310,8 +304,6 @@ if ($action !== '') {
         }
         .muted { color: #6b7280; }
     </style>
-</head>
-<body>
 <div class="wrap">
 
     <div class="card">
@@ -456,5 +448,4 @@ if ($action !== '') {
     <?php endif; ?>
 
 </div>
-</body>
-</html>
+<?php require_once __DIR__ . '/../../../modules/shared/layout_end.php'; ?>

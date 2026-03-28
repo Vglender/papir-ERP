@@ -1,21 +1,22 @@
 <?php
 require_once __DIR__ . '/../../modules/database/database.php';
 require_once __DIR__ . '/OpenAiClient.php';
-
-// Загружаем ключ из gitignored файла
-require_once __DIR__ . '/storage/openai_auth.php';
+require_once __DIR__ . '/AiPromptBuilder.php';
 
 /**
  * Фабрика: возвращает готовый экземпляр OpenAiClient.
  *
- * Использование:
- *   require_once __DIR__ . '/../../modules/openai/openai_bootstrap.php';
- *   $ai = openai_client();
- *   $result = $ai->chat('Привет!');
+ * Ключ читается непосредственно из файла через include в локальной области,
+ * чтобы не зависеть от global-переменных и порядка загрузки файлов.
  *
  * @return \Papir\Crm\OpenAiClient
  */
 function openai_client() {
-    global $OPENAI_API_KEY;
-    return new \Papir\Crm\OpenAiClient($OPENAI_API_KEY);
+    static $key = null;
+    if ($key === null) {
+        $OPENAI_API_KEY = '';
+        include __DIR__ . '/storage/openai_auth.php';
+        $key = (string)$OPENAI_API_KEY;
+    }
+    return new \Papir\Crm\OpenAiClient($key);
 }

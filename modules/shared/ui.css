@@ -368,6 +368,8 @@ td input[type=number]::-webkit-inner-spin-button { display: none; }
 }
 .cat-node-row:hover { background: var(--bg-hover); }
 .cat-node-row.selected { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+.cat-node-row.inactive .cat-node-name { opacity: .45; }
+.cat-node-row.inactive .cat-node-toggle { opacity: .45; }
 
 /* Toggle arrow */
 .cat-node-toggle {
@@ -404,10 +406,10 @@ td input[type=number]::-webkit-inner-spin-button { display: none; }
  */
 .chip-input {
     display: flex; flex-wrap: wrap; gap: 4px;
-    padding: 3px 6px; min-height: 36px;
-    border: 1px solid var(--border-input); border-radius: var(--radius-sm);
+    padding: 3px 64px 3px 8px; min-height: 36px;
+    border: 1px solid var(--border-input); border-radius: var(--radius);
     background: var(--bg-card); cursor: text; align-items: center;
-    transition: border-color .15s;
+    transition: border-color .15s; position: relative;
 }
 .chip-input:focus-within { border-color: var(--blue-light); }
 .chip {
@@ -423,9 +425,171 @@ td input[type=number]::-webkit-inner-spin-button { display: none; }
 .chip-x:hover { opacity: 1; }
 .chip-typer {
     border: none; outline: none; background: transparent;
-    font-size: 14px; min-width: 120px; flex: 1;
+    font-size: 14px; min-width: 80px; flex: 1;
     padding: 2px 0; font-family: var(--font); color: var(--text);
 }
+/* Actions inside chip-input (clear × and search 🔍) */
+.chip-actions {
+    position: absolute; right: 0; top: 0; bottom: 0;
+    display: flex; align-items: center;
+}
+.chip-act-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 100%;
+    border: none; background: transparent;
+    color: var(--text-faint); cursor: pointer;
+    font-size: 13px; transition: color .12s, background .12s;
+    flex-shrink: 0;
+}
+.chip-act-btn:hover { color: var(--text); background: var(--bg-hover); }
+.chip-act-clear:hover { color: var(--red); }
+.chip-act-submit { border-radius: 0 var(--radius) var(--radius) 0; }
+.chip-act-submit:hover { color: var(--blue); }
+.chip-act-clear.hidden { visibility: hidden; pointer-events: none; }
+
+/* ── App Shell ─────────────────────────────────────────────────────────────── */
+:root {
+    --shell-h:      0px;
+    --sticky-top:   16px;
+}
+body.has-shell {
+    --shell-h:      98px;
+    --sticky-top:   114px;  /* 98px shell + 16px gap */
+    padding-top:    98px;
+}
+
+/* Header */
+.app-header {
+    background:     #1a1f2e;
+    height:         58px;
+    display:        flex;
+    align-items:    center;
+    padding:        0 12px 0 16px;
+    position:       fixed;
+    top: 0; left: 0; right: 0;
+    z-index:        1000;
+    user-select:    none;
+    gap:            4px;
+}
+
+/* Logo */
+.app-logo {
+    display: flex; align-items: center; gap: 9px;
+    text-decoration: none; margin-right: 8px; flex-shrink: 0;
+}
+.app-logo:hover { text-decoration: none; }
+.app-logo-mark {
+    width: 34px; height: 34px;
+    background: linear-gradient(140deg, #5b8af8 0%, #7c3aed 100%);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 17px; color: #fff;
+    box-shadow: 0 2px 8px rgba(92,138,248,.35);
+    flex-shrink: 0;
+}
+.app-logo-text { display: flex; flex-direction: column; gap: 1px; }
+.app-logo-name { font-size: 13px; font-weight: 700; color: rgba(255,255,255,.9); letter-spacing: .3px; line-height: 1; }
+.app-logo-sub  { font-size: 9px; font-weight: 500; color: rgba(255,255,255,.3); letter-spacing: 2px; text-transform: uppercase; line-height: 1; }
+
+/* Header separator */
+.app-hdr-sep {
+    width: 1px; height: 30px;
+    background: rgba(255,255,255,.08);
+    margin: 0 6px; flex-shrink: 0;
+}
+
+/* Module buttons */
+.app-modules { display: flex; align-items: center; flex: 1; gap: 1px; }
+.app-mod-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 0 13px; height: 50px;
+    border-radius: 9px; cursor: pointer; border: none;
+    background: transparent; color: rgba(255,255,255,.45);
+    font-family: var(--font); font-size: 10px; font-weight: 500;
+    transition: color .15s, background .15s;
+    min-width: 70px; text-decoration: none; position: relative;
+    letter-spacing: .2px; white-space: nowrap;
+}
+.app-mod-btn:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); text-decoration: none; }
+.app-mod-btn.active { color: #fff; background: rgba(255,255,255,.07); }
+.app-mod-btn.active::after {
+    content: ''; position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+    width: 22px; height: 2.5px; border-radius: 2px;
+    background: var(--mod-color, #4f7ef8); opacity: .9;
+}
+.app-mod-btn svg { width: 21px; height: 21px; flex-shrink: 0; }
+
+/* Right side */
+.app-hdr-right { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.app-hdr-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; width: 50px; height: 50px; border-radius: 9px;
+    cursor: pointer; border: none; background: transparent;
+    color: rgba(255,255,255,.45); font-family: var(--font);
+    font-size: 9.5px; font-weight: 500; letter-spacing: .2px;
+    transition: color .15s, background .15s; position: relative; flex-shrink: 0;
+}
+.app-hdr-btn:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
+.app-hdr-btn svg { width: 20px; height: 20px; }
+.app-hdr-badge {
+    position: absolute; top: 6px; right: 7px;
+    min-width: 15px; height: 15px;
+    background: #ef4444; border-radius: 8px;
+    border: 1.5px solid #1a1f2e;
+    font-size: 8.5px; font-weight: 700; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0 3px; line-height: 1;
+}
+.app-lang-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px; width: 46px; height: 50px;
+    border-radius: 9px; cursor: pointer; border: none;
+    background: transparent; font-family: var(--font);
+    color: rgba(255,255,255,.45); transition: color .15s, background .15s;
+}
+.app-lang-btn:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
+.app-lang-code { font-size: 12px; font-weight: 700; letter-spacing: .5px; }
+.app-lang-lbl  { font-size: 9px; font-weight: 500; opacity: .55; }
+.app-user-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 0 10px 0 8px; height: 50px;
+    border-radius: 9px; cursor: pointer; border: none;
+    background: transparent; color: rgba(255,255,255,.75);
+    font-family: var(--font); transition: color .15s, background .15s;
+}
+.app-user-btn:hover { background: rgba(255,255,255,.06); color: #fff; text-decoration: none; }
+.app-user-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #5b8af8, #7c3aed);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.app-user-info { display: flex; flex-direction: column; align-items: flex-start; }
+.app-user-name { font-size: 12px; font-weight: 600; line-height: 1.25; }
+.app-user-role { font-size: 10px; opacity: .45; line-height: 1.25; }
+.app-user-arr  { width: 13px; height: 13px; opacity: .35; margin-left: 1px; flex-shrink: 0; }
+
+/* Subnav */
+.app-subnav {
+    background: #fff; border-bottom: 1px solid #e8eaed;
+    height: 40px; display: flex; align-items: center;
+    padding: 0 20px; position: fixed;
+    top: 58px; left: 0; right: 0; z-index: 999; gap: 0;
+}
+.app-sub-lnk {
+    padding: 0 14px; height: 40px;
+    display: flex; align-items: center;
+    font-size: 13px; color: #6b7280;
+    text-decoration: none; white-space: nowrap;
+    font-weight: 500; letter-spacing: .1px;
+    border-bottom: 2.5px solid transparent;
+    transition: color .15s;
+}
+.app-sub-lnk:hover { color: #1a1f2e; text-decoration: none; }
+.app-sub-lnk.active { color: var(--subnav-color, #4f7ef8); border-bottom-color: var(--subnav-color, #4f7ef8); }
+
+/* Adjust sticky panels when shell is present */
+body.has-shell .sticky-panel { top: var(--sticky-top); max-height: calc(100vh - var(--sticky-top)); }
 
 /* ── Lightbox (повноекранний перегляд зображення) ─────────────────────────── */
 .crm-lightbox {
@@ -439,3 +603,90 @@ td input[type=number]::-webkit-inner-spin-button { display: none; }
     max-width: 92vw; max-height: 92vh;
     border-radius: var(--radius-lg); object-fit: contain;
 }
+
+/* ── Filter bar ─────────────────────────────────────────────────────────────
+ * Стандартний блок між тулбаром і таблицею.
+ * Концепція сторінок з таблицями:
+ *   1. Тулбар  (.xxx-toolbar)  — заголовок, кнопка додати, chip-search, select, bulk-actions
+ *   2. Фільтри (.filter-bar)   — чекбокси, date-пікери, додаткові select-фільтри
+ *   3. Таблиця (.crm-table)
+ *
+ * Структура:
+ *   <div class="filter-bar">
+ *     <div class="filter-bar-group">
+ *       <span class="filter-bar-label">Магазин</span>
+ *       <label class="filter-pill"><input type="checkbox"> Off</label>
+ *       <label class="filter-pill active"><input type="checkbox" checked> Mff</label>
+ *     </div>
+ *     <div class="filter-bar-sep"></div>
+ *     <div class="filter-bar-group">...</div>
+ *   </div>
+ * ─────────────────────────────────────────────────────────────────────────── */
+.filter-bar {
+    display: flex; align-items: center;
+    gap: 16px; padding: 7px 12px;
+    background: var(--bg-header);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    flex-wrap: wrap; min-height: 36px;
+}
+/* Група споріднених фільтрів всередині .filter-bar */
+.filter-bar-group {
+    display: flex; align-items: center; gap: 6px;
+}
+/* Вертикальний роздільник між групами */
+.filter-bar-sep {
+    width: 1px; height: 18px;
+    background: var(--border); flex-shrink: 0;
+}
+/* Мітка перед групою (напр. "Магазин:", "Статус:") */
+.filter-bar-label {
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+    color: var(--text-faint); text-transform: uppercase; letter-spacing: .04em;
+}
+
+/* ── Filter pill (чекбокс-фільтр всередині filter-bar) ──────────────────────
+ * Використовується: filter-bar checkboxes, site filters і т.п.
+ * Без рамок і фону — тільки чекбокс + текст.
+ * ─────────────────────────────────────────────────────────────────────────── */
+.filter-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 4px; font-size: 12px;
+    cursor: pointer; user-select: none;
+    color: var(--text-muted); transition: color .12s;
+}
+.filter-pill:hover { color: var(--text); }
+.filter-pill.active { color: #1f6feb; font-weight: 600; }
+.filter-pill input[type=checkbox],
+.filter-pill input[type=radio] {
+    width: 13px; height: 13px; margin: 0;
+    cursor: pointer; accent-color: #1f6feb;
+}
+
+/* ── Filter bar settings gear ───────────────────────────────────────────────
+ * Шестерня в правому куті .filter-bar — майбутнє налаштування складу фільтрів.
+ * Завжди останній елемент у .filter-bar, відштовхується вправо через margin-left:auto.
+ * При кліку відкриватиме дропдаун зі списком доступних груп фільтрів (toggle).
+ *
+ * Використання:
+ *   <div class="filter-bar">
+ *     ... групи фільтрів ...
+ *     <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
+ *       <svg>...</svg>
+ *     </button>
+ *   </div>
+ * ─────────────────────────────────────────────────────────────────────────── */
+.filter-bar-gear {
+    margin-left: auto; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; padding: 0;
+    border: none; background: transparent;
+    color: var(--text-faint); cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: color .15s, background .15s;
+}
+.filter-bar-gear:hover {
+    color: var(--text-muted); background: var(--bg-hover);
+}
+.filter-bar-gear svg { width: 14px; height: 14px; }

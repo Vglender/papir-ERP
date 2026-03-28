@@ -4,9 +4,19 @@
 
 Язык общения с пользователем — **русский**.
 
+## Документация схемы БД
+
+Актуальная структура базы данных Papir хранится в `docs/papir_db_schema.md`.
+
+**Обязательно обновлять файл при:**
+- добавлении или удалении таблицы
+- изменении назначения таблицы
+- переносе таблицы между кластерами (например, из "задел" в "активные")
+- добавлении/удалении дампов в `/backup/`
+
 ## Обзор
 
-Внутренняя CRM/ERP система для управления товарами, ценами, заказами и интеграциями с внешними сервисами (МойСклад, PrivatBank, Моно, UKRSIB, Google). Управляет двумя активными сайтами. Основной модуль — управление ценами с каскадным обновлением на сайты и в ERP.
+Внутренняя CRM/ERP система для управления товарами, ценами, заказами и интеграциями с внешними сервисами (МойСклад, Google). Управляет двумя активными сайтами. Основной модуль — управление ценами с каскадным обновлением на сайты и в ERP.
 
 ## Архитектура серверов
 
@@ -26,6 +36,20 @@
 **Точка входа**: `index.php` → `src/Router.php` → нужный модуль/страница
 **Namespace**: `Papir\Crm\`
 **PHP**: 5.6-совместимый код (см. соглашения ниже)
+
+**Навигация** (layout.php `$_nav`, `$activeNav`):
+
+| Раздел | `activeNav` | Пункты |
+|--------|-------------|--------|
+| Каталог | `catalog` | Товари `/catalog`, Категорії `/categories`, Виробники `/manufacturers`, Атрибути `/attributes`, Маппінг категорій `/category-mapping` |
+| Ціни | `prices` | Прайси `/prices`, Постачальники `/prices/suppliers`, Акції `/action` |
+| Продажі | `sales` | Замовлення `/customerorder` |
+| Фінанси | `finance` | Платежі `/payments` |
+| Інтеграції | `integr` | МойСклад `#`, Google Merchant `#`, AI `/ai` |
+| Інструменти | `tools` | МС атрибути `/docum/attr`, Фото аудит `/image-audit` |
+| Система | `system` | Фонові процеси `/jobs` (+ майбутні: Логи, Стан системи і т.п.) |
+
+> ⚠️ `pages/` — остатки старого проекта (HTML-заглушки). В Router.php не подключены (удалены). Не использовать как образцы и не добавлять новые маршруты туда.
 
 ---
 
@@ -207,6 +231,7 @@ Database::escape($db, $value)
 | Модуль           | Назначение                                         |
 |------------------|----------------------------------------------------|
 | `action`         | Акционные скидки, публикация в Merchant. **При discount=0 и super_discont=0 — запись удаляется из action_products, action_prices и oc_product_special.** |
+| `counterparties` | CRM: контрагенти (юрлиця, ФОП, фізособи), групи компаній, зв'язки, договори |
 | `customerorder`  | Управление заказами клиентов                       |
 | `payments_sync`  | Сверка банковских платежей с заказами              |
 | `bank_monobank`  | API Monobank                                       |
@@ -456,6 +481,60 @@ Database::update('Papir', 'product_papir',
 
 ---
 
+### `counterparties` — CRM: Контрагенти
+
+```
+modules/counterparties/
+├── counterparties_bootstrap.php
+├── index.php                          # Реєстр /counterparties (chip search, фільтр типу)
+├── view.php                           # Карточка /counterparties/view?id=X
+├── repositories/
+│   ├── CounterpartyRepository.php     # getList, getById, create, update, getContacts, getRelations, getOrderStats
+│   └── ChatRepository.php             # cp_messages + cp_message_templates CRUD
+├── api/
+│   ├── save_counterparty.php          # POST create/update (company/fop/person)
+│   ├── save_group.php                 # POST create/update групи компаній
+│   ├── save_relation.php              # POST добавить зв'язок між контрагентами
+│   ├── delete_relation.php            # POST видалити зв'язок
+│   ├── search.php                     # GET ?q=&type= → picker для інших модулів
+│   ├── get_messages.php               # GET ?id=&channel=&limit= → список повідомлень + markRead
+│   ├── send_message.php               # POST id+channel+body → Viber/SMS (AlphaSms) або note
+│   ├── get_templates.php              # GET ?channel= → шаблони для каналу
+│   ├── save_template.php              # POST id?+title+body+channels[] → create/update
+│   └── delete_template.php            # POST id → видалення шаблону
+├── webhook/
+│   └── viber_in.php                   # POST від Alpha SMS (action=viber/2way) → зберігає в cp_messages
+└── views/
+    ├── index.php                      # HTML реєстру
+    └── view.php                       # HTML карточки (вкладки: Реквізити, Контакти, Зв'язки, Документи, Аналітика)
+```
+
+**Типи контрагентів:** `company`, `fop`, `person`, `department`, `other`
+
+**Групи компаній:** таблиця `counterparty_group` (id, name, description). Поля в `counterparty`: `group_id`, `group_is_head`.
+
+**Реєстр:** показує company/fop + автономні persons (ті, що не є child у relation до компанії). Контактні особи в загальному списку не відображаються.
+
+**Карточка контрагента** — вкладки:
+- **Реквізити** — юр. реквізити (ЄДРПОУ/ІПН/ПДВ/IBAN/адреса) або ПІБ/контакти для person. AJAX save.
+- **Контакти** — контактні особи (type=person через counterparty_relation). + Додати (нова або існуюча).
+- **Зв'язки** — група компаній (CSS-схема) + інші relations.
+- **Документи** — остатні замовлення + посилання на всі.
+- **Аналітика** — заглушка (Фаза 2).
+
+**Бокова панель** — 4 вкладки: Реквізити, Зв'язки, Лента, **Чат**.
+- Чат: канали Viber/SMS/Нотатка, пузирьки повідомлень (in=сіро зліва, out=синє справа), чіпи шаблонів, відправка через AlphaSmsService. Вхідні Viber — через webhook viber_in.php від Alpha SMS.
+
+**Tables:** `cp_messages` (id, counterparty_id, channel, direction, status, phone, body, external_id, read_at, created_at), `cp_message_templates` (id, title, body, channels csv, sort_order, status).
+
+**AlphaSmsService** (`modules/shared/AlphaSmsService.php`) — статичний клас: `sendViber($phone, $text)`, `sendSms($phone, $text)`, `normalizePhone($phone)` → `380XXXXXXXXX`, `phoneLast9($phone)`.
+
+**Webhook URL для Alpha SMS:** `https://papir.officetorg.com.ua/counterparties/webhook/viber_in`
+
+**search.php** — використовується в picker-ах інших модулів (замість прямих SELECT у customerorder/edit.php).
+
+---
+
 ### `catalog` — Каталог товаров
 
 ```
@@ -688,129 +767,213 @@ modules/shared/
 
 ---
 
-### Стандарт поиска — Chip Search + панель фильтров
+### Стандарт пошуку і тулбару над таблицею
 
-**Это стандартный подход поиска во всех табличных интерфейсах CRM.**
+**Це стандартний підхід для всіх табличних інтерфейсів CRM.**
 
-#### Концепция
+#### Концепція: три зони над таблицею
 
-Поле поиска — контейнер с чипами. Каждый чип — одна поисковая единица. Между чипами логика **OR**, внутри чипа (пробелы) — **AND**. Чистое целое число — точное совпадение по ID.
-
-Примеры:
-- `638` → `product_id = 638`
-- `638, 961, карт пс А4` → `id=638 OR id=961 OR (name LIKE '%карт%' AND name LIKE '%пс%' AND name LIKE '%А4%')`
-
-#### Shared компоненты
-
-| Файл | Назначение |
-|------|-----------|
-| `modules/shared/ui.css` | CSS классы: `.chip-input`, `.chip`, `.chip-x`, `.chip-typer` |
-| `modules/shared/chip-search.js` | JS виджет: `ChipSearch.init(boxId, typerId, hiddenId, form)` |
-
-#### Стандартная структура панели фильтров
-
-Три уровня (все опциональны кроме первого):
-1. **Row 1** — поиск + select-фильтры + кнопки "Застосувати" / "Скинути"
-2. **Row 2** — чекбоксы (если нужны доп. фильтры типа сайт/статус)
-3. **Bulk toolbar** — "Вибрано N" + массовые действия
-
-CSS для Row 1 (копировать в каждый новый view):
-```css
-.xxx-filters {
-    display: grid;
-    grid-template-columns: 1fr 200px auto;   /* chip-search | select | кнопки */
-    gap: 10px;
-    align-items: end;
-    margin-bottom: 14px;
-}
-.xxx-filters label {
-    display: block;
-    font-size: 12px; color: var(--text-muted); font-weight: 500;
-    margin-bottom: 4px;
-}
-.xxx-filters select {
-    width: 100%; box-sizing: border-box;
-    padding: 7px 10px; border: 1px solid var(--border-input);
-    border-radius: var(--radius); font-size: 13px; font-family: var(--font);
-    outline: none; background: #fff; cursor: pointer;
-}
-.xxx-filters select:focus { border-color: var(--blue-light); }
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Тулбар  │ Заголовок │ + Додати │ ──── Chip Search ──── │ Дії ▾ │✕│
+├──────────────────────────────────────────────────────────────────┤
+│ Фільтри │ [Магазин: ☐ БК  ☐ off  ☐ mff]  │  [Статус: ☐ ...]  │⚙│
+├──────────────────────────────────────────────────────────────────┤
+│                         Таблиця                                  │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-HTML разметка Row 1:
+1. **Тулбар** (`.xxx-toolbar`) — один рядок, всі елементи **34px**: заголовок, "+ Додати", chip-search (займає весь вільний простір), bulk-actions (split-btn або окремі кнопки).
+2. **Панель фільтрів** (`.filter-bar`) — окремий блок між тулбаром і таблицею: чекбокс-пілюлі, date-пікери, select-фільтри. Праворуч завжди шестерня-плейсхолдер.
+3. **Таблиця** (`.crm-table`)
+
+> **Правило**: жодних фільтрів у рядку тулбару — тільки пошук і дії. Всі фільтри (включно з простими чекбоксами сайтів) завжди у `.filter-bar`. Це зберігає структуру при розширенні.
+
+#### Структура `.filter-bar`
+
 ```html
-<div class="xxx-filters">
-    <div>
-        <label>Пошук</label>
-        <div class="chip-input" id="searchChipBox">
-            <input type="text" class="chip-typer" id="searchChipTyper"
-                   placeholder="ID, назва…" autocomplete="off">
-        </div>
-        <input type="hidden" id="searchHidden" value="">
+<div class="filter-bar">
+    <div class="filter-bar-group">
+        <span class="filter-bar-label">Магазин</span>
+        <label class="filter-pill"><input type="checkbox"> off</label>
+        <label class="filter-pill active"><input type="checkbox" checked> mff</label>
     </div>
-    <div>
-        <label>Тип</label>
-        <select id="typeFilter">
-            <option value="0">Всі</option>
-            ...
-        </select>
+    <div class="filter-bar-sep"></div>
+    <div class="filter-bar-group">
+        <span class="filter-bar-label">Статус</span>
+        <label class="filter-pill"><input type="checkbox"> Активні</label>
     </div>
-    <div class="btn-row">
-        <button type="submit" class="btn btn-sm">Застосувати</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="btnResetFilter">Скинути</button>
-    </div>
+    <!-- Завжди останній елемент: шестерня налаштувань -->
+    <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
+        <svg viewBox="0 0 16 16" fill="none">...</svg>
+    </button>
 </div>
 ```
 
-#### Два варианта интеграции ChipSearch
+CSS-класи в `ui.css`: `.filter-bar`, `.filter-bar-group`, `.filter-bar-sep`, `.filter-bar-label`, `.filter-pill`, `.filter-pill.active`, `.filter-bar-gear`.
 
-**Вариант A — form-GET (как `/catalog`):** страница перезагружается с параметрами в URL.
-- Обернуть `.xxx-filters` в `<form method="get" action="/url">`
-- PHP читает `$_GET['search']`, рендерит данные server-side
-- ChipSearch восстанавливает чипы из hidden.value при загрузке страницы
-- "Скинути" = `<a href="/url">` (ссылка, не кнопка)
-- Инициализация: `ChipSearch.init('searchChipBox', 'searchChipTyper', 'searchHidden')` (без 4-го аргумента — найдёт форму автоматически)
+**`.filter-bar-gear`** — шестерня завжди в правому куті (`margin-left: auto`). Placeholder для майбутнього дропдауну налаштувань: список доступних груп фільтрів для цієї таблиці, кожну можна увімкнути/вимкнути галочкою.
 
-**Вариант B — AJAX (как `/attributes`):** данные загружаются fetch без перезагрузки.
-- Форма нужна только как контейнер для ChipSearch; submit перехватывается:
+#### Структура тулбару
+
+Тулбар — один рядок (`display: flex; align-items: center; gap: 8px`), всі елементи висотою **34px**:
+
+```
+[Назва сторінки]  [+ Додати]  [──────── Chip Search ────────]  [split-btn: N | Дія ▾]  [✕]
+```
+
+- **Назва** — `<h1>` зліва, `flex-shrink: 0`
+- **Кнопка "+ Додати"** — `class="btn btn-primary"`, висота 34px
+- **Chip Search** — займає весь вільний простір (`flex: 1; min-width: 160px`)
+- **Bulk-actions** — split-btn або окремі кнопки, праворуч, `flex-shrink: 0`. Лічильник вибраних рядків (`N`) + дропдаун з масовими діями. Завжди в тулбарі, **не** в окремому рядку.
+- **✕ (скинути вибір)** — тільки якщо є масовий вибір рядків
+
+Кнопки "Застосувати" / "Скинути" **не додавати** — пошук спрацьовує через Enter або `×` у полі. Фільтри застосовуються одразу при зміні чекбоксу.
+
+#### Chip Search — концепція
+
+Поле пошуку — контейнер з чіпами. Кожен чіп — одна пошукова одиниця. Між чіпами логіка **OR**, всередині чіпу (пробіли) — **AND**. Чисте ціле число — точний збіг по ID.
+
+**Тригери створення чіпу (за замовчуванням):** Enter при непорожньому полі, кома, вставка з буфера.
+**`noComma: true`** — кома не створює чіп (Enter залишається). Використовується коли значення пошуку саме містить коми (напр. "картон пс 1,5"). При `noComma: true` чіпи розділяються через `|||` (а не `,`) — і в hidden-value JS, і в PHP (`CatalogRepository` автоматично визначає роздільник: якщо в search є `|||` — ділить по ньому, інакше по `,`).
+
+Приклади:
+- `638` → `product_id = 638`
+- `638, 961, карт пс А4` → `id=638 OR id=961 OR (name LIKE '%карт%' AND name LIKE '%пс%' AND name LIKE '%А4%')`
+- `картон пс 1,5` (з `noComma: true`) → один чіп → `name LIKE '%картон%' AND name LIKE '%пс%' AND name LIKE '%1,5%'`
+
+#### Shared компоненти
+
+| Файл | Призначення |
+|------|------------|
+| `modules/shared/ui.css` | CSS: `.chip-input`, `.chip`, `.chip-x`, `.chip-typer`, `.chip-actions`, `.chip-act-btn`, `.chip-act-clear`, `.chip-act-submit` |
+| `modules/shared/chip-search.js` | JS: `ChipSearch.init(boxId, typerId, hiddenId, form, options)` |
+
+#### HTML розмітка поля пошуку
+
+Всередині `.chip-input` розміщуються дві кнопки-дії (правий край):
+- **`×` (chip-act-clear)** — очищає всі чіпи та поле. Прихована (`.hidden`) коли пошук порожній.
+- **🔍 (chip-act-submit)** — кнопка запуску пошуку з іконкою-лінзою. **Присутня завжди** — і у тулбарі (`type="submit"` у form-GET), і у filter-bar (`type="button"` з JS-колбеком).
+
+**Варіант A — тулбар (form-GET):**
+```html
+<div class="chip-input" id="searchChipBox">
+    <input type="text" class="chip-typer" id="searchChipTyper"
+           placeholder="ID, назва…" autocomplete="off">
+    <div class="chip-actions">
+        <button type="button" class="chip-act-btn chip-act-clear hidden" id="chipClearBtn" title="Очистити">&#x2715;</button>
+        <button type="submit" class="chip-act-btn chip-act-submit" title="Пошук">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+    </div>
+</div>
+<input type="hidden" name="search" id="searchHidden" value="">
+```
+
+**Варіант B — filter-bar (AJAX/JS, без форми):**
+```html
+<div class="chip-input" id="catChipBox">
+    <input type="text" class="chip-typer" id="catChipTyper"
+           placeholder="Пошук…" autocomplete="off">
+    <div class="chip-actions">
+        <button type="button" class="chip-act-btn chip-act-clear hidden" id="catChipClear" title="Очистити">&#x2715;</button>
+        <button type="button" class="chip-act-btn chip-act-submit" id="catChipSubmit" title="Пошук">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </button>
+    </div>
+</div>
+<input type="hidden" id="catSearchHidden" value="">
+```
+Лінза у Варіанті B — `type="button"` з `addEventListener('click', applySearch)`. Також застосовувати пошук при видаленні чіпа (клік по `.chip-x`).
+
+JS для кнопки `×` (показувати/приховувати + очистити):
+```javascript
+(function () {
+    var clearBtn  = document.getElementById('chipClearBtn');
+    var chipBox   = document.getElementById('searchChipBox');
+    var typer     = document.getElementById('searchChipTyper');
+    var hidden    = document.getElementById('searchHidden');
+    var searchForm = hidden ? hidden.closest('form') : null;
+    if (!clearBtn || !chipBox || !typer || !hidden) return;
+
+    function updateClearBtn() {
+        var hasChips = chipBox.querySelectorAll('.chip').length > 0;
+        var hasText  = typer.value.trim() !== '';
+        if (hasChips || hasText) { clearBtn.classList.remove('hidden'); }
+        else                     { clearBtn.classList.add('hidden'); }
+    }
+    var observer = new MutationObserver(updateClearBtn);
+    observer.observe(chipBox, { childList: true });
+    typer.addEventListener('input', updateClearBtn);
+
+    clearBtn.addEventListener('click', function () {
+        chipBox.querySelectorAll('.chip').forEach(function (c) { c.remove(); });
+        typer.value = '';
+        hidden.value = '';
+        clearBtn.classList.add('hidden');
+        if (searchForm) {
+            var pageInput = searchForm.querySelector('input[name="page"]');
+            if (pageInput) pageInput.value = 1;
+            searchForm.submit();
+        }
+    });
+    updateClearBtn();
+}());
+```
+
+#### Два варіанти інтеграції ChipSearch
+
+**Варіант A — form-GET (як `/catalog`):** сторінка перезавантажується з параметрами в URL.
+- Обгорнути в `<form method="get" action="/url">`
+- PHP читає `$_GET['search']`, рендерить дані server-side
+- ChipSearch відновлює чіпи з `hidden.value` при завантаженні сторінки
+- Ініціалізація: `ChipSearch.init('searchChipBox', 'searchChipTyper', 'searchHidden', null, {noComma: true})`
+
+**Варіант B — AJAX (як `/attributes`):** дані завантажуються fetch без перезавантаження.
 ```javascript
 var filterForm = document.getElementById('myFilterForm');
-// Override form.submit() — ChipSearch вызывает его при Enter в пустом тайпере
+// ChipSearch викликає form.submit() при Enter в порожньому тайпері — перехоплюємо
 filterForm.submit = function() { loadList(); };
-// Инициализируем ChipSearch ПЕРВЫМ (чтобы его flush-listener добавился раньше)
+// Ініціалізуємо ChipSearch ПЕРШИМ (щоб його flush-listener додався раніше)
 ChipSearch.init('searchChipBox', 'searchChipTyper', 'searchHidden', filterForm);
-// Наш listener — после ChipSearch, чтобы hidden.value уже был обновлён
+// Наш listener — після ChipSearch, щоб hidden.value вже був оновлений
 filterForm.addEventListener('submit', function(e) { e.preventDefault(); loadList(); });
 
-// Скинути — очищаем вручную:
-document.getElementById('btnResetFilter').addEventListener('click', function() {
-    document.getElementById('searchHidden').value = '';
-    document.getElementById('typeFilter').value = '0';
-    document.getElementById('searchChipBox').querySelectorAll('.chip').forEach(function(c) { c.remove(); });
-    loadList();
+// Чекбокси filter-bar — застосовуються миттєво при зміні
+document.querySelectorAll('.js-filter-check').forEach(function(cb) {
+    cb.addEventListener('change', loadList);
 });
-
-// Select-фильтры — мгновенно применяются
-document.getElementById('typeFilter').addEventListener('change', loadList);
 ```
 
-Подключить скрипт **до** основного `<script>` блока страницы:
+Підключити скрипт **до** основного `<script>` блоку сторінки:
 ```html
 <script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
-<script>
-// ... весь JS страницы ...
-ChipSearch.init(...);
-</script>
 ```
 
-> **Важно**: `loadList()` читает `document.getElementById('searchHidden').value` — этот hidden обновляется ChipSearch автоматически при добавлении/удалении чипов.
+#### CSS тулбару (шаблон)
 
-#### PHP buildWhere (шаблон для репозитория)
+```css
+.xxx-toolbar {
+    display: flex; align-items: center;
+    gap: 8px; margin-bottom: 10px;
+}
+.xxx-toolbar h1 { margin: 0; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.xxx-search-wrap { flex: 1; min-width: 160px; }
+/* Normalize всіх інтерактивних елементів тулбару до однієї висоти */
+.xxx-toolbar .btn        { height: 34px; padding: 0 12px; }
+.xxx-toolbar .chip-input { min-height: 34px; max-height: 34px; overflow: hidden; }
+```
+
+> Select-фільтри у тулбарі **не використовувати** — всі фільтри йдуть у `.filter-bar`.
+
+#### PHP buildWhere (шаблон для репозиторію)
 
 ```php
 $search = trim((string)$search);
 if ($search !== '') {
-    $rawChips = preg_split('/\s*,\s*/u', $search);
+    // Підтримка обох роздільників: '|||' (noComma режим) і ',' (звичайний)
+    $chipSep = (strpos($search, '|||') !== false) ? '/\s*\|\|\|\s*/u' : '/\s*,\s*/u';
+    $rawChips = preg_split($chipSep, $search);
     $chipConditions = array();
 
     foreach ($rawChips as $chip) {
@@ -962,6 +1125,64 @@ Papir.category_site_mapping
 `category_off` і `category_mf` в `categoria` — денормалізований кеш маппінгу для зворотної сумісності. При збереженні через `/catalog/api/save_category_mapping` оновлюються обидва.
 
 Інтерфейс: `/category-mapping` — ліво: категорії сайту, право: вибір Papir-категорії.
+
+---
+
+### Фоновые CLI-скрипты (`scripts/`)
+
+Долгие операции (батч-генерация, миграции, синхронизация) запускаются через `nohup php scripts/... > /tmp/....log 2>&1 &` и **обязательно регистрируются** в таблице `background_jobs` для мониторинга на странице `/jobs`.
+
+#### Шаблон CLI-скрипта
+
+```php
+<?php
+require_once __DIR__ . '/../modules/database/database.php';
+// ... другие зависимости ...
+
+$dryRun  = in_array('--dry-run', $argv);
+$logFile = '/tmp/my_script.log';   // тот же путь что в nohup-команде
+$myPid   = getmypid();
+
+// Регистрация в мониторе
+if (!$dryRun) {
+    Database::insert('Papir', 'background_jobs', array(
+        'title'    => 'Описание задачи',
+        'script'   => 'scripts/my_script.php',
+        'log_file' => $logFile,
+        'pid'      => $myPid,
+        'status'   => 'running',
+    ));
+}
+
+// ... логика скрипта, echo прогресс ...
+
+// Пометить завершённым
+if (!$dryRun) {
+    Database::query('Papir',
+        "UPDATE background_jobs SET status='done', finished_at=NOW()
+         WHERE pid={$myPid} AND status='running'"
+    );
+}
+```
+
+#### Запуск
+
+```bash
+nohup php scripts/my_script.php > /tmp/my_script.log 2>&1 &
+```
+
+Страница `/jobs` автоматически подхватит процесс, будет показывать лог в реальном времени и обнаружит завершение по исчезновению PID из `/proc/`.
+
+#### Таблица `background_jobs`
+
+| Поле | Тип | Назначение |
+|------|-----|-----------|
+| `title` | varchar(255) | Человекочитаемое название задачи |
+| `script` | varchar(512) | Путь к скрипту (для справки) |
+| `log_file` | varchar(512) | Абсолютный путь к лог-файлу |
+| `pid` | int unsigned | PID процесса (для проверки через `/proc/`) |
+| `status` | enum | `running` / `done` / `failed` |
+| `started_at` / `finished_at` | timestamp | Время выполнения |
 
 ---
 

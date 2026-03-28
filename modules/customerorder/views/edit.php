@@ -106,16 +106,15 @@ $updatedAt = field_value($order, 'updated_at');
 
 
 ?>
-<!DOCTYPE html>
-<html lang="uk">
-<head>
-    <meta charset="UTF-8">
-    <title>Замовлення <?= $isNew ? '' : '#' . (int)$order['id'] ?></title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
-
-    <style>
+<?php
+$title     = 'Замовлення' . ($isNew ? '' : ' #' . (int)$order['id']);
+$activeNav = 'sales';
+$subNav    = 'orders';
+$extraCss  = '<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">';
+require_once __DIR__ . '/../../shared/layout.php';
+?>
+<style>
         :root {
             --bg:        #f0f2f5;
             --surface:   #ffffff;
@@ -729,8 +728,6 @@ $updatedAt = field_value($order, 'updated_at');
             .totals-inner { min-width: unset; grid-template-columns: 1fr 1fr; }
         }
     </style>
-</head>
-<body>
 <div class="page-shell">
 
     <form method="post" action="/customerorder/save">
@@ -1642,5 +1639,4 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-</body>
-</html>
+<?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

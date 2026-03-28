@@ -90,21 +90,10 @@ if ($action === 'delete' && $product_id > 0) {
     ViewHelper::redirect($basePath, $state);
 }
 
-// Edit row
-$edit_row = $dashboardRepo->getDefaultEditRow();
-
-if ($action === 'edit' && $product_id > 0) {
-    $foundEditRow = $dashboardRepo->getEditRow($product_id);
-
-    if ($foundEditRow !== null) {
-        $edit_row = $foundEditRow;
-    }
-}
-
 // Stats
-$total_rows     = $dashboardRepo->getTotalRows($search, $filter);
-$actionCount    = count($actionRepo->getAll());
-$pendingCount   = $priceRepo->getPendingPublishCount();
+$total_rows   = $dashboardRepo->getTotalRows($search, $filter);
+$actionCount  = count($actionRepo->getAll());
+$pendingCount = $priceRepo->getPendingPublishCount();
 
 $paginator   = new Paginator($page, $perPage, $total_rows);
 $page        = $paginator->page;
@@ -121,5 +110,22 @@ $list = $dashboardRepo->getList(
     $offset,
     $perPage
 );
+
+// Auto-select first row if no item is selected
+if ($action !== 'edit' && $product_id === 0 && !empty($list)) {
+    $product_id = (int)$list[0]['product_id'];
+    $action     = 'edit';
+}
+
+// Edit row
+$edit_row = $dashboardRepo->getDefaultEditRow();
+
+if ($action === 'edit' && $product_id > 0) {
+    $foundEditRow = $dashboardRepo->getEditRow($product_id);
+
+    if ($foundEditRow !== null) {
+        $edit_row = $foundEditRow;
+    }
+}
 
 require __DIR__ . '/views/dashboard.php';

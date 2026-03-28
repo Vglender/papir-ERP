@@ -8,15 +8,11 @@ $basePath = '/catalog';
 $perPage  = 50;
 
 $search      = Request::getString('search', '');
-$filter      = Request::getString('filter', 'all');
-$sort        = $catalogRepo->normalizeSort(Request::getString('sort', 'product_id'));
+$sort        = $catalogRepo->normalizeSort(Request::getString('sort', 'name'));
 $order       = $catalogRepo->normalizeOrder(Request::getString('order', 'asc'));
 $page        = max(1, Request::getInt('page', 1));
 $selected    = Request::getInt('selected', 0);
 $siteFilterRaw = Request::getString('site_filter', '');
-
-$allowedFilters = array('all', 'with_stock', 'with_action', 'no_photo');
-if (!in_array($filter, $allowedFilters)) $filter = 'all';
 
 $sites = $catalogRepo->getSites();
 
@@ -46,7 +42,6 @@ if ($siteFilterRaw === '') {
 
 $state = array(
     'search'      => $search,
-    'filter'      => $filter,
     'site_filter' => $siteFilterRaw,
     'sort'        => $sort,
     'order'       => $order,
@@ -55,7 +50,7 @@ $state = array(
 );
 
 $totalCatalog = $catalogRepo->getTotalCatalogCount();
-$totalRows    = $catalogRepo->getTotalRows($search, $filter, $siteFilter, $allSiteIds);
+$totalRows    = $catalogRepo->getTotalRows($search, $siteFilter, $allSiteIds);
 
 $paginator  = new Paginator($page, $perPage, $totalRows);
 $page       = $paginator->page;
@@ -64,7 +59,7 @@ $offset     = $paginator->offset;
 
 $state['page'] = $page;
 
-$rows = $catalogRepo->getList($search, $filter, $sort, $order, $offset, $perPage, $siteFilter, $allSiteIds);
+$rows = $catalogRepo->getList($search, $sort, $order, $offset, $perPage, $siteFilter, $allSiteIds);
 
 if ($selected <= 0 && !empty($rows)) {
     $selected = (int)$rows[0]['product_id'];
@@ -76,16 +71,31 @@ if ($selected > 0) {
     $details = $catalogRepo->getProductDetails($selected);
 }
 
+$weightClasses = array();
+$wcR = Database::fetchAll('Papir',
+    "SELECT wc.weight_class_id, wcd.title
+     FROM weight_class wc
+     JOIN weight_class_description wcd ON wcd.weight_class_id = wc.weight_class_id AND wcd.language_id = 2
+     ORDER BY wc.weight_class_id");
+if ($wcR['ok']) $weightClasses = $wcR['rows'];
+
+$lengthClasses = array();
+$lcR = Database::fetchAll('Papir',
+    "SELECT lc.length_class_id, lcd.title
+     FROM length_class lc
+     JOIN length_class_description lcd ON lcd.length_class_id = lc.length_class_id AND lcd.language_id = 2
+     ORDER BY lc.length_class_id");
+if ($lcR['ok']) $lengthClasses = $lcR['rows'];
+
 function catalogSortLink($label, $field, array $state, $basePath)
 {
-    $newOrder = ($state['sort'] === $field && $state['order'] === 'asc') ? 'desc' : 'asc';
+    $isActive = ($state['sort'] === $field);
+    $newOrder = ($isActive && $state['order'] === 'asc') ? 'desc' : 'asc';
     $params = array_merge($state, array('sort' => $field, 'order' => $newOrder, 'page' => 1));
-    $icon = '';
-    if ($state['sort'] === $field) {
-        $icon = $state['order'] === 'asc' ? ' ↑' : ' ↓';
-    }
+    $icon = $isActive ? ($state['order'] === 'asc' ? ' ↑' : ' ↓') : '';
+    $class = $isActive ? 'sort-link active' : 'sort-link';
     $url = ViewHelper::buildUrl($basePath, $params);
-    return '<a href="' . ViewHelper::h($url) . '" class="sort-link">' . ViewHelper::h($label . $icon) . '</a>';
+    return '<a href="' . ViewHelper::h($url) . '" class="' . $class . '">' . ViewHelper::h($label . $icon) . '</a>';
 }
 
 function catalogPageLink($pageNum, array $state, $basePath)

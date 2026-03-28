@@ -1,5 +1,7 @@
 <?php
-$title = 'Виробники';
+$title     = 'Виробники';
+$activeNav = 'catalog';
+$subNav    = 'manufacturers';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
@@ -18,7 +20,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 /* ── Sticky panel ──────────────────────────────────────────────────────────── */
 .mfr-panel {
     position: sticky;
-    top: 16px;
+    top: var(--sticky-top);
     max-height: calc(100vh - 32px);
     overflow-y: auto;
     scrollbar-width: thin;

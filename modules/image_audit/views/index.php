@@ -1,5 +1,7 @@
 <?php
-$title = 'Аудит зображень';
+$title     = 'Аудит зображень';
+$activeNav = 'tools';
+$subNav    = 'image-audit';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
