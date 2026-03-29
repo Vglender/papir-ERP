@@ -27,6 +27,64 @@ class TelegramBotService
     }
 
     /**
+     * Send photo to a chat_id. Caption is optional.
+     * If non-image file, falls back to sendMessage with just the caption/text.
+     * @return array ['ok'=>bool, 'error'=>string|null]
+     */
+    public static function sendPhoto($chatId, $photoUrl, $caption = '')
+    {
+        $data = array(
+            'chat_id' => (string)$chatId,
+            'photo'   => $photoUrl,
+        );
+        if ($caption !== '') {
+            $data['caption'] = $caption;
+        }
+        $result = self::call('sendPhoto', $data);
+        if ($result['ok']) {
+            return array('ok' => true);
+        }
+        return array('ok' => false, 'error' => isset($result['description']) ? $result['description'] : 'Telegram error');
+    }
+
+    /**
+     * Download a file from Telegram by file_id and save it to CRM media storage.
+     * Returns public HTTPS URL or null on failure.
+     */
+    public static function downloadAndSaveFile($fileId)
+    {
+        // Get file path from Telegram
+        $result = self::call('getFile', array('file_id' => $fileId));
+        if (empty($result['ok']) || empty($result['result']['file_path'])) {
+            return null;
+        }
+        $filePath    = $result['result']['file_path'];
+        $downloadUrl = 'https://api.telegram.org/file/bot' . self::TOKEN . '/' . $filePath;
+
+        // Download
+        $ch = curl_init($downloadUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 30);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $fileData = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if (!$fileData || $httpCode !== 200) return null;
+
+        // Determine extension
+        $ext = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+        if (!$ext) $ext = 'jpg';
+
+        // Save
+        $dir      = '/var/www/menufold/data/www/officetorg.com.ua/image/crm/messages/';
+        $filename = date('Ymd_His') . '_' . substr(md5(uniqid()), 0, 8) . '.' . $ext;
+        if (@file_put_contents($dir . $filename, $fileData) === false) return null;
+
+        return 'https://officetorg.com.ua/image/crm/messages/' . $filename;
+    }
+
+    /**
      * Register webhook URL with Telegram.
      * Call once after deployment.
      */

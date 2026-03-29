@@ -480,21 +480,19 @@ class CounterpartyRepository
         }
 
         if ($query !== '') {
-            if (preg_match('/^\d+$/', $query)) {
-                $where[] = "(c.id = " . (int)$query . " OR LOWER(c.name) LIKE '%" . Database::escape('Papir', strtolower($query)) . "%')";
-            } else {
-                $tokens = preg_split('/\s+/u', mb_strtolower($query, 'UTF-8'));
-                $tokens = array_filter($tokens, function($t) { return $t !== ''; });
-                $tParts = array();
-                foreach ($tokens as $token) {
-                    $t = Database::escape('Papir', $token);
-                    $tParts[] = "(LOWER(c.name) LIKE '%{$t}%'
-                        OR LOWER(COALESCE(cc.okpo,''))  LIKE '%{$t}%'
-                        OR LOWER(COALESCE(cc.phone,'')) LIKE '%{$t}%'
-                        OR LOWER(COALESCE(cp.phone,'')) LIKE '%{$t}%')";
-                }
-                if (!empty($tParts)) $where[] = '(' . implode(' AND ', $tParts) . ')';
+            $tokens = preg_split('/\s+/u', mb_strtolower($query, 'UTF-8'));
+            $tokens = array_filter($tokens, function($t) { return $t !== ''; });
+            $tParts = array();
+            foreach ($tokens as $token) {
+                $t = Database::escape('Papir', $token);
+                $tParts[] = "(c.id = " . (int)$token . "
+                    OR LOWER(c.name) LIKE '%{$t}%'
+                    OR LOWER(COALESCE(cc.okpo,''))   LIKE '%{$t}%'
+                    OR LOWER(COALESCE(cc.phone,''))  LIKE '%{$t}%'
+                    OR LOWER(COALESCE(cp.phone,''))  LIKE '%{$t}%'
+                    OR LOWER(COALESCE(cp.phone_alt,'')) LIKE '%{$t}%')";
             }
+            if (!empty($tParts)) $where[] = '(' . implode(' AND ', $tParts) . ')';
         }
 
         $r = Database::fetchAll('Papir',

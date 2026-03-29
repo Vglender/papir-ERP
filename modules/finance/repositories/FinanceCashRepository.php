@@ -69,8 +69,8 @@ class FinanceCashRepository
 
         $r = Database::fetchAll('Papir',
             "SELECT fc.id, fc.id_ms, fc.direction, fc.moment, fc.doc_number,
-                    fc.sum, fc.description, fc.is_posted, fc.is_moving,
-                    fc.agent_ms, fc.expense_item_ms, fc.operations,
+                    fc.sum, fc.description, fc.payment_purpose, fc.is_posted, fc.is_moving,
+                    fc.agent_ms, fc.expense_item_ms, fc.operations, fc.source,
                     cp.id   AS cp_id,
                     cp.name AS cp_name,
                     cp.type AS cp_type

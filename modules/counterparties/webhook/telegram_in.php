@@ -15,39 +15,85 @@ header('Content-Type: application/json; charset=utf-8');
 $input  = file_get_contents('php://input');
 $update = $input ? json_decode($input, true) : null;
 
-if (!is_array($update)) {
-    echo json_encode(array('ok' => true));
-    exit;
-}
-
-// Only handle regular text messages (skip edits, channel posts, etc.)
-if (empty($update['message'])) {
+if (!is_array($update) || empty($update['message'])) {
     echo json_encode(array('ok' => true));
     exit;
 }
 
 $msg    = $update['message'];
-$text   = isset($msg['text'])           ? trim($msg['text'])                    : '';
-$chatId = isset($msg['chat']['id'])     ? (string)$msg['chat']['id']            : '';
-$from   = isset($msg['from'])           ? $msg['from']                          : array();
+$chatId = isset($msg['chat']['id']) ? (string)$msg['chat']['id'] : '';
+$from   = isset($msg['from'])       ? $msg['from']               : array();
 
-// Skip empty messages (stickers, photos without caption, etc.)
-if (!$text || !$chatId) {
+if (!$chatId) {
     echo json_encode(array('ok' => true));
     exit;
 }
 
-// Build sender name for reference
+// Build sender name
 $fromName = '';
 if (!empty($from['first_name'])) $fromName .= $from['first_name'];
 if (!empty($from['last_name']))  $fromName .= ' ' . $from['last_name'];
 $fromName = trim($fromName);
 if (!$fromName && !empty($from['username'])) $fromName = '@' . $from['username'];
 
-$chatRepo = new ChatRepository();
+// ── Extract text and media ────────────────────────────────────────────────────
 
-// Find counterparty: first by counterparty.telegram_chat_id field, then by message history
-$tgEsc = Database::escape('Papir', $chatId);
+$text     = isset($msg['text'])    ? trim($msg['text'])    : '';
+$caption  = isset($msg['caption']) ? trim($msg['caption']) : '';
+$mediaUrl = null;
+
+// Body text: text message OR caption accompanying a photo/document
+$bodyText = $text ? $text : $caption;
+
+// Photo (Telegram sends array of sizes — take the largest, last in array)
+if (!empty($msg['photo']) && is_array($msg['photo'])) {
+    $photo    = end($msg['photo']);
+    $mediaUrl = TelegramBotService::downloadAndSaveFile($photo['file_id']);
+}
+// Document (image sent as file, or other file types)
+elseif (!empty($msg['document'])) {
+    $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['document']['file_id']);
+}
+// Voice message
+elseif (!empty($msg['voice'])) {
+    $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['voice']['file_id']);
+    if (!$bodyText) $bodyText = '🎤 Голосове повідомлення';
+}
+// Audio file
+elseif (!empty($msg['audio'])) {
+    $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['audio']['file_id']);
+    if (!$bodyText) $bodyText = '🎵 Аудіо';
+}
+// Video
+elseif (!empty($msg['video'])) {
+    $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['video']['file_id']);
+    if (!$bodyText) $bodyText = '🎬 Відео';
+}
+// Video note (круговое видео)
+elseif (!empty($msg['video_note'])) {
+    $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['video_note']['file_id']);
+    if (!$bodyText) $bodyText = '⏺ Відео-повідомлення';
+}
+// Sticker — save emoji/name as text, no file
+elseif (!empty($msg['sticker'])) {
+    $bodyText = '🎭 Стікер' . (!empty($msg['sticker']['emoji']) ? ' ' . $msg['sticker']['emoji'] : '');
+}
+
+// Skip if nothing to save (sticker, voice, video note, etc.)
+if (!$bodyText && !$mediaUrl) {
+    echo json_encode(array('ok' => true));
+    exit;
+}
+
+$messageBody = ($fromName ? "[{$fromName}] " : '') . $bodyText;
+
+// ── Route to counterparty or lead ────────────────────────────────────────────
+
+$chatRepo = new ChatRepository();
+$leadRepo = new LeadRepository();
+$tgEsc    = Database::escape('Papir', $chatId);
+
+// 1. Try to find known counterparty
 $cpRow = Database::fetchRow('Papir',
     "SELECT id FROM counterparty WHERE telegram_chat_id = '{$tgEsc}' AND status = 1 LIMIT 1");
 if ($cpRow['ok'] && !empty($cpRow['row'])) {
@@ -56,22 +102,45 @@ if ($cpRow['ok'] && !empty($cpRow['row'])) {
     $counterpartyId = $chatRepo->findCounterpartyByTelegramChatId($chatId);
 }
 
-// Save message
-$chatRepo->saveMessage(array(
-    'counterparty_id' => $counterpartyId > 0 ? $counterpartyId : 0,
-    'channel'         => 'telegram',
-    'direction'       => 'in',
-    'status'          => 'read',    // delivered by Telegram
-    'phone'           => $chatId,   // re-use phone field for telegram_chat_id
-    'body'            => ($fromName ? "[{$fromName}] " : '') . $text,
-    'read_at'         => null,      // null = unread until manager opens chat
-));
-
-// If counterparty found, back-link any previously orphaned messages from same chat_id
 if ($counterpartyId > 0) {
+    $chatRepo->saveMessage(array(
+        'counterparty_id' => $counterpartyId,
+        'channel'         => 'telegram',
+        'direction'       => 'in',
+        'status'          => 'delivered',
+        'phone'           => $chatId,
+        'body'            => $messageBody,
+        'media_url'       => $mediaUrl,
+        'read_at'         => null,
+    ));
+    // Back-link any orphaned messages from same chat_id
     Database::query('Papir',
         "UPDATE cp_messages SET counterparty_id = {$counterpartyId}
-         WHERE channel = 'telegram' AND phone = '{$tgEsc}' AND counterparty_id = 0");
+         WHERE channel = 'telegram' AND phone = '{$tgEsc}' AND counterparty_id = 0 AND lead_id IS NULL");
+} else {
+    // Unknown user — find or create a lead
+    $leadId = $leadRepo->findByTelegramChatId($chatId);
+
+    if (!$leadId) {
+        $displayName = $fromName ? $fromName : $chatId;
+        $leadId = $leadRepo->create(array(
+            'source'           => 'telegram',
+            'display_name'     => $displayName,
+            'telegram_chat_id' => $chatId,
+        ));
+    }
+
+    if ($leadId) {
+        $leadRepo->saveMessage($leadId, array(
+            'channel'   => 'telegram',
+            'direction' => 'in',
+            'status'    => 'delivered',
+            'phone'     => $chatId,
+            'body'      => $messageBody,
+            'media_url' => $mediaUrl,
+            'read_at'   => null,
+        ));
+    }
 }
 
 echo json_encode(array('ok' => true));

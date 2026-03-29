@@ -26,7 +26,30 @@ class AlphaSmsService
             $err = isset($resp['error']) ? $resp['error'] : 'Alpha SMS error';
             return array('ok' => false, 'error' => $err);
         }
-        $msgId = isset($resp['data'][0]['msg_id']) ? $resp['data'][0]['msg_id'] : null;
+        $msgId = isset($resp['data'][0]['data']['msg_id']) ? $resp['data'][0]['data']['msg_id'] : null;
+        return array('ok' => true, 'msg_id' => $msgId);
+    }
+
+    public static function sendViberImage($phone, $imageUrl, $caption = '')
+    {
+        $phone   = self::normalizePhone($phone);
+        $item    = array(
+            'type'            => 'viber',
+            'phone'           => $phone,
+            'viber_signature' => self::ALPHA_NAME,
+            'viber_type'      => 'image',
+            'viber_image'     => $imageUrl,
+        );
+        if ($caption) {
+            $item['viber_caption'] = $caption;
+        }
+        $payload = array('auth' => self::API_KEY, 'data' => array($item));
+        $resp = self::post($payload);
+        if (!$resp || empty($resp['success'])) {
+            $err = isset($resp['error']) ? $resp['error'] : 'Alpha SMS error';
+            return array('ok' => false, 'error' => $err);
+        }
+        $msgId = isset($resp['data'][0]['data']['msg_id']) ? $resp['data'][0]['data']['msg_id'] : null;
         return array('ok' => true, 'msg_id' => $msgId);
     }
 
@@ -47,7 +70,7 @@ class AlphaSmsService
             $err = isset($resp['error']) ? $resp['error'] : 'Alpha SMS error';
             return array('ok' => false, 'error' => $err);
         }
-        $msgId = isset($resp['data'][0]['msg_id']) ? $resp['data'][0]['msg_id'] : null;
+        $msgId = isset($resp['data'][0]['data']['msg_id']) ? $resp['data'][0]['data']['msg_id'] : null;
         return array('ok' => true, 'msg_id' => $msgId);
     }
 

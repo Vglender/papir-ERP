@@ -209,29 +209,87 @@
     <div class="mc-section">
         <div class="mc-section-head">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="11.5" cy="11.5" r="2.5" stroke="currentColor" stroke-width="1.3"/></svg>
-            XML-фід для Merchant Center
+            XML-фіди для Merchant Center
         </div>
-        <div class="mc-section-body">
-            <p style="font-size:13px; color:var(--text-muted); margin:0 0 12px">
-                Фід генерується з таблиць Papir у реальному часі. Додайте URL до Merchant Center: <b>Feeds → + Add feed → Scheduled fetch</b>.
+        <div class="mc-section-body" style="padding-bottom:8px">
+            <p style="font-size:13px; color:var(--text-muted); margin:0 0 14px">
+                Додайте URL до Merchant Center: <b>Feeds → + Add feed → Scheduled fetch</b>.
             </p>
-            <div style="display:flex; flex-direction:column; gap:8px">
+
+            <!-- Офіс Торг -->
+            <div style="margin-bottom:18px">
+                <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px">
+                    <span class="badge badge-blue">off</span> Офіс Торг — officetorg.com.ua
+                </div>
                 <?php
-                $feedUrls = array(
-                    array('label' => 'Всі товари',           'url' => 'https://papir.officetorg.com.ua/integr/merchant/feed'),
-                    array('label' => 'Тільки в наявності',   'url' => 'https://papir.officetorg.com.ua/integr/merchant/feed?only_stock=1'),
+                $offFeeds = array(
+                    array(
+                        'label' => 'Статичний (щодня 5:00, тільки в наявності)',
+                        'url'   => 'https://officetorg.com.ua/merchant_feed.xml',
+                        'note'  => 'основний',
+                    ),
+                    array(
+                        'label' => 'Live — всі активні товари',
+                        'url'   => 'https://papir.officetorg.com.ua/integr/merchant/feed',
+                    ),
+                    array(
+                        'label' => 'Live — тільки в наявності',
+                        'url'   => 'https://papir.officetorg.com.ua/integr/merchant/feed?only_stock=1',
+                    ),
                 );
-                foreach ($feedUrls as $f): ?>
-                <div style="display:flex; align-items:center; gap:8px">
-                    <span style="font-size:12px; width:150px; color:var(--text-muted); flex-shrink:0"><?php echo htmlspecialchars($f['label']); ?></span>
+                foreach ($offFeeds as $f): ?>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+                    <span style="font-size:12px; width:220px; color:var(--text-muted); flex-shrink:0">
+                        <?php echo htmlspecialchars($f['label']); ?>
+                        <?php if (!empty($f['note'])): ?>
+                            <span class="badge badge-green" style="margin-left:4px"><?php echo htmlspecialchars($f['note']); ?></span>
+                        <?php endif; ?>
+                    </span>
                     <code style="flex:1; background:var(--bg-soft,#f8f9fa); border:1px solid var(--border); border-radius:5px; padding:5px 10px; font-size:12px; overflow:auto; white-space:nowrap"><?php echo htmlspecialchars($f['url']); ?></code>
                     <button type="button" class="btn btn-ghost btn-xs feed-copy-btn" data-url="<?php echo htmlspecialchars($f['url']); ?>">Копіювати</button>
                     <a href="<?php echo htmlspecialchars($f['url']); ?>" target="_blank" class="btn btn-ghost btn-xs">Відкрити</a>
                 </div>
                 <?php endforeach; ?>
             </div>
-            <p style="font-size:12px; color:var(--text-muted); margin:12px 0 0">
-                Параметри: <code>?only_stock=1</code> — тільки в наявності &nbsp;·&nbsp;
+
+            <!-- Menu Folder -->
+            <div>
+                <div style="font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-muted); margin-bottom:8px; display:flex; align-items:center; gap:6px">
+                    <span class="badge badge-orange">mff</span> Menu Folder — menufolder.com.ua
+                </div>
+                <?php
+                $mffFeeds = array(
+                    array(
+                        'label' => 'Статичний (щодня 5:30, тільки в наявності)',
+                        'url'   => 'https://officetorg.com.ua/merchant_feed_mff.xml',
+                        'note'  => 'основний',
+                    ),
+                    array(
+                        'label' => 'Live — всі активні товари',
+                        'url'   => 'https://papir.officetorg.com.ua/integr/merchant/feed_mff',
+                    ),
+                    array(
+                        'label' => 'Live — тільки в наявності',
+                        'url'   => 'https://papir.officetorg.com.ua/integr/merchant/feed_mff?only_stock=1',
+                    ),
+                );
+                foreach ($mffFeeds as $f): ?>
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px">
+                    <span style="font-size:12px; width:220px; color:var(--text-muted); flex-shrink:0">
+                        <?php echo htmlspecialchars($f['label']); ?>
+                        <?php if (!empty($f['note'])): ?>
+                            <span class="badge badge-green" style="margin-left:4px"><?php echo htmlspecialchars($f['note']); ?></span>
+                        <?php endif; ?>
+                    </span>
+                    <code style="flex:1; background:var(--bg-soft,#f8f9fa); border:1px solid var(--border); border-radius:5px; padding:5px 10px; font-size:12px; overflow:auto; white-space:nowrap"><?php echo htmlspecialchars($f['url']); ?></code>
+                    <button type="button" class="btn btn-ghost btn-xs feed-copy-btn" data-url="<?php echo htmlspecialchars($f['url']); ?>">Копіювати</button>
+                    <a href="<?php echo htmlspecialchars($f['url']); ?>" target="_blank" class="btn btn-ghost btn-xs">Відкрити</a>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <p style="font-size:12px; color:var(--text-muted); margin:10px 0 0">
+                Параметри Live-фідів: <code>?only_stock=1</code> — тільки в наявності &nbsp;·&nbsp;
                 <code>?category_id=N</code> — тільки категорія &nbsp;·&nbsp;
                 <code>?limit=100</code> — перші N товарів (для тесту)
             </p>

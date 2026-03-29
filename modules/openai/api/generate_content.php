@@ -97,6 +97,12 @@ if (trim($userPrompt) === '') {
     exit;
 }
 
+// Жорстка мовна вимога на початку user message — GPT надійніше виконує
+// інструкції у user-ролі ніж у system, особливо коли дані на іншій мові.
+$langToEn = array('Українська' => 'Ukrainian', 'Русский' => 'Russian', 'English' => 'English');
+$langEn   = isset($langToEn[$languageName]) ? $langToEn[$languageName] : $languageName;
+$userPrompt = "[REQUIRED: translate and write ALL output in {$langEn} language only]\n\n" . $userPrompt;
+
 // Режим попереднього перегляду — повертаємо промт без виклику API
 if ($previewOnly) {
     echo json_encode(array(

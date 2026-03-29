@@ -117,7 +117,18 @@ class AiPromptBuilder
 
         $jsonBlock = "{\n" . implode(",\n", $jsonLines) . "\n}";
 
-        return "Мова відповіді: {$languageName}.\n\n"
+        // Map to English name for a stronger language signal to the model
+        $langToEn = array(
+            'Українська' => 'Ukrainian',
+            'Русский'    => 'Russian',
+            'English'    => 'English',
+        );
+        $langEn = isset($langToEn[$languageName]) ? $langToEn[$languageName] : $languageName;
+
+        return "OUTPUT LANGUAGE: {$langEn}.\n"
+            . "You are acting as a translator and SEO copywriter. The input data may be in any language."
+            . " Your task is to translate and adapt ALL content into {$langEn}."
+            . " Every JSON field value MUST be written in {$langEn} ONLY — no exceptions.\n\n"
             . "Поверни відповідь ТІЛЬКИ у форматі JSON (без markdown, без коментарів, без пояснень):\n"
             . $jsonBlock;
     }
@@ -179,6 +190,11 @@ class AiPromptBuilder
                 $parts[] = "Інструкція для товару:\n" . $prodInstr;
             }
         }
+
+        // Шар 5: фінальне нагадування мови (повторюємо в кінці — модель краще слухається останніх інструкцій)
+        $langToEn = array('Українська' => 'Ukrainian', 'Русский' => 'Russian', 'English' => 'English');
+        $langEn = isset($langToEn[$langName]) ? $langToEn[$langName] : $langName;
+        $parts[] = "REMINDER: Output language is {$langEn}. Translate ALL content to {$langEn} regardless of the input language. Do NOT write in any other language.";
 
         return implode("\n\n---\n\n", $parts);
     }

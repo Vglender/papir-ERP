@@ -7,13 +7,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$counterpartyId = isset($_POST['id'])      ? (int)$_POST['id']         : 0;
-$channel        = isset($_POST['channel']) ? trim($_POST['channel'])    : '';
-$body           = isset($_POST['body'])    ? trim($_POST['body'])       : '';
-$subject        = isset($_POST['subject']) ? trim($_POST['subject'])    : 'Повідомлення від Papir CRM';
+$counterpartyId = isset($_POST['id'])        ? (int)$_POST['id']         : 0;
+$leadId         = isset($_POST['lead_id'])  ? (int)$_POST['lead_id']    : 0;
+$channel        = isset($_POST['channel'])  ? trim($_POST['channel'])    : '';
+$body           = isset($_POST['body'])     ? trim($_POST['body'])       : '';
+$subject        = isset($_POST['subject'])  ? trim($_POST['subject'])    : 'Повідомлення від Papir CRM';
+$mediaUrl       = isset($_POST['media_url'])? trim($_POST['media_url'])  : '';
 
-if ($counterpartyId <= 0 || !$body) {
-    echo json_encode(array('ok' => false, 'error' => 'id і body обовʼязкові'));
+if (($counterpartyId <= 0 && $leadId <= 0) || (!$body && !$mediaUrl)) {
+    echo json_encode(array('ok' => false, 'error' => 'id або lead_id і body/media_url обовʼязкові'));
     exit;
 }
 
@@ -23,16 +25,31 @@ if (!in_array($channel, $allowed)) {
     exit;
 }
 
-// Get counterparty phone
-$repo = new CounterpartyRepository();
-$cp   = $repo->getById($counterpartyId);
-if (!$cp) {
-    echo json_encode(array('ok' => false, 'error' => 'Контрагента не знайдено'));
-    exit;
-}
+// ── Resolve contact info (counterparty or lead) ───────────────────────────────
+$cp    = null;
+$lead  = null;
+$phone = null;
+$email = null;
 
-$phone = $cp['company_phone'] ? $cp['company_phone'] : $cp['person_phone'];
-$email = $cp['company_email'] ? $cp['company_email'] : $cp['person_email'];
+if ($leadId > 0) {
+    $leadRepo = new LeadRepository();
+    $lead     = $leadRepo->getById($leadId);
+    if (!$lead) {
+        echo json_encode(array('ok' => false, 'error' => 'Ліда не знайдено'));
+        exit;
+    }
+    $phone = $lead['phone'];
+    $email = $lead['email'];
+} else {
+    $repo = new CounterpartyRepository();
+    $cp   = $repo->getById($counterpartyId);
+    if (!$cp) {
+        echo json_encode(array('ok' => false, 'error' => 'Контрагента не знайдено'));
+        exit;
+    }
+    $phone = $cp['company_phone'] ? $cp['company_phone'] : $cp['person_phone'];
+    $email = $cp['company_email'] ? $cp['company_email'] : $cp['person_email'];
+}
 
 $chatRepo   = new ChatRepository();
 $externalId = null;
@@ -46,12 +63,42 @@ if ($channel === 'viber' || $channel === 'sms') {
     }
 
     if ($channel === 'viber') {
-        $result = AlphaSmsService::sendViber($phone, $body);
+        // If there's an image, send via Viber image message; text goes as caption
+        if ($mediaUrl && preg_match('/\.(jpg|jpeg|png|gif|webp)(\?|$)/i', $mediaUrl)) {
+            $caption = ($body && $body !== '[файл]') ? $body : '';
+            $result  = AlphaSmsService::sendViberImage($phone, $mediaUrl, $caption);
+        } else {
+            $result = AlphaSmsService::sendViber($phone, $body);
+        }
     } else {
         $result = AlphaSmsService::sendSms($phone, $body);
     }
 
     if (!$result['ok']) {
+        // Save failed message so operator sees delivery failure in chat
+        $failPhone = AlphaSmsService::normalizePhone($phone);
+        if ($counterpartyId > 0) {
+            $chatRepo->saveMessage(array(
+                'counterparty_id' => $counterpartyId,
+                'channel'         => $channel,
+                'direction'       => 'out',
+                'status'          => 'failed',
+                'phone'           => $failPhone,
+                'body'            => $body,
+                'media_url'       => $mediaUrl ? $mediaUrl : null,
+                'external_id'     => null,
+            ));
+        } else {
+            $leadRepo->saveMessage($leadId, array(
+                'channel'     => $channel,
+                'direction'   => 'out',
+                'status'      => 'failed',
+                'phone'       => $failPhone,
+                'body'        => $body,
+                'media_url'   => $mediaUrl ? $mediaUrl : null,
+                'external_id' => null,
+            ));
+        }
         echo json_encode(array('ok' => false, 'error' => $result['error']));
         exit;
     }
@@ -74,12 +121,28 @@ if ($channel === 'viber' || $channel === 'sms') {
     }
 
 } elseif ($channel === 'telegram') {
-    $tgChatId = $chatRepo->getTelegramChatId($counterpartyId);
+    if ($leadId > 0) {
+        $tgChatId = $lead['telegram_chat_id'];
+    } else {
+        $tgChatId = $chatRepo->getTelegramChatId($counterpartyId);
+    }
     if (!$tgChatId) {
         echo json_encode(array('ok' => false, 'error' => 'Клієнт ще не ініціював діалог у Telegram'));
         exit;
     }
-    $result = TelegramBotService::sendMessage($tgChatId, $body);
+    if ($mediaUrl && preg_match('/\.(jpg|jpeg|png|gif|webp)(\?|$)/i', $mediaUrl)) {
+        // Send photo; text becomes the caption (combined in one message)
+        $caption = ($body && $body !== '[файл]') ? $body : '';
+        $result  = TelegramBotService::sendPhoto($tgChatId, $mediaUrl, $caption);
+        // Caption already sent with photo — don't save separate text body in DB
+        if ($result['ok'] && $caption) {
+            $body = '[фото] ' . $caption;
+        } elseif ($result['ok']) {
+            $body = '[фото]';
+        }
+    } else {
+        $result = TelegramBotService::sendMessage($tgChatId, $body);
+    }
     if (!$result['ok']) {
         echo json_encode(array('ok' => false, 'error' => $result['error']));
         exit;
@@ -87,7 +150,6 @@ if ($channel === 'viber' || $channel === 'sms') {
 }
 
 // ── Save message ─────────────────────────────────────────────────────────────
-// Determine phone/identifier to store
 $savePhone = null;
 if ($channel === 'viber' || $channel === 'sms') {
     $savePhone = $phone ? AlphaSmsService::normalizePhone($phone) : null;
@@ -95,17 +157,32 @@ if ($channel === 'viber' || $channel === 'sms') {
     $savePhone = isset($tgChatId) ? $tgChatId : null;
 }
 
-$msgId = $chatRepo->saveMessage(array(
-    'counterparty_id' => $counterpartyId,
-    'channel'         => $channel,
-    'direction'       => 'out',
-    'status'          => $status,
-    'phone'           => $savePhone,
-    'email_addr'      => ($channel === 'email') ? $email : null,
-    'subject'         => ($channel === 'email') ? $subject : null,
-    'body'            => $body,
-    'external_id'     => $externalId,
-));
+if ($leadId > 0) {
+    $msgId = $leadRepo->saveMessage($leadId, array(
+        'channel'     => $channel,
+        'direction'   => 'out',
+        'status'      => $status,
+        'phone'       => $savePhone,
+        'email_addr'  => ($channel === 'email') ? $email : null,
+        'subject'     => ($channel === 'email') ? $subject : null,
+        'body'        => $body,
+        'media_url'   => $mediaUrl ? $mediaUrl : null,
+        'external_id' => $externalId,
+    ));
+} else {
+    $msgId = $chatRepo->saveMessage(array(
+        'counterparty_id' => $counterpartyId,
+        'channel'         => $channel,
+        'direction'       => 'out',
+        'status'          => $status,
+        'phone'           => $savePhone,
+        'email_addr'      => ($channel === 'email') ? $email : null,
+        'subject'         => ($channel === 'email') ? $subject : null,
+        'body'            => $body,
+        'media_url'       => $mediaUrl ? $mediaUrl : null,
+        'external_id'     => $externalId,
+    ));
+}
 
 if (!$msgId) {
     echo json_encode(array('ok' => false, 'error' => 'Помилка збереження'));
@@ -121,6 +198,7 @@ echo json_encode(array(
         'direction'  => 'out',
         'status'     => $status,
         'body'       => $body,
+        'media_url'  => $mediaUrl ? $mediaUrl : null,
         'created_at' => $now,
         'read_at'    => $now,
     ),

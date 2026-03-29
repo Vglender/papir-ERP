@@ -8,7 +8,8 @@ class ChatRepository
     {
         $cid   = (int)$counterpartyId;
         $limit = (int)$limit;
-        $where = "counterparty_id = {$cid}";
+        $where = "counterparty_id = {$cid}"
+               . " AND (scheduled_at IS NULL OR scheduled_at <= NOW())";
         if ($channel) {
             $ch    = Database::escape('Papir', $channel);
             $where .= " AND channel = '{$ch}'";
@@ -42,19 +43,37 @@ class ChatRepository
         $cid = (int)$counterpartyId;
         $r   = Database::fetchRow('Papir',
             "SELECT COUNT(*) AS cnt FROM cp_messages
-             WHERE counterparty_id = {$cid} AND direction = 'in' AND read_at IS NULL");
+             WHERE counterparty_id = {$cid} AND direction = 'in' AND read_at IS NULL
+               AND (scheduled_at IS NULL OR scheduled_at <= NOW())");
         return ($r['ok'] && $r['row']) ? (int)$r['row']['cnt'] : 0;
     }
 
     public function markRead($counterpartyId, $channel = null)
     {
         $cid   = (int)$counterpartyId;
-        $where = "counterparty_id = {$cid} AND direction = 'in' AND read_at IS NULL";
+        $where = "counterparty_id = {$cid} AND direction = 'in' AND read_at IS NULL"
+               . " AND (scheduled_at IS NULL OR scheduled_at <= NOW())";
         if ($channel) {
             $ch    = Database::escape('Papir', $channel);
             $where .= " AND channel = '{$ch}'";
         }
         Database::query('Papir', "UPDATE cp_messages SET read_at = NOW() WHERE {$where}");
+    }
+
+    public function saveReminder($counterpartyId, $body, $scheduledAt, $assignedTo = null)
+    {
+        $row = array(
+            'counterparty_id' => (int)$counterpartyId,
+            'channel'         => 'note',
+            'direction'       => 'in',
+            'status'          => 'sent',
+            'body'            => $body,
+            'scheduled_at'    => $scheduledAt,
+            'assigned_to'     => $assignedTo ? (int)$assignedTo : null,
+            'read_at'         => null,
+        );
+        $r = Database::insert('Papir', 'cp_messages', $row);
+        return $r['ok'] ? (int)$r['insert_id'] : 0;
     }
 
     // Find counterparty by Telegram chat_id (stored in phone field for telegram channel)
@@ -66,6 +85,17 @@ class ChatRepository
              WHERE channel = 'telegram' AND phone = '{$esc}' AND counterparty_id > 0
              ORDER BY id DESC LIMIT 1");
         return ($r['ok'] && $r['row']) ? (int)$r['row']['counterparty_id'] : 0;
+    }
+
+    // Find lead_id by Telegram chat_id
+    public function findLeadByTelegramChatId($chatId)
+    {
+        $esc = Database::escape('Papir', (string)$chatId);
+        $r   = Database::fetchRow('Papir',
+            "SELECT lead_id FROM cp_messages
+             WHERE channel = 'telegram' AND phone = '{$esc}' AND lead_id IS NOT NULL
+             ORDER BY id DESC LIMIT 1");
+        return ($r['ok'] && $r['row']) ? (int)$r['row']['lead_id'] : 0;
     }
 
     // Get Telegram chat_id for outgoing messages (from last incoming message)

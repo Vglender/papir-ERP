@@ -23,35 +23,44 @@ if (!is_array($fields)) {
     exit;
 }
 
-$description     = isset($fields['description'])     ? trim($fields['description'])     : null;
-$metaTitle       = isset($fields['meta_title'])       ? trim($fields['meta_title'])       : null;
-$metaDescription = isset($fields['meta_description']) ? trim($fields['meta_description']) : null;
+$name            = array_key_exists('name',             $fields) ? trim($fields['name'])             : null;
+$description     = array_key_exists('description',      $fields) ? trim($fields['description'])      : null;
+$metaTitle       = array_key_exists('meta_title',       $fields) ? trim($fields['meta_title'])       : null;
+$metaDescription = array_key_exists('meta_description', $fields) ? trim($fields['meta_description']) : null;
+$seoH1           = array_key_exists('seo_h1',           $fields) ? trim($fields['seo_h1'])           : null;
+$seoUrl          = array_key_exists('seo_url',          $fields) ? trim($fields['seo_url'])          : null;
 
-if ($description === null && $metaTitle === null && $metaDescription === null) {
+if ($name === null && $description === null && $metaTitle === null &&
+    $metaDescription === null && $seoH1 === null && $seoUrl === null) {
     echo json_encode(array('ok' => false, 'error' => 'No fields to save'));
     exit;
 }
 
-// 1. Save description to product_description (Papir) — site-independent
-if ($description !== null) {
+// 1. Save name/description to product_description (Papir) — site-independent
+$pdUpdate = array();
+if ($name !== null)        $pdUpdate['name']        = $name;
+if ($description !== null) $pdUpdate['description'] = $description;
+
+if (!empty($pdUpdate)) {
     $existsR = Database::exists('Papir', 'product_description',
         array('product_id' => $productId, 'language_id' => $languageId));
     if ($existsR['ok'] && $existsR['exists']) {
-        Database::update('Papir', 'product_description',
-            array('description' => $description),
+        Database::update('Papir', 'product_description', $pdUpdate,
             array('product_id' => $productId, 'language_id' => $languageId)
         );
     } else {
         Database::insert('Papir', 'product_description',
-            array('product_id' => $productId, 'language_id' => $languageId, 'description' => $description)
+            array_merge(array('product_id' => $productId, 'language_id' => $languageId), $pdUpdate)
         );
     }
 }
 
-// 2. Upsert meta fields into product_seo (Papir) — site+language specific
+// 2. Upsert meta/seo fields into product_seo (Papir) — site+language specific
 $seoUpdate = array();
 if ($metaTitle !== null)       $seoUpdate['meta_title']       = $metaTitle;
 if ($metaDescription !== null) $seoUpdate['meta_description'] = $metaDescription;
+if ($seoH1 !== null)           $seoUpdate['seo_h1']           = $seoH1;
+if ($seoUrl !== null)          $seoUpdate['seo_url']          = $seoUrl;
 
 if (!empty($seoUpdate)) {
     $seoKey = array('product_id' => $productId, 'site_id' => $siteId, 'language_id' => $languageId);
@@ -63,13 +72,14 @@ if (!empty($seoUpdate)) {
     }
 }
 
-// 3. Cascade to oc_product_description in off/mff
-$siteR = Database::fetchRow('Papir', "SELECT db_alias FROM sites WHERE site_id = {$siteId} AND status = 1");
+// 3. Resolve site DB alias, site_product_id, site_lang_id
+$siteR = Database::fetchRow('Papir', "SELECT db_alias, code FROM sites WHERE site_id = {$siteId} AND status = 1");
 if (!$siteR['ok'] || empty($siteR['row'])) {
     echo json_encode(array('ok' => true, 'warning' => 'Site not found, saved to Papir only'));
     exit;
 }
-$dbAlias = (string)$siteR['row']['db_alias'];
+$dbAlias  = (string)$siteR['row']['db_alias'];
+$siteCode = (string)$siteR['row']['code'];
 
 $psR = Database::fetchRow('Papir',
     "SELECT site_product_id FROM product_site WHERE product_id = {$productId} AND site_id = {$siteId}"
@@ -89,15 +99,40 @@ if (!$slR['ok'] || empty($slR['row'])) {
 }
 $siteLangId = (int)$slR['row']['site_lang_id'];
 
-$ocData = array();
-if ($description !== null)     $ocData['description']      = $description;
-if ($metaTitle !== null)       $ocData['meta_title']       = $metaTitle;
-if ($metaDescription !== null) $ocData['meta_description'] = $metaDescription;
+// 4. Cascade name/description/meta to oc_product_description
+$ocDescUpdate = array();
+if ($name !== null)            $ocDescUpdate['name']             = $name;
+if ($description !== null)     $ocDescUpdate['description']      = $description;
+if ($metaTitle !== null)       $ocDescUpdate['meta_title']       = $metaTitle;
+if ($metaDescription !== null) $ocDescUpdate['meta_description'] = $metaDescription;
 
-if (!empty($ocData)) {
-    Database::update($dbAlias, 'oc_product_description', $ocData,
+if (!empty($ocDescUpdate)) {
+    Database::update($dbAlias, 'oc_product_description', $ocDescUpdate,
         array('product_id' => $siteProductId, 'language_id' => $siteLangId)
     );
+}
+
+// 5. Cascade seo_url to OC
+if ($seoUrl !== null) {
+    if ($siteCode === 'off') {
+        // off uses oc_url_alias — no language dimension, use UK slug (language_id=2)
+        if ($languageId === 2) {
+            $escSlug = Database::escape('off', $seoUrl);
+            Database::query('off',
+                "INSERT INTO oc_url_alias (query, keyword)
+                 VALUES ('product_id={$siteProductId}', '{$escSlug}')
+                 ON DUPLICATE KEY UPDATE keyword='{$escSlug}'"
+            );
+        }
+    } elseif ($siteCode === 'mff') {
+        // mff uses oc_seo_url with store_id + language_id
+        $escSlug = Database::escape('mff', $seoUrl);
+        Database::query('mff',
+            "INSERT INTO oc_seo_url (store_id, language_id, query, keyword)
+             VALUES (0, {$siteLangId}, 'product_id={$siteProductId}', '{$escSlug}')
+             ON DUPLICATE KEY UPDATE keyword='{$escSlug}'"
+        );
+    }
 }
 
 echo json_encode(array('ok' => true));

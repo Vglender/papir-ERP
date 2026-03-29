@@ -1,7 +1,7 @@
 # Papir — Структура базы данных
 
 > Обновлять при любом изменении схемы: добавлении/удалении таблиц, изменении назначения.
-> Последнее обновление: 2026-03-27
+> Последнее обновление: 2026-03-29
 
 ---
 
@@ -86,9 +86,42 @@
 | `customerorder_item` | Строки заказа (товары, кол-во, цены) |
 | `customerorder_history` | Журнал изменений заказа |
 | `customerorder_party` | Стороны заказа по ролям — задел, не используется |
-| `customerorder_link` | Связи с другими документами — задел, не используется |
 | `customerorder_attr_value` | Доп. атрибуты заказа — задел, не используется |
 | `document_number_counter` | Счётчик номеров документов |
+
+**Справочник статусов заказа** (миграция 004, 2026-03-29):
+
+| Таблица | Назначение |
+|---------|-----------|
+| `order_status` | Справочник: code, sort_order, is_archive, color |
+| `order_status_i18n` | Переводы: code + language_id(1=ru,2=uk) → name |
+| `order_status_ms_mapping` | МойСклад state UUID → papir_code (20 записей) |
+| `order_status_site_mapping` | papir_code × site_id(1=off,2=mff) → OC status_id |
+
+**Жизненный цикл:** `draft` → `new` → `confirmed` → `waiting_payment` → `in_progress` → `shipped` → `completed` / `cancelled`
+
+Архивные статусы (`is_archive=1`): `completed`, `cancelled`.
+
+**Использование в коде:**
+```php
+// Получить название статуса на нужном языке
+$r = Database::fetchRow('Papir',
+    "SELECT name FROM order_status_i18n
+     WHERE code = 'shipped' AND language_id = 2");
+// → 'Доставляється'
+
+// Получить OC status_id для сайта
+$r = Database::fetchRow('Papir',
+    "SELECT site_status_id FROM order_status_site_mapping
+     WHERE papir_code = 'shipped' AND site_id = 1");
+// → 3
+
+// Конвертировать МС UUID в Papir code
+$r = Database::fetchRow('Papir',
+    "SELECT papir_code FROM order_status_ms_mapping
+     WHERE ms_state_id = '41c486a9-d29a-11ea-0a80-0517000f0d4a'");
+// → 'shipped'
+```
 
 ---
 
@@ -135,7 +168,28 @@
 
 ---
 
-### 9. Служебные
+### 9. Система линкования документов
+
+Три таблицы, реализующие бизнес-логику связей между документами (миграция 006, 2026-03-29).
+
+| Таблица | Назначение |
+|---------|-----------|
+| `document_type` | Справочник типов документов (10 типов: customerorder, demand, paymentin, ...) |
+| `document_type_transition` | Разрешённые переходы: `from_type → to_type`. **Чего нет — то запрещено.** Источник бизнес-правил для UI |
+| `document_link` | Реальные связи между документами: `from_type/from_id/from_ms_id` → `to_type/to_id/to_ms_id` + `linked_sum` |
+
+**Концепция:**
+- `document_type_transition` — whitelist переходов. Из заказа можно создать отгрузку и платёж входящий, но нельзя расходный платёж. Из этой таблицы же строятся подсказки UI "что можно создать из документа".
+- `document_link` — реальные связи. `from_id`/`to_id` — наши internal ID, `from_ms_id`/`to_ms_id` — UUID МойСклад (переходный период). Заполняются скриптом `scripts/sync_ms_document_links.php`.
+- Нет FK-целостности намеренно: данные из МойСклад приходят в произвольном порядке.
+
+**Синк (два скрипта):**
+- `scripts/sync_ms_document_links_from_mirror.php` — заполняет из ms-зеркала (быстро, без API): demand→customerorder, supply→purchaseorder, salesreturn→demand, purchaseorder→customerorder/supply
+- `scripts/sync_ms_document_links.php` — заполняет из МойСклад API напрямую (медленнее): operations[] из paymentin/paymentout/cashin/cashout
+
+---
+
+### 10. Служебные
 
 | Таблица | Назначение |
 |---------|-----------|

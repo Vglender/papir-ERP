@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
 /* ── Layout ─────────────────────────────────────────────────────────────── */
-.cp-outer { max-width:1500px; margin:0 auto; padding:20px 16px 40px; }
+.cp-outer { max-width:1500px; margin:0 auto; padding:20px 16px 24px; }
 .cp-body { display:flex; gap:16px; align-items:flex-start; }
 .cp-list-col { flex:1; min-width:0; }
 .cp-panel-col {

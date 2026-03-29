@@ -61,10 +61,15 @@ $_nav = array(
               array('key' => 'payments',   'label' => 'Платежі',     'url' => '/payments'),
               array('key' => 'ms-attrs',   'label' => 'МС атрибути', 'url' => '/docum/attr'),
               array('key' => 'image-audit','label' => 'Фото аудит',  'url' => '/image-audit'),
+              array('key' => 'cp-dedup',   'label' => 'Дублікати контрагентів', 'url' => '/counterparties/dedup'),
           )),
     array('key' => 'system',  'label' => 'Система',    'color' => '#0d9488',
           'items' => array(
-              array('key' => 'jobs', 'label' => 'Фонові процеси', 'url' => '/jobs'),
+              array('key' => 'monitor', 'label' => 'Сервер',        'url' => '/system/monitor'),
+              array('key' => 'sites',   'label' => 'Сайти',         'url' => '/system/sites'),
+              array('key' => 'logs',    'label' => 'Логи',           'url' => '/system/logs'),
+              array('key' => 'users',   'label' => 'Користувачі',   'url' => '/auth/users'),
+              array('key' => 'roles',   'label' => 'Ролі та права',  'url' => '/auth/roles'),
           )),
 );
 
@@ -154,16 +159,91 @@ endforeach; ?>
 
         <div class="app-hdr-sep"></div>
 
-        <button class="app-user-btn">
-            <div class="app-user-avatar">ВГ</div>
-            <div class="app-user-info">
-                <span class="app-user-name">Гльондер В.</span>
-                <span class="app-user-role">Адмін</span>
+        <div class="app-user-wrap" id="appUserWrap">
+            <?php
+            if (!class_exists('\Papir\Crm\AuthService')) {
+                require_once __DIR__ . '/../auth/AuthService.php';
+            }
+            $_authUser     = \Papir\Crm\AuthService::getCurrentUser();
+            $_userName     = $_authUser ? htmlspecialchars(isset($_authUser['full_name']) ? $_authUser['full_name'] : $_authUser['display_name']) : 'Гість';
+            $_userInitials = $_authUser ? htmlspecialchars($_authUser['initials'])     : '??';
+            $_userRole     = $_authUser ? htmlspecialchars($_authUser['role_name'])    : '';
+            $_isAdmin      = $_authUser && !empty($_authUser['is_admin']);
+            ?>
+            <button class="app-user-btn" id="appUserBtn" type="button">
+                <div class="app-user-avatar"><?php echo $_userInitials; ?></div>
+                <div class="app-user-info">
+                    <span class="app-user-name"><?php echo $_userName; ?></span>
+                    <span class="app-user-role"><?php echo $_userRole; ?></span>
+                </div>
+                <svg class="app-user-arr" viewBox="0 0 13 13" fill="none">
+                    <path d="M2.5 4.5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+            </button>
+
+            <div class="app-user-dropdown" id="appUserDropdown">
+                <div class="app-user-drop-head">
+                    <div class="app-user-drop-name"><?php echo $_userName; ?></div>
+                    <?php if ($_userRole): ?><div class="app-user-drop-role"><?php echo $_userRole; ?></div><?php endif; ?>
+                </div>
+
+                <a class="app-user-drop-item" href="/auth/profile">
+                    <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M2.5 13.5c0-2.76 2.46-5 5.5-5s5.5 2.24 5.5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Налаштування
+                </a>
+
+                <?php if ($_isAdmin): ?>
+                <div class="app-user-drop-sep"></div>
+                <a class="app-user-drop-item" href="/auth/users">
+                    <svg viewBox="0 0 16 16" fill="none"><circle cx="5.5" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 13c0-2.2 1.79-4 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="11" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/><path d="M14.5 13c0-2.2-1.79-4-4-4h-2c-.78 0-1.51.22-2.14.6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Користувачі
+                </a>
+                <a class="app-user-drop-item" href="/auth/roles">
+                    <svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3.5" width="13" height="9" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 7.5h6M5 10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".6"/></svg>
+                    Ролі та права
+                </a>
+                <?php endif; ?>
+
+                <div class="app-user-drop-sep"></div>
+                <?php if ($_authUser): ?>
+                <button class="app-user-drop-item danger" id="appLogoutBtn" type="button">
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M10.5 5.5L13.5 8l-3 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M13.5 8H6.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M6.5 3H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Вийти
+                </button>
+                <?php else: ?>
+                <a class="app-user-drop-item" href="/login">
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M5.5 5.5L2.5 8l3 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M2.5 8H9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M9.5 3H13a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H9.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    Увійти
+                </a>
+                <?php endif; ?>
             </div>
-            <svg class="app-user-arr" viewBox="0 0 13 13" fill="none">
-                <path d="M2.5 4.5l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-        </button>
+        </div>
+
+        <script>
+        (function () {
+            var wrap = document.getElementById('appUserWrap');
+            var btn  = document.getElementById('appUserBtn');
+            if (!wrap || !btn) { return; }
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                wrap.classList.toggle('open');
+            });
+            document.addEventListener('click', function (e) {
+                if (!wrap.contains(e.target)) { wrap.classList.remove('open'); }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { wrap.classList.remove('open'); }
+            });
+            var logoutBtn = document.getElementById('appLogoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function () {
+                    fetch('/auth/api/logout', { method: 'POST' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) { window.location.href = d.redirect || '/login'; });
+                });
+            }
+        }());
+        </script>
 
     </div>
 </header>

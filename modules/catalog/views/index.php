@@ -1141,6 +1141,17 @@ require_once __DIR__ . '/../../shared/layout.php';
 			font-size: 14px;
 			word-break: break-word;
 		}
+		.seo-edit-field { margin-bottom: 8px; }
+		.seo-edit-label {
+			font-size: 11px; font-weight: 600; color: #666;
+			text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 4px;
+		}
+		.seo-edit-input {
+			width: 100%; height: 32px; border-radius: 6px;
+			border: 1px solid var(--border); padding: 0 8px;
+			font-size: 13px; box-sizing: border-box; font-family: inherit;
+		}
+		textarea.seo-edit-input { height: auto; padding: 6px 8px; resize: vertical; }
 		.specs-card {
 			border: 1px solid #e8edf3;
 			border-radius: 10px;
@@ -1842,8 +1853,21 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                                  class="tab-pane<?php echo $lid === 2 ? ' active' : ''; ?>">
                                 <div class="content-card">
                                     <div class="content-field">
-                                        <div class="content-label">Назва</div>
-                                        <div class="content-inline-value"><?php echo renderValue(isset($s['name']) ? $s['name'] : ''); ?></div>
+                                        <div class="content-label">
+                                            Назва
+                                            <span class="desc-toggle-link" id="cnt-name-lnk-<?php echo $sid; ?>-<?php echo $lid; ?>" onclick="toggleProdName(<?php echo $sid; ?>,<?php echo $lid; ?>)">редагувати</span>
+                                        </div>
+                                        <div id="cnt-name-val-<?php echo $sid; ?>-<?php echo $lid; ?>" class="content-inline-value"><?php echo renderValue(isset($s['name']) ? $s['name'] : ''); ?></div>
+                                        <div id="cnt-name-edit-<?php echo $sid; ?>-<?php echo $lid; ?>" style="display:none">
+                                            <input type="text" id="cnt-name-inp-<?php echo $sid; ?>-<?php echo $lid; ?>"
+                                                   style="width:100%;height:32px;border-radius:6px;border:1px solid var(--border);padding:0 8px;font-size:13px;box-sizing:border-box;margin-bottom:6px;font-family:inherit;"
+                                                   value="<?php echo ViewHelper::h(isset($s['name']) ? $s['name'] : ''); ?>">
+                                            <div class="desc-save-row">
+                                                <button class="btn btn-sm btn-primary" onclick="saveProdName(<?php echo $sid; ?>,<?php echo $lid; ?>)">Зберегти</button>
+                                                <button class="btn btn-sm btn-ghost" onclick="toggleProdName(<?php echo $sid; ?>,<?php echo $lid; ?>)">Скасувати</button>
+                                                <span class="desc-save-status" id="cnt-name-st-<?php echo $sid; ?>-<?php echo $lid; ?>"></span>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div class="content-field">
                                         <div class="content-label">
@@ -1868,36 +1892,71 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
                                         <div class="scroll-box"><?php echo renderValue(isset($s['short_description']) ? $s['short_description'] : ''); ?></div>
                                     </div>
                                     <div class="seo-card">
-                                        <?php if ($prodUrl !== ''): ?>
-                                        <div style="margin-bottom:10px;">
+                                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                                            <?php if ($prodUrl !== ''): ?>
                                             <a href="<?php echo ViewHelper::h($prodUrl); ?>" target="_blank" rel="noopener" class="seo-site-link">
                                                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.5 2H3a1 1 0 00-1 1v10a1 1 0 001 1h10a1 1 0 001-1V9.5M10 2h4m0 0v4m0-4L7 9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                                 <?php echo ViewHelper::h(isset($site['badge']) ? strtoupper($site['badge']) : strtoupper($site['code'])); ?>
                                             </a>
+                                            <?php else: ?><span></span><?php endif; ?>
+                                            <span class="desc-toggle-link" id="cnt-seo-lnk-<?php echo $sid; ?>-<?php echo $lid; ?>" onclick="toggleSeoEdit(<?php echo $sid; ?>,<?php echo $lid; ?>)">редагувати</span>
                                         </div>
-                                        <?php endif; ?>
-                                        <div class="seo-row">
-                                            <div class="seo-label">SEO URL</div>
-                                            <div class="seo-value"><?php echo renderValue($slug); ?></div>
+                                        <!-- view mode -->
+                                        <div id="cnt-seo-view-<?php echo $sid; ?>-<?php echo $lid; ?>">
+                                            <div class="seo-row">
+                                                <div class="seo-label">SEO URL</div>
+                                                <div class="seo-value" id="cnt-seo-url-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue($slug); ?></div>
+                                            </div>
+                                            <div class="seo-row">
+                                                <div class="seo-label">H1</div>
+                                                <div class="seo-value" id="cnt-seo-h1-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['seo_h1']) ? $s['seo_h1'] : ''); ?></div>
+                                            </div>
+                                            <div class="seo-row">
+                                                <div class="seo-label">Meta title</div>
+                                                <div class="seo-value" id="cnt-mt-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['meta_title']) ? $s['meta_title'] : ''); ?></div>
+                                            </div>
+                                            <div class="seo-row">
+                                                <div class="seo-label">Meta description</div>
+                                                <div class="seo-value" id="cnt-md-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['meta_description']) ? $s['meta_description'] : ''); ?></div>
+                                            </div>
+                                            <?php if (!empty($s['tag'])): ?>
+                                            <div class="seo-row">
+                                                <div class="seo-label">Теги</div>
+                                                <div class="seo-value"><?php echo renderValue($s['tag']); ?></div>
+                                            </div>
+                                            <?php endif; ?>
                                         </div>
-                                        <div class="seo-row">
-                                            <div class="seo-label">H1</div>
-                                            <div class="seo-value"><?php echo renderValue(isset($s['seo_h1']) ? $s['seo_h1'] : ''); ?></div>
+                                        <!-- edit mode -->
+                                        <div id="cnt-seo-edit-<?php echo $sid; ?>-<?php echo $lid; ?>" style="display:none">
+                                            <div class="seo-edit-field">
+                                                <div class="seo-edit-label">SEO URL</div>
+                                                <input type="text" id="cnt-seo-url-inp-<?php echo $sid; ?>-<?php echo $lid; ?>"
+                                                       class="seo-edit-input"
+                                                       value="<?php echo ViewHelper::h($slug); ?>">
+                                            </div>
+                                            <div class="seo-edit-field">
+                                                <div class="seo-edit-label">H1</div>
+                                                <input type="text" id="cnt-seo-h1-inp-<?php echo $sid; ?>-<?php echo $lid; ?>"
+                                                       class="seo-edit-input"
+                                                       value="<?php echo ViewHelper::h(isset($s['seo_h1']) ? $s['seo_h1'] : ''); ?>">
+                                            </div>
+                                            <div class="seo-edit-field">
+                                                <div class="seo-edit-label">Meta title</div>
+                                                <input type="text" id="cnt-seo-mt-inp-<?php echo $sid; ?>-<?php echo $lid; ?>"
+                                                       class="seo-edit-input"
+                                                       value="<?php echo ViewHelper::h(isset($s['meta_title']) ? $s['meta_title'] : ''); ?>">
+                                            </div>
+                                            <div class="seo-edit-field">
+                                                <div class="seo-edit-label">Meta description</div>
+                                                <textarea id="cnt-seo-md-inp-<?php echo $sid; ?>-<?php echo $lid; ?>"
+                                                          class="seo-edit-input" rows="3"><?php echo ViewHelper::h(isset($s['meta_description']) ? $s['meta_description'] : ''); ?></textarea>
+                                            </div>
+                                            <div class="desc-save-row">
+                                                <button class="btn btn-sm btn-primary" onclick="saveSeoEdit(<?php echo $sid; ?>,<?php echo $lid; ?>)">Зберегти</button>
+                                                <button class="btn btn-sm btn-ghost" onclick="toggleSeoEdit(<?php echo $sid; ?>,<?php echo $lid; ?>)">Скасувати</button>
+                                                <span class="desc-save-status" id="cnt-seo-st-<?php echo $sid; ?>-<?php echo $lid; ?>"></span>
+                                            </div>
                                         </div>
-                                        <div class="seo-row">
-                                            <div class="seo-label">Meta title</div>
-                                            <div class="seo-value" id="cnt-mt-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['meta_title']) ? $s['meta_title'] : ''); ?></div>
-                                        </div>
-                                        <div class="seo-row">
-                                            <div class="seo-label">Meta description</div>
-                                            <div class="seo-value" id="cnt-md-<?php echo $sid; ?>-<?php echo $lid; ?>"><?php echo renderValue(isset($s['meta_description']) ? $s['meta_description'] : ''); ?></div>
-                                        </div>
-                                        <?php if (!empty($s['tag'])): ?>
-                                        <div class="seo-row">
-                                            <div class="seo-label">Теги</div>
-                                            <div class="seo-value"><?php echo renderValue($s['tag']); ?></div>
-                                        </div>
-                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </div>
@@ -3101,6 +3160,122 @@ function saveProdDesc(sid, lid) {
             edit.style.display = 'none';
             if (lnk) lnk.textContent = 'редагувати';
             if (st) { st.textContent = ''; }
+        } else {
+            if (st) { st.textContent = d.error || 'Помилка'; st.className = 'desc-save-status err'; }
+        }
+    })
+    .catch(function() {
+        if (st) { st.textContent = 'Помилка мережі'; st.className = 'desc-save-status err'; }
+    });
+}
+
+function toggleProdName(sid, lid) {
+    var val  = document.getElementById('cnt-name-val-'  + sid + '-' + lid);
+    var edit = document.getElementById('cnt-name-edit-' + sid + '-' + lid);
+    var inp  = document.getElementById('cnt-name-inp-'  + sid + '-' + lid);
+    var lnk  = document.getElementById('cnt-name-lnk-'  + sid + '-' + lid);
+    if (!val || !edit) return;
+    var isEdit = edit.style.display !== 'none';
+    if (isEdit) {
+        val.style.display  = '';
+        edit.style.display = 'none';
+        if (lnk) lnk.textContent = 'редагувати';
+    } else {
+        val.style.display  = 'none';
+        edit.style.display = '';
+        if (lnk) lnk.textContent = 'скасувати';
+        if (inp) inp.focus();
+    }
+}
+
+function saveProdName(sid, lid) {
+    var inp  = document.getElementById('cnt-name-inp-' + sid + '-' + lid);
+    var val  = document.getElementById('cnt-name-val-' + sid + '-' + lid);
+    var edit = document.getElementById('cnt-name-edit-'+ sid + '-' + lid);
+    var lnk  = document.getElementById('cnt-name-lnk-' + sid + '-' + lid);
+    var st   = document.getElementById('cnt-name-st-'  + sid + '-' + lid);
+    if (!inp) return;
+    var name = inp.value.trim();
+    var pid  = <?php echo isset($details) ? (int)$details['product_id'] : 0; ?>;
+    if (st) { st.textContent = 'Збереження…'; st.className = 'desc-save-status'; }
+    var fields = {}; fields['name'] = name;
+    fetch('/catalog/api/save_product_content', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: 'product_id=' + pid + '&site_id=' + sid + '&language_id=' + lid
+            + '&fields=' + encodeURIComponent(JSON.stringify(fields))
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            if (val) val.innerHTML = name !== '' ? name : '<span style="color:var(--text-faint)">—</span>';
+            if (val)  val.style.display  = '';
+            if (edit) edit.style.display = 'none';
+            if (lnk)  lnk.textContent   = 'редагувати';
+            if (st)   st.textContent     = '';
+        } else {
+            if (st) { st.textContent = d.error || 'Помилка'; st.className = 'desc-save-status err'; }
+        }
+    })
+    .catch(function() {
+        if (st) { st.textContent = 'Помилка мережі'; st.className = 'desc-save-status err'; }
+    });
+}
+
+function toggleSeoEdit(sid, lid) {
+    var view = document.getElementById('cnt-seo-view-' + sid + '-' + lid);
+    var edit = document.getElementById('cnt-seo-edit-' + sid + '-' + lid);
+    var lnk  = document.getElementById('cnt-seo-lnk-'  + sid + '-' + lid);
+    if (!view || !edit) return;
+    var isEdit = edit.style.display !== 'none';
+    if (isEdit) {
+        view.style.display = '';
+        edit.style.display = 'none';
+        if (lnk) lnk.textContent = 'редагувати';
+    } else {
+        view.style.display = 'none';
+        edit.style.display = '';
+        if (lnk) lnk.textContent = 'скасувати';
+    }
+}
+
+function saveSeoEdit(sid, lid) {
+    var urlInp = document.getElementById('cnt-seo-url-inp-' + sid + '-' + lid);
+    var h1Inp  = document.getElementById('cnt-seo-h1-inp-'  + sid + '-' + lid);
+    var mtInp  = document.getElementById('cnt-seo-mt-inp-'  + sid + '-' + lid);
+    var mdInp  = document.getElementById('cnt-seo-md-inp-'  + sid + '-' + lid);
+    var st     = document.getElementById('cnt-seo-st-'      + sid + '-' + lid);
+    var pid    = <?php echo isset($details) ? (int)$details['product_id'] : 0; ?>;
+    var fields = {};
+    if (urlInp) fields['seo_url']          = urlInp.value.trim();
+    if (h1Inp)  fields['seo_h1']           = h1Inp.value.trim();
+    if (mtInp)  fields['meta_title']       = mtInp.value.trim();
+    if (mdInp)  fields['meta_description'] = mdInp.value.trim();
+    if (st) { st.textContent = 'Збереження…'; st.className = 'desc-save-status'; }
+    fetch('/catalog/api/save_product_content', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: 'product_id=' + pid + '&site_id=' + sid + '&language_id=' + lid
+            + '&fields=' + encodeURIComponent(JSON.stringify(fields))
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+        if (d.ok) {
+            var urlEl = document.getElementById('cnt-seo-url-' + sid + '-' + lid);
+            var h1El  = document.getElementById('cnt-seo-h1-'  + sid + '-' + lid);
+            var mtEl  = document.getElementById('cnt-mt-'      + sid + '-' + lid);
+            var mdEl  = document.getElementById('cnt-md-'      + sid + '-' + lid);
+            if (urlEl && urlInp) urlEl.textContent = urlInp.value.trim() || '—';
+            if (h1El  && h1Inp)  h1El.textContent  = h1Inp.value.trim()  || '—';
+            if (mtEl  && mtInp)  mtEl.textContent  = mtInp.value.trim()  || '—';
+            if (mdEl  && mdInp)  mdEl.textContent  = mdInp.value.trim()  || '—';
+            var view = document.getElementById('cnt-seo-view-' + sid + '-' + lid);
+            var edit = document.getElementById('cnt-seo-edit-' + sid + '-' + lid);
+            var lnk  = document.getElementById('cnt-seo-lnk-'  + sid + '-' + lid);
+            if (view) view.style.display = '';
+            if (edit) edit.style.display = 'none';
+            if (lnk)  lnk.textContent   = 'редагувати';
+            if (st)   st.textContent    = '';
         } else {
             if (st) { st.textContent = d.error || 'Помилка'; st.className = 'desc-save-status err'; }
         }

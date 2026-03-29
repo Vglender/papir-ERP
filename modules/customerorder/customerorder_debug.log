@@ -1,0 +1,2 @@
+[29-Mar-2026 19:20:00 Europe/Kiev] [customerorder_service.php:625] {"customerorder_id":"131074","product_id":"1","quantity":"1","vat_rate":20}
+[29-Mar-2026 19:20:18 Europe/Kiev] [customerorder_service.php:625] {"customerorder_id":"131074","product_id":638,"quantity":1,"product_name":"Бумага офсетная (ф.А3, пл.60 г\/м, 1000л)","sku":"MF638","unit":"пач","price":840,"vat_rate":20,"stock_quantity":20,"reserved_stock_quantity":0,"expected_quantity":0,"weight":7.5}

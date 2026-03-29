@@ -56,7 +56,6 @@ class ActionPublisher
         $dateEnd   = date('Y-m-d', strtotime('+1 days')) . ' 00:00:00';
 
         $publishedIds = array();
-        $merchantData = array();
 
         // 3. For each price: update oc_product_special
         foreach ($prices as $priceRow) {
@@ -85,62 +84,16 @@ class ActionPublisher
                 ));
             }
 
-            // Determine availability
-            $qty          = isset($stockMap[$pid]) ? (int)$stockMap[$pid] : 0;
-            $availability = ($qty > 0) ? 'in stock' : 'out of stock';
-
-            // Build merchant entry (deduplicated by pid)
-            $merchantData[$pid] = array(
-                'productId'                  => BASE_MERCHANT_ID . $pid,
-                'sale_price'                 => $priceAct,
-                'sale_price_effective_date'  => $dateStart . 'T00:00:00Z/' . $dateEnd . 'T23:59:59Z',
-                'availability'               => $availability,
-            );
-
             $publishedIds[] = $pid;
         }
 
         $this->log($log, 'oc_product_special updated for ' . count($publishedIds) . ' products.', 'success');
+        // Google Merchant оновлюється через фід (generate_merchant_feed.php),
+        // який вже містить sale_price, sale_price_effective_date, availability.
+        // Пряме batch-оновлення через API прибрано щоб уникнути помилок
+        // "Product not found" для товарів відсутніх у фіді.
 
-        // 4. Send to Google Merchant
-        $merchantArray = array_values($merchantData);
-
-        if (!empty($merchantArray)) {
-            $this->log($log, 'Preparing Merchant update: ' . count($merchantArray) . ' items', 'progress');
-
-            try {
-                $client = MerchantService::getClient();
-            } catch (Exception $e) {
-                if (strpos($e->getMessage(), 'merchant_auth_required::') === 0) {
-                    $authUrl = substr($e->getMessage(), strlen('merchant_auth_required::'));
-                    $this->log($log, 'Google Merchant auth required. URL: ' . $authUrl, 'error');
-
-                    if (!empty($publishedIds)) {
-                        $this->priceRepo->markPublished($publishedIds);
-                    }
-
-                    return array('ok' => false, 'error' => 'merchant_auth_required', 'auth_url' => $authUrl);
-                }
-
-                $this->log($log, 'Merchant client error: ' . $e->getMessage(), 'error');
-                return array('ok' => false, 'error' => $e->getMessage());
-            }
-
-            try {
-                $service       = new Google\Service\ShoppingContent($client);
-                $updateEntries = MerchantService::createBatchEntries($merchantArray, MERCHANT_ID, 'update');
-
-                $this->log($log, 'Sending Merchant batch requests...', 'progress');
-
-                $batchResponse = MerchantService::sendBatch($service, $updateEntries);
-
-                $this->logMerchantSummary($log, $batchResponse);
-            } catch (Exception $e) {
-                $this->log($log, 'Merchant batch error: ' . $e->getMessage(), 'error');
-            }
-        }
-
-        // 5. Mark published
+        // 4. Mark published
         if (!empty($publishedIds)) {
             $this->priceRepo->markPublished($publishedIds);
             $this->log($log, 'Marked published_at for ' . count($publishedIds) . ' products.', 'success');

@@ -12,8 +12,9 @@ class FinanceBankRepository
             $where[] = "fb.direction = '{$d}'";
         }
 
-        $showMoving = !empty($params['show_moving']);
-        if (!$showMoving) {
+        // hide_moving: якщо true — приховати внутрішні перекази
+        $hideMoving = !empty($params['hide_moving']);
+        if ($hideMoving) {
             $where[] = "fb.is_moving = 0";
         }
 
@@ -42,10 +43,10 @@ class FinanceBankRepository
                 $parts  = array();
                 foreach ($tokens as $token) {
                     $t = Database::escape('Papir', $token);
-                    $parts[] = "(LOWER(COALESCE(fb.doc_number,''))   LIKE '%{$t}%'
-                              OR LOWER(COALESCE(fb.description,''))   LIKE '%{$t}%'
+                    $parts[] = "(LOWER(COALESCE(fb.doc_number,''))     LIKE '%{$t}%'
+                              OR LOWER(COALESCE(fb.description,''))     LIKE '%{$t}%'
                               OR LOWER(COALESCE(fb.payment_purpose,'')) LIKE '%{$t}%'
-                              OR LOWER(COALESCE(cp.name,''))           LIKE '%{$t}%')";
+                              OR LOWER(COALESCE(cp_d.name, cp_m.name,'')) LIKE '%{$t}%')";
                 }
                 if (!empty($parts)) {
                     $chipConds[] = '(' . implode(' AND ', $parts) . ')';
@@ -63,7 +64,8 @@ class FinanceBankRepository
     private function baseFrom()
     {
         return "FROM finance_bank fb
-                LEFT JOIN counterparty cp ON cp.id_ms = fb.agent_ms";
+                LEFT JOIN counterparty cp_d ON cp_d.id = fb.cp_id
+                LEFT JOIN counterparty cp_m ON cp_m.id_ms = fb.agent_ms AND fb.cp_id IS NULL";
     }
 
     public function getList($params)
@@ -76,11 +78,11 @@ class FinanceBankRepository
         $r = Database::fetchAll('Papir',
             "SELECT fb.id, fb.id_ms, fb.direction, fb.moment, fb.doc_number,
                     fb.sum, fb.description, fb.payment_purpose,
-                    fb.is_posted, fb.is_moving, fb.agent_ms,
+                    fb.is_posted, fb.is_moving, fb.agent_ms, fb.source,
                     fb.expense_item_ms, fb.operations, fb.external_code,
-                    cp.id   AS cp_id,
-                    cp.name AS cp_name,
-                    cp.type AS cp_type
+                    COALESCE(cp_d.id, cp_m.id)     AS cp_id,
+                    COALESCE(cp_d.name, cp_m.name) AS cp_name,
+                    COALESCE(cp_d.type, cp_m.type) AS cp_type
              " . $this->baseFrom() . "
              WHERE {$where}
              ORDER BY fb.moment DESC
@@ -101,9 +103,9 @@ class FinanceBankRepository
 
     public function getSummary($params)
     {
-        // Підсумки реальних операцій (is_moving=0) — завжди, незалежно від фільтра show_moving
+        // Підсумки завжди тільки реальних операцій (is_moving=0)
         $realParams = $params;
-        $realParams['show_moving'] = false;
+        $realParams['hide_moving'] = true;
         $args  = array();
         $where = $this->buildWhere($realParams, $args);
 
@@ -113,28 +115,10 @@ class FinanceBankRepository
              WHERE {$where}
              GROUP BY fb.direction"
         );
-        $result = array('in' => 0.0, 'out' => 0.0, 'moving_in' => 0.0, 'moving_out' => 0.0);
+        $result = array('in' => 0.0, 'out' => 0.0);
         if ($r['ok']) {
             foreach ($r['rows'] as $row) {
                 $result[$row['direction']] = (float)$row['total'];
-            }
-        }
-
-        // Окремо підрахувати внутрішні перекази
-        $movingParams = $params;
-        $movingParams['show_moving'] = true;
-        $movingParams['force_moving'] = true; // тільки moving
-        $args2  = array();
-        $where2 = $this->buildWhere($movingParams, $args2);
-        $r2 = Database::fetchAll('Papir',
-            "SELECT fb.direction, SUM(fb.sum) AS total
-             " . $this->baseFrom() . "
-             WHERE {$where2} AND fb.is_moving = 1
-             GROUP BY fb.direction"
-        );
-        if ($r2['ok']) {
-            foreach ($r2['rows'] as $row) {
-                $result['moving_' . $row['direction']] = (float)$row['total'];
             }
         }
 
