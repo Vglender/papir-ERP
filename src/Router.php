@@ -134,6 +134,8 @@ class Router
 		'/counterparties/api/order_item_delete'      => '/modules/counterparties/api/order_item_delete.php',
 		'/counterparties/api/save_order'             => '/modules/counterparties/api/save_order.php',
 		'/counterparties/api/save_order_status'      => '/modules/counterparties/api/save_order_status.php',
+		'/counterparties/api/get_demand_detail'      => '/modules/counterparties/api/get_demand_detail.php',
+		'/counterparties/api/save_demand'            => '/modules/counterparties/api/save_demand.php',
 		'/counterparties/api/identify_lead'          => '/modules/counterparties/api/identify_lead.php',
 		'/counterparties/api/merge_preview'          => '/modules/counterparties/api/merge_preview.php',
 		'/counterparties/dedup'                      => '/modules/counterparties/dedup.php',
@@ -184,6 +186,24 @@ class Router
 		'/system/sites'              => '/modules/system/sites.php',
 		'/system/api/get_site_stats' => '/modules/system/api/get_site_stats.php',
 		'/system/api/get_site_log'   => '/modules/system/api/get_site_log.php',
+		'/system/backlog'            => '/modules/system/backlog.php',
+		'/system/api/backlog_add'    => '/modules/system/api/backlog_add.php',
+		'/system/api/backlog_done'   => '/modules/system/api/backlog_done.php',
+		'/system/api/backlog_list'   => '/modules/system/api/backlog_list.php',
+		'/system/api/backlog_update'            => '/modules/system/api/backlog_update.php',
+		'/system/api/backlog_delete'            => '/modules/system/api/backlog_delete.php',
+		'/system/api/backlog_upload_screenshot' => '/modules/system/api/backlog_upload_screenshot.php',
+
+		'/system/organizations' => '/modules/print/organizations.php',
+
+		// ── Print / Documents ─────────────────────────────────────────────────
+		'/print/templates'              => '/modules/print/templates.php',
+		'/print/api/save_template'      => '/modules/print/api/save_template.php',
+		'/print/api/render_preview'     => '/modules/print/api/render_preview.php',
+		'/print/api/save_organization'  => '/modules/print/api/save_organization.php',
+		'/print/api/save_bank_account'  => '/modules/print/api/save_bank_account.php',
+		'/print/api/upload_org_asset'   => '/modules/print/api/upload_org_asset.php',
+		'/print/api/delete_org_asset'   => '/modules/print/api/delete_org_asset.php',
 
 		// ── Auth ──────────────────────────────────────────────────────────────
 		'/login'                     => '/modules/auth/login.php',
@@ -198,6 +218,8 @@ class Router
 		'/auth/api/logout'           => '/modules/auth/api/logout.php',
 		'/auth/api/save_user'        => '/modules/auth/api/save_user.php',
 		'/auth/api/delete_user'      => '/modules/auth/api/delete_user.php',
+		'/auth/api/save_employee'    => '/modules/auth/api/save_employee.php',
+		'/auth/api/save_avatar'      => '/modules/auth/api/save_avatar.php',
 		'/auth/api/save_role'        => '/modules/auth/api/save_role.php',
 		'/auth/api/save_permissions' => '/modules/auth/api/save_permissions.php',
 		'/auth/api/save_profile'     => '/modules/auth/api/save_profile.php',

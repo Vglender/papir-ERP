@@ -1,6 +1,6 @@
 <?php
 $title     = htmlspecialchars($cp['name']) . ' — Контрагент';
-$activeNav = 'sales';
+$activeNav = 'prostor';
 $subNav    = 'counterparties';
 require_once __DIR__ . '/../../shared/layout.php';
 

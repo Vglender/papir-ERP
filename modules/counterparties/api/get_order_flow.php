@@ -1,13 +1,13 @@
 <?php
 /**
- * GET /counterparties/api/get_order_flow?order_id=X&id_ms=UUID
- * Returns document chain: order + items, demands, TTNs, payments, returns
+ * GET /counterparties/api/get_order_flow?order_id=X
+ * Returns document chain: order + items, demands, TTNs, payments, returns.
+ * Document relationships (demands, payments, returns) resolved via document_link table.
  */
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../counterparties_bootstrap.php';
 
 $orderId = isset($_GET['order_id']) ? (int)$_GET['order_id'] : 0;
-$idMs    = isset($_GET['id_ms'])    ? trim($_GET['id_ms'])    : '';
 
 if ($orderId <= 0) {
     echo json_encode(array('ok' => false, 'error' => 'order_id required'));
@@ -44,72 +44,98 @@ $rItems = \Database::fetchAll('Papir',
      ORDER BY ci.line_no ASC");
 $items = ($rItems['ok']) ? $rItems['rows'] : array();
 
-// ── Demands ───────────────────────────────────────────────────────────────────
+// ── Demands via document_link ─────────────────────────────────────────────────
 $rDemands = \Database::fetchAll('Papir',
-    "SELECT id, number, status, sum_total, sum_paid, moment
-     FROM demand
-     WHERE customerorder_id = {$orderId} AND deleted_at IS NULL
-     ORDER BY moment ASC");
+    "SELECT d.id, d.number, d.status, d.sum_total, d.sum_paid, d.moment
+     FROM document_link dl
+     JOIN demand d ON d.id_ms = dl.from_ms_id
+     WHERE dl.from_type = 'demand'
+       AND dl.to_type   = 'customerorder'
+       AND dl.to_id     = {$orderId}
+       AND d.deleted_at IS NULL
+     ORDER BY d.moment ASC");
 $demands = ($rDemands['ok']) ? $rDemands['rows'] : array();
 
-// ── TTN Nova Poshta ───────────────────────────────────────────────────────────
+// ── TTN Nova Poshta via document_link ─────────────────────────────────────────
 $rNp = \Database::fetchAll('Papir',
-    "SELECT id, int_doc_number, state_name, state_define, backward_delivery_money,
-            city_recipient_desc, estimated_delivery_date, arrived, moment
-     FROM ttn_novaposhta
-     WHERE customerorder_id = {$orderId} AND (deletion_mark IS NULL OR deletion_mark = 0)
-     ORDER BY id ASC");
+    "SELECT tn.id, tn.int_doc_number, tn.state_name, tn.state_define,
+            tn.backward_delivery_money, tn.city_recipient_desc,
+            tn.estimated_delivery_date, tn.arrived, tn.moment
+     FROM document_link dl
+     JOIN ttn_novaposhta tn ON tn.id = dl.from_id
+     WHERE dl.from_type = 'ttn_np'
+       AND dl.to_type   = 'customerorder'
+       AND dl.to_id     = {$orderId}
+       AND (tn.deletion_mark IS NULL OR tn.deletion_mark = 0)
+     ORDER BY tn.id ASC");
 $ttnsNp = ($rNp['ok']) ? $rNp['rows'] : array();
 
-// ── TTN Ukrposhta ─────────────────────────────────────────────────────────────
+// ── TTN Ukrposhta via document_link ───────────────────────────────────────────
 $rUp = \Database::fetchAll('Papir',
-    "SELECT id, barcode, lifecycle_status, postPayUah,
-            recipient_city, lifecycle_statusDate AS moment
-     FROM ttn_ukrposhta
-     WHERE customerorder_id = {$orderId}
-     ORDER BY id ASC");
+    "SELECT tu.id, tu.barcode, tu.lifecycle_status, tu.postPayUah,
+            tu.recipient_city, tu.lifecycle_statusDate AS moment
+     FROM document_link dl
+     JOIN ttn_ukrposhta tu ON tu.id = dl.from_id
+     WHERE dl.from_type = 'ttn_up'
+       AND dl.to_type   = 'customerorder'
+       AND dl.to_id     = {$orderId}
+     ORDER BY tu.id ASC");
 $ttnsUp = ($rUp['ok']) ? $rUp['rows'] : array();
 
-// ── Payments via agent_ms ─────────────────────────────────────────────────────
+// ── Payments via document_link ────────────────────────────────────────────────
+// paymentin → finance_bank (безналичные)
+$rBank = \Database::fetchAll('Papir',
+    "SELECT fb.id, 'bank' AS source, fb.doc_number, fb.moment,
+            fb.operations AS amount, dl.linked_sum
+     FROM document_link dl
+     JOIN finance_bank fb ON fb.id_ms = dl.from_ms_id
+     WHERE dl.from_type = 'paymentin'
+       AND dl.to_type   = 'customerorder'
+       AND dl.to_id     = {$orderId}
+       AND fb.is_posted = 1
+     ORDER BY fb.moment ASC");
+
+// cashin → finance_cash (наличные / касса)
+$rCash = \Database::fetchAll('Papir',
+    "SELECT fc.id, 'cash' AS source, fc.doc_number, fc.moment,
+            fc.operations AS amount, dl.linked_sum
+     FROM document_link dl
+     JOIN finance_cash fc ON fc.id_ms = dl.from_ms_id
+     WHERE dl.from_type = 'cashin'
+       AND dl.to_type   = 'customerorder'
+       AND dl.to_id     = {$orderId}
+       AND fc.is_posted = 1
+     ORDER BY fc.moment ASC");
+
 $payments = array();
-if ($idMs !== '') {
-    $idMsEsc = \Database::escape('Papir', $idMs);
-
-    $rBank = \Database::fetchAll('Papir',
-        "SELECT id, 'bank' AS source, doc_number, moment, operations AS amount
-         FROM finance_bank
-         WHERE agent_ms = '{$idMsEsc}' AND direction = 'in' AND is_posted = 1
-         ORDER BY moment ASC");
-
-    $rCash = \Database::fetchAll('Papir',
-        "SELECT id, 'cash' AS source, doc_number, moment, operations AS amount
-         FROM finance_cash
-         WHERE direction = 'in' AND is_posted = 1
-         ORDER BY moment ASC LIMIT 10");
-
-    if ($rBank['ok']) foreach ($rBank['rows'] as $p) { $payments[] = $p; }
-    if ($rCash['ok']) foreach ($rCash['rows'] as $p) { $payments[] = $p; }
-
-    // Sort combined payments by moment
-    usort($payments, function($a, $b) {
-        return strcmp($a['moment'], $b['moment']);
-    });
+if ($rBank['ok']) {
+    foreach ($rBank['rows'] as $p) { $payments[] = $p; }
 }
-
-// ── Sales Returns (via demand_id) ─────────────────────────────────────────────
-$returns = array();
-if (!empty($demands)) {
-    $demandIds = array();
-    foreach ($demands as $dem) { $demandIds[] = (int)$dem['id']; }
-    $inList = implode(',', $demandIds);
-
-    $rRet = \Database::fetchAll('Papir',
-        "SELECT id, number, sum_total, moment, demand_id, description
-         FROM salesreturn
-         WHERE demand_id IN ({$inList})
-         ORDER BY moment ASC");
-    $returns = ($rRet['ok']) ? $rRet['rows'] : array();
+if ($rCash['ok']) {
+    foreach ($rCash['rows'] as $p) { $payments[] = $p; }
 }
+usort($payments, function($a, $b) {
+    return strcmp($a['moment'], $b['moment']);
+});
+
+// ── Sales Returns via document_link ──────────────────────────────────────────
+// salesreturn → demand → customerorder (двойной JOIN: dl_sr.to_ms_id = dl_dem.from_ms_id)
+// to_id для demand в document_link — NULL, поэтому связь идёт через to_ms_id.
+// salesreturn использует utf8mb4_0900_ai_ci, остальные utf8mb4_ru_0900_ai_ci → COLLATE на sr.id_ms.
+$rRet = \Database::fetchAll('Papir',
+    "SELECT sr.id, sr.number, sr.sum_total, sr.moment, sr.demand_id, sr.description
+     FROM document_link dl_sr
+     JOIN document_link dl_dem
+          ON dl_dem.from_ms_id = dl_sr.to_ms_id
+         AND dl_dem.from_type  = 'demand'
+         AND dl_dem.to_type    = 'customerorder'
+         AND dl_dem.to_id      = {$orderId}
+     JOIN salesreturn sr
+          ON sr.id_ms COLLATE utf8mb4_ru_0900_ai_ci = dl_sr.from_ms_id
+     WHERE dl_sr.from_type = 'salesreturn'
+       AND dl_sr.to_type   = 'demand'
+     ORDER BY sr.moment ASC");
+$returns = ($rRet['ok']) ? $rRet['rows'] : array();
 
 // ── Aggregates ────────────────────────────────────────────────────────────────
 $sumPaid = 0;

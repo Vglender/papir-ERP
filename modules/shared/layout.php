@@ -23,6 +23,10 @@
 
 // ── Navigation config ────────────────────────────────────────────────────────
 $_nav = array(
+    array('key' => 'prostor', 'label' => 'Простір', 'color' => '#7c3aed',
+          'items' => array(
+              array('key' => 'counterparties', 'label' => 'Контрагенти', 'url' => '/counterparties'),
+          )),
     array('key' => 'catalog', 'label' => 'Каталог', 'color' => '#4f7ef8',
           'items' => array(
               array('key' => 'products',      'label' => 'Товари',            'url' => '/catalog'),
@@ -39,8 +43,7 @@ $_nav = array(
           )),
     array('key' => 'sales',   'label' => 'Продажі',    'color' => '#9333ea',
           'items' => array(
-              array('key' => 'counterparties', 'label' => 'Контрагенти', 'url' => '/counterparties'),
-              array('key' => 'orders',         'label' => 'Замовлення',  'url' => '/customerorder'),
+              array('key' => 'orders', 'label' => 'Замовлення', 'url' => '/customerorder'),
           )),
     array('key' => 'finance', 'label' => 'Фінанси',    'color' => '#ea580c',
           'items' => array(
@@ -63,13 +66,20 @@ $_nav = array(
               array('key' => 'image-audit','label' => 'Фото аудит',  'url' => '/image-audit'),
               array('key' => 'cp-dedup',   'label' => 'Дублікати контрагентів', 'url' => '/counterparties/dedup'),
           )),
+    array('key' => 'docs',    'label' => 'Документи',  'color' => '#6366f1',
+          'items' => array(
+              array('key' => 'templates', 'label' => 'Шаблони',  'url' => '/print/templates'),
+              array('key' => 'documents', 'label' => 'Архів',    'url' => '#'),
+          )),
     array('key' => 'system',  'label' => 'Система',    'color' => '#0d9488',
           'items' => array(
-              array('key' => 'monitor', 'label' => 'Сервер',        'url' => '/system/monitor'),
-              array('key' => 'sites',   'label' => 'Сайти',         'url' => '/system/sites'),
-              array('key' => 'logs',    'label' => 'Логи',           'url' => '/system/logs'),
-              array('key' => 'users',   'label' => 'Користувачі',   'url' => '/auth/users'),
-              array('key' => 'roles',   'label' => 'Ролі та права',  'url' => '/auth/roles'),
+              array('key' => 'monitor',       'label' => 'Сервер',        'url' => '/system/monitor'),
+              array('key' => 'sites',         'label' => 'Сайти',         'url' => '/system/sites'),
+              array('key' => 'logs',          'label' => 'Логи',          'url' => '/system/logs'),
+              array('key' => 'organizations', 'label' => 'Організації',   'url' => '/system/organizations'),
+              array('key' => 'users',         'label' => 'Користувачі',   'url' => '/auth/users'),
+              array('key' => 'roles',         'label' => 'Ролі та права', 'url' => '/auth/roles'),
+              array('key' => 'backlog',       'label' => 'Бэклог',        'url' => '/system/backlog'),
           )),
 );
 
@@ -89,12 +99,14 @@ if (!empty($bodyClass)) { $_bodyClass .= ' ' . htmlspecialchars($bodyClass); }
 
 // SVG icons per module key
 $_icons = array(
+    'prostor' => '<svg viewBox="0 0 22 22" fill="none"><circle cx="8" cy="7.5" r="2.8" stroke="currentColor" stroke-width="1.7"/><path d="M2 18.5c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15 6a2.5 2.5 0 0 1 0 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M18.5 18.5c0-2.76-1.79-5.1-4.28-5.88" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg>',
     'catalog' => '<svg viewBox="0 0 22 22" fill="none"><rect x="2" y="2" width="8" height="8" rx="2" fill="currentColor" opacity=".95"/><rect x="12" y="2" width="8" height="8" rx="2" fill="currentColor" opacity=".55"/><rect x="2" y="12" width="8" height="8" rx="2" fill="currentColor" opacity=".55"/><rect x="12" y="12" width="8" height="8" rx="2" fill="currentColor" opacity=".3"/></svg>',
     'prices'  => '<svg viewBox="0 0 22 22" fill="none"><path d="M3 3h7.172a2 2 0 0 1 1.414.586l7 7a2 2 0 0 1 0 2.828l-5.172 5.172a2 2 0 0 1-2.828 0l-7-7A2 2 0 0 1 3 10.172V3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>',
     'sales'   => '<svg viewBox="0 0 22 22" fill="none"><path d="M2 3h2.5l2 8.5h9l2-6H7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="17.5" r="1.5" fill="currentColor"/><circle cx="16" cy="17.5" r="1.5" fill="currentColor"/></svg>',
     'finance' => '<svg viewBox="0 0 22 22" fill="none"><rect x="2" y="5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M2 9.5h18" stroke="currentColor" stroke-width="1.7"/><rect x="5" y="12.5" width="5" height="2" rx="1" fill="currentColor"/></svg>',
     'integr'  => '<svg viewBox="0 0 22 22" fill="none"><circle cx="5.5" cy="11" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="11" r="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 11h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16.5 5v3M16.5 14v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/><path d="M5.5 5v3M5.5 14v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>',
     'tools'   => '<svg viewBox="0 0 22 22" fill="none"><path d="M14.5 3a4 4 0 0 1 .5 7.5L7 18.5a1.5 1.5 0 0 1-2.1-2.1L12.5 8A4 4 0 0 1 14.5 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="14.5" cy="5.5" r="1" fill="currentColor"/></svg>',
+    'docs'    => '<svg viewBox="0 0 22 22" fill="none"><rect x="4" y="2" width="10" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M7 7h6M7 10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".7"/><path d="M10 16l2 4 2-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/></svg>',
     'system'  => '<svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M11 2v2M11 18v2M2 11h2M18 11h2M4.22 4.22l1.42 1.42M16.36 16.36l1.42 1.42M4.22 17.78l1.42-1.42M16.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg>',
 );
 ?>
@@ -150,6 +162,16 @@ endforeach; ?>
             <span>Чат</span>
         </button>
 
+        <button class="app-hdr-btn" id="blQuickBtn" title="Бэклог / швидке додавання">
+            <svg viewBox="0 0 20 20" fill="none">
+                <rect x="4" y="2" width="12" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/>
+                <path d="M7 7h6M7 10h6M7 13h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".6"/>
+                <circle cx="15" cy="15" r="4" fill="#ef4444"/>
+                <path d="M15 13v4M13 15h4" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/>
+            </svg>
+            <span>Бэклог</span>
+        </button>
+
         <div class="app-hdr-sep"></div>
 
         <button class="app-lang-btn" title="Мова інтерфейсу">
@@ -164,14 +186,28 @@ endforeach; ?>
             if (!class_exists('\Papir\Crm\AuthService')) {
                 require_once __DIR__ . '/../auth/AuthService.php';
             }
+            require_once __DIR__ . '/../auth/avatar_helper.php';
             $_authUser     = \Papir\Crm\AuthService::getCurrentUser();
             $_userName     = $_authUser ? htmlspecialchars(isset($_authUser['full_name']) ? $_authUser['full_name'] : $_authUser['display_name']) : 'Гість';
             $_userInitials = $_authUser ? htmlspecialchars($_authUser['initials'])     : '??';
             $_userRole     = $_authUser ? htmlspecialchars($_authUser['role_name'])    : '';
             $_isAdmin      = $_authUser && !empty($_authUser['is_admin']);
+            // Avatar
+            $_avatarInfo   = array('type'=>'color','style'=>'linear-gradient(135deg,#5b8af8,#7c3aed)','isImage'=>false);
+            if ($_authUser) {
+                $_userSettings = \Papir\Crm\UserRepository::getSettings($_authUser['user_id']);
+                $_avatarVal    = papirAvatarFromSettings($_userSettings);
+                $_avatarInfo   = papirAvatarInfo($_avatarVal);
+            }
             ?>
             <button class="app-user-btn" id="appUserBtn" type="button">
-                <div class="app-user-avatar"><?php echo $_userInitials; ?></div>
+                <?php if ($_avatarInfo['isImage']): ?>
+                <div class="app-user-avatar" style="background:none;padding:0;overflow:hidden"><img src="<?php echo $_avatarInfo['url']; ?>?v=<?php echo time(); ?>" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%"></div>
+                <?php elseif ($_avatarInfo['type'] === 'emoji'): ?>
+                <div class="app-user-avatar" style="background:<?php echo $_avatarInfo['bg']; ?>;font-size:16px"><?php echo $_avatarInfo['emoji']; ?></div>
+                <?php else: ?>
+                <div class="app-user-avatar" style="background:<?php echo $_avatarInfo['bg']; ?>"><?php echo $_userInitials; ?></div>
+                <?php endif; ?>
                 <div class="app-user-info">
                     <span class="app-user-name"><?php echo $_userName; ?></span>
                     <span class="app-user-role"><?php echo $_userRole; ?></span>

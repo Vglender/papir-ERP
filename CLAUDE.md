@@ -4,6 +4,14 @@
 
 Язык общения с пользователем — **русский**.
 
+## Бэклог задач и багов
+
+Файл `docs/backlog.md` — автогенерируемый список открытых задач, багов и идей, сгруппированных по модулям. Управляется через `/system/backlog` или виджет в шапке (Ctrl+B).
+
+**Правило при разработке:** перед началом работы над модулем — проверить `docs/backlog.md` на наличие записей по этому модулю. Если есть релевантные пункты — решать в ходе работы. После решения помечать через `POST /system/api/backlog_done` с `id=X` или через UI.
+
+---
+
 ## Документация схемы БД
 
 Актуальная структура базы данных Papir хранится в `docs/papir_db_schema.md`.
@@ -41,6 +49,7 @@
 
 | Раздел | `activeNav` | Пункты |
 |--------|-------------|--------|
+| Простір | `prostor` | Контрагенти `/counterparties` |
 | Каталог | `catalog` | Товари `/catalog`, Категорії `/categories`, Виробники `/manufacturers`, Атрибути `/attributes`, Маппінг категорій `/category-mapping` |
 | Ціни | `prices` | Прайси `/prices`, Постачальники `/prices/suppliers`, Акції `/action` |
 | Продажі | `sales` | Замовлення `/customerorder` |
@@ -1183,6 +1192,214 @@ nohup php scripts/my_script.php > /tmp/my_script.log 2>&1 &
 | `pid` | int unsigned | PID процесса (для проверки через `/proc/`) |
 | `status` | enum | `running` / `done` / `failed` |
 | `started_at` / `finished_at` | timestamp | Время выполнения |
+
+---
+
+## Паттерн редактирования документов
+
+> **Обновлять при:** добавлении нового типа документа с редактированием, изменении логики версионирования, добавлении новых типов конфликтов, изменении UX режима редактирования.
+
+**Эталонная реализация:** `modules/counterparties/views/workspace.php` + `modules/counterparties/api/save_order.php`
+
+### Концепция: локальный state + optimistic locking
+
+- Все изменения живут только в JS-объекте `_state` до нажатия 💾
+- БД не трогается пока пользователь не сохранил
+- `version` — целое число, инкрементируется при каждом сохранении сервером
+- Конфликт = кто-то другой сохранил пока ты редактировал
+
+```
+loadData() → _state + _original (глубокие копии)
+    ↓
+enterEditMode() → CSS-класс на контейнере, активация полей
+    ↓
+пользователь меняет → только _state, DOM отражает
+    ↓
+_save() → POST {state + version} → сервер проверяет version
+    ↓
+ok → обновить _state/_original с сервера, re-render
+conflict → диалог → reload с сервера
+```
+
+### JS-структура состояния
+
+```javascript
+// Инициализация при загрузке
+var stateItems = (data.items || []).map(function(it) {
+    var copy = JSON.parse(JSON.stringify(it));
+    copy._localId = String(it.id);   // всегда строка
+    return copy;
+});
+this._state    = { doc: JSON.parse(JSON.stringify(data.doc)), items: stateItems };
+this._original = JSON.parse(JSON.stringify(this._state)); // snapshot для отмены
+```
+
+**_localId:** `"123"` — существующая строка (id в БД), `"n1712345678901"` — новая (`'n' + Date.now()`). Всегда строка, сравнивать через `String(a) === String(b)`.
+
+**_deleted:** не splice из массива — пометить флагом + `tr.remove()`. Сервер при `_deleted=true && id>0` → DELETE; при `_localId` начинается с `'n'` → пропустить.
+
+### CSS-паттерн режима редактирования
+
+Один CSS-класс на контейнере управляет всем:
+
+```javascript
+function enterEditMode() {
+    container.classList.add('doc-editing');
+    editBtn.style.display = 'none';
+    saveBtn.style.display = '';
+    searchInput.disabled  = false;
+}
+function exitEditMode() {
+    container.classList.remove('doc-editing');
+    editBtn.style.display = '';
+    saveBtn.style.display = 'none';
+    saveBtn.classList.remove('doc-save-dirty');
+    searchInput.disabled = true; searchInput.value = '';
+}
+```
+
+```css
+.doc-table input, .doc-table select   { pointer-events: none; background: transparent; border-color: transparent; }
+.doc-editing .doc-table input,
+.doc-editing .doc-table select        { pointer-events: auto; background: #fff; border-color: #d1d5db; }
+.doc-edit-bar                         { display: none; }
+.doc-editing .doc-edit-bar            { display: flex; }
+.doc-editing .doc-head                { background: #fefce8; border-bottom-color: #fde68a; }
+```
+
+Dirty-флаг: `saveBtn.classList.add('doc-save-dirty')` при любом `input` в таблице.
+
+### Синхронизация DOM → _state
+
+Каждая `<tr>` привязана к элементу `_state.items` через `tr.dataset.localId`:
+
+```javascript
+function syncRowToState(tr) {
+    var item = _state.items.find(function(x) { return String(x._localId) === tr.dataset.localId; });
+    if (!item) return;
+    item.quantity         = parseFloat(tr.querySelector('[data-field="quantity"]').value)  || 0;
+    item.price            = parseFloat(tr.querySelector('[data-field="price"]').value)     || 0;
+    item.discount_percent = parseFloat(tr.querySelector('[data-field="discount_percent"]').value) || 0;
+    calcItem(item);
+    renderRowTotals(tr, item);
+    renderDocTotals();
+}
+tr.querySelectorAll('.cell-input').forEach(function(inp) {
+    inp.addEventListener('input', function() { syncRowToState(tr); });
+});
+```
+
+Расчёт производных полей:
+```javascript
+function calcItem(item) {
+    var gross   = Math.round(item.quantity * item.price * 100) / 100;
+    var discAmt = Math.round(gross * item.discount_percent / 100 * 100) / 100;
+    item.sum_row = Math.round((gross - discAmt) * 100) / 100;
+    item.discount_amount = discAmt;
+    item.vat_amount = item.vat_rate > 0
+        ? Math.round((item.sum_row - item.sum_row / (1 + item.vat_rate / 100)) * 100) / 100 : 0;
+    item.sum_without_discount = Math.round((item.sum_row - item.vat_amount) * 100) / 100;
+}
+```
+
+**Двунаправленный ввод суммы:** если пользователь ввёл `sum_row` вместо `price` — back-calc price:
+```javascript
+sumInp.addEventListener('input', function() { tr.dataset.sumChanged = '1'; });
+priceInp.addEventListener('input', function() { tr.dataset.sumChanged = '0'; });
+// при syncRowToState: если sumChanged=1 → item.price = enteredSum / qty / (1 - disc/100)
+```
+
+### Добавление строки через поиск товара
+
+Debounce 250ms → fetch → dropdown → mousedown (не click, чтоб не потерять blur):
+
+```javascript
+// pickProduct → создать новую строку в _state
+var localId = 'n' + Date.now();
+var newItem = { _localId: localId, product_id: p.product_id, quantity: 1, price: p.price_sale || 0, discount_percent: 0, vat_rate: 0 };
+calcItem(newItem);
+_state.items.push(newItem);
+var tr = renderItemRow(newItem); tbody.appendChild(tr); bindRow(tr);
+tr.querySelector('[data-field="quantity"]').focus();
+
+// Enter → выбрать первый вариант
+if (e.key === 'Enter') { var first = dd && dd.querySelector('.search-opt'); if (first) first.dispatchEvent(new MouseEvent('mousedown')); }
+```
+
+### Сохранение (_save)
+
+```javascript
+fetch('/module/api/save_doc', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body: 'doc_id='+_state.doc.id + '&version='+_state.doc.version + '&items='+encodeURIComponent(JSON.stringify(_state.items)) })
+.then(function(r){ return r.json(); }).then(function(res) {
+    if (res.conflict) {
+        if (confirm('Документ змінено іншим користувачем. Оновити?')) loadData();
+        return;
+    }
+    if (!res.ok) { showToast('Помилка: '+(res.error||''), true); return; }
+    // Обновить state из ответа сервера (не из локальных данных!)
+    _state    = { doc: res.doc, items: res.items.map(function(it){ var c=JSON.parse(JSON.stringify(it)); c._localId=String(it.id); return c; }) };
+    _original = JSON.parse(JSON.stringify(_state));
+    showToast('Збережено ✓');
+    if (onDone) onDone();
+    renderForm();
+});
+```
+
+### Серверная сторона
+
+```php
+// 1. Проверка версии
+$r = Database::fetchRow('Papir', "SELECT version FROM my_doc WHERE id={$docId}");
+if ($version > 0 && (int)$r['row']['version'] !== $version) {
+    echo json_encode(array('ok'=>false, 'conflict'=>true)); exit;
+}
+// 2. Транзакция
+Database::begin('Papir');
+try {
+    // update header, process items (_deleted → DELETE, id>0 → UPDATE, else → INSERT)
+    // recalc totals
+    Database::update('Papir', 'my_doc', array('sum_total'=>$total, 'version'=>$version+1), array('id'=>$docId));
+    Database::commit('Papir');
+    // 3. Вернуть свежие данные (не echo клиентский payload!)
+    echo json_encode(array('ok'=>true, 'doc'=>$freshDoc, 'items'=>$freshItems));
+} catch (Exception $e) {
+    Database::rollback('Papir');
+    echo json_encode(array('ok'=>false, 'error'=>$e->getMessage()));
+}
+```
+
+**Правила сервера:** проверять version → транзакция → возвращать свежие данные → version++ в той же транзакции.
+
+### _cancelEdit
+
+```javascript
+_state = JSON.parse(JSON.stringify(_original));
+renderForm();
+showToast('Зміни скасовано');
+```
+
+### _restoreEditMode (после перерисовки формы)
+
+```javascript
+this._restoreEditMode = container.classList.contains('doc-editing'); // перед renderForm
+// в конце bindForm:
+if (this._restoreEditMode) { this._restoreEditMode = false; enterEditMode(); lastRow.scrollIntoView({block:'nearest'}); }
+```
+
+### Чеклист новой реализации
+
+- [ ] `_state` + `_original` инициализированы при загрузке, `_localId = String(item.id)`
+- [ ] `enterEditMode`/`exitEditMode` через один CSS-класс на контейнере
+- [ ] `syncRowToState` на `input` каждого поля строки
+- [ ] Удаление: `_deleted=true` + `tr.remove()`, не splice
+- [ ] Новая строка: `_localId = 'n' + Date.now()`
+- [ ] POST полного `_state.items` (включая `_deleted`)
+- [ ] Сервер: version check → транзакция → свежие данные в ответе
+- [ ] После сохранения: `_state` и `_original` обновляются из ответа сервера
+- [ ] `_cancelEdit`: restore из `_original`, renderForm
+- [ ] `_restoreEditMode` если форма перерисовывается в режиме редактирования
+- [ ] Dirty-флаг на 💾 при любом `input`
 
 ---
 

@@ -1,6 +1,6 @@
 <?php
 $title     = 'Контрагенти';
-$activeNav = 'sales';
+$activeNav = 'prostor';
 $subNav    = 'counterparties';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
@@ -212,7 +212,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 .cpp-feed-ord-meta { font-size:11px; color:var(--text-muted); margin-top:2px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
 .cpp-feed-empty { text-align:center; padding:32px 16px; color:var(--text-muted); font-size:13px; }
 .cpp-chat-input { border-top:1px solid var(--border); padding:10px 16px; display:flex; gap:8px; align-items:flex-end; flex-shrink:0; }
-.cpp-chat-input textarea { flex:1; padding:7px 10px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font); resize:none; min-height:36px; max-height:80px; overflow-y:auto; line-height:1.4; }
+.cpp-chat-input textarea { flex:1; padding:7px 10px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font); resize:vertical; min-height:56px; max-height:200px; overflow-y:auto; line-height:1.4; }
 .cpp-chat-input textarea:focus { border-color:var(--blue-light); outline:none; }
 
 /* ── Chat channel tabs ───────────────────────────────────────────────────── */

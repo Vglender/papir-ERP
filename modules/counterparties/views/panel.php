@@ -768,14 +768,15 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
         }
         var html = '';
         for (var i = 0; i < templates.length; i++) {
-            html += '<button class="cpp-tpl-chip" data-body="' + esc(templates[i].body) + '" title="' + esc(templates[i].body) + '">'
+            html += '<button class="cpp-tpl-chip" data-idx="' + i + '" title="' + esc(templates[i].body) + '">'
                   + esc(templates[i].title) + '</button>';
         }
         tplRow.innerHTML = html;
         tplRow.querySelectorAll('.cpp-tpl-chip').forEach(function(btn) {
             btn.addEventListener('click', function() {
+                var body = templates[parseInt(this.dataset.idx, 10)].body;
                 if (msgText) {
-                    msgText.value = this.dataset.body;
+                    msgText.value = body;
                     msgText.focus();
                 }
             });
