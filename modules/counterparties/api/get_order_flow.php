@@ -35,7 +35,12 @@ $rItems = \Database::fetchAll('Papir',
             ci.stock_quantity, ci.shipped_quantity, ci.reserved_quantity,
             COALESCE(NULLIF(ci.product_name,''),
                      NULLIF(pd_uk.name,''), NULLIF(pd_ru.name,''), '') AS name,
-            COALESCE(NULLIF(ci.sku,''), pp.product_article, '') AS article
+            COALESCE(NULLIF(ci.sku,''), pp.product_article, '') AS article,
+            (SELECT psi.stock FROM price_supplier_items psi
+             WHERE psi.product_id = ci.product_id
+               AND psi.pricelist_id = 1
+               AND psi.match_type != 'ignored'
+             ORDER BY psi.id LIMIT 1) AS stock_sklad
      FROM customerorder_item ci
      LEFT JOIN product_papir pp ON pp.product_id = ci.product_id
      LEFT JOIN product_description pd_uk ON pd_uk.product_id = ci.product_id AND pd_uk.language_id = 2

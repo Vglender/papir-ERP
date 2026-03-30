@@ -1712,39 +1712,37 @@ var WS = {
     // ── Items table (editable) ────────────────────────────────────────────────
     var itemsHtml = '<div class="ws-of-items-wrap"><table class="ws-of-items">'
       + '<colgroup>'
-      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col class="ws-of-col-price">'
+      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col style="width:52px"><col class="ws-of-col-price">'
       + '<col class="ws-of-col-disc"><col class="ws-of-col-vat"><col class="ws-of-col-sum"><col class="ws-of-col-del">'
       + '</colgroup>'
       + '<thead><tr>'
-      + '<th class="left">Товар</th><th>К-ть</th><th>Ціна</th>'
+      + '<th class="left">Товар</th><th>К-ть</th><th title="Залишок на складі (Склад)">Зал.</th><th>Ціна</th>'
       + '<th title="Знижка %">Зн%</th><th>ПДВ</th><th>Сума</th><th></th>'
       + '</tr></thead><tbody>';
 
     items.forEach(function(it) {
-      var qty  = parseFloat(it.quantity)         || 0;
-      var ship = parseFloat(it.shipped_quantity) || 0;
-      var stk  = parseFloat(it.stock_quantity)   || 0;
-      var res  = parseFloat(it.reserved_quantity)|| 0;
-      var disc = parseFloat(it.discount_percent) || 0;
-      var vat  = parseFloat(it.vat_rate)         || 0;
-      var sum  = parseFloat(it.sum)              || 0;
+      var qty   = parseFloat(it.quantity)         || 0;
+      var ship  = parseFloat(it.shipped_quantity) || 0;
+      var disc  = parseFloat(it.discount_percent) || 0;
+      var vat   = parseFloat(it.vat_rate)         || 0;
+      var sum   = parseFloat(it.sum)              || 0;
+      var stock = (it.stock_sklad !== null && it.stock_sklad !== undefined && it.stock_sklad !== '') ? parseInt(it.stock_sklad, 10) : null;
+      var stkLow = stock !== null && stock < qty;
 
-      var stkLow = stk > 0 && stk < qty;
-      var stkHint = '';
-      if (stk > 0 || res > 0) {
-        stkHint = ' <span class="ws-of-stk-hint' + (stkLow ? ' low' : '') + '" title="Залишок/Резерв">('
-          + (stk > 0 ? stk : '—') + '/' + (res > 0 ? res : '—') + ')</span>';
-      }
       var nameTitle = (it.article ? '[' + it.article + '] ' : '') + (it.name || '');
-      var shipNote = ship > 0 && ship < qty ? ' <span style="color:#ea580c;font-size:9px">відвант:' + ship + '</span>' : '';
+      var shipNote  = ship > 0 && ship < qty ? ' <span style="color:#ea580c;font-size:9px">відвант:' + ship + '</span>' : '';
+      var stkCell   = stock !== null
+        ? '<td class="ws-of-stk-cell' + (stkLow ? ' ws-of-stk-warn' : '') + '" title="Залишок на складі">' + stock + '</td>'
+        : '<td class="ws-of-stk-cell" title="Залишок невідомий">—</td>';
 
       itemsHtml += '<tr class="ws-of-items-body" data-item-id="' + it.id + '" data-local-id="' + it.id + '" data-sum-changed="0">'
         + '<td class="ws-of-name-cell" title="' + self.esc(nameTitle) + '">'
         +   (it.article ? '<span class="ws-of-sku">' + self.esc(it.article) + '</span>' : '')
         +   '<span class="ws-of-nm">' + self.esc(it.name || '—') + '</span>'
-        +   stkHint + shipNote
+        +   shipNote
         + '</td>'
         + '<td><input class="ws-cell-input" data-field="quantity" value="' + qty + '" type="text"></td>'
+        + stkCell
         + '<td><input class="ws-cell-input" data-field="price" value="' + parseFloat(it.price).toFixed(2) + '" type="text"></td>'
         + '<td><input class="ws-cell-input" data-field="discount_percent" value="' + (disc > 0 ? disc : '') + '" placeholder="0" type="text"></td>'
         + '<td><select class="ws-cell-sel" data-field="vat_rate">'
@@ -3372,11 +3370,11 @@ var WS = {
     // ── Items table ───────────────────────────────────────────────────────────
     var itemsHtml = '<div class="ws-of-items-wrap"><table class="ws-of-items">'
       + '<colgroup>'
-      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col style="width:52px"><col class="ws-of-col-price">'
+      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col class="ws-of-col-price">'
       + '<col class="ws-of-col-disc"><col class="ws-of-col-vat"><col class="ws-of-col-sum"><col class="ws-of-col-del">'
       + '</colgroup>'
       + '<thead><tr>'
-      + '<th class="left">Товар</th><th>К-ть</th><th title="Залишок на складі (Склад)">Зал.</th><th>Ціна</th>'
+      + '<th class="left">Товар</th><th>К-ть</th><th>Ціна</th>'
       + '<th title="Знижка %">Зн%</th><th>ПДВ</th><th>Сума</th><th></th>'
       + '</tr></thead><tbody>';
 
@@ -3388,18 +3386,12 @@ var WS = {
     }
 
     items.forEach(function(it) {
-      var qty   = parseFloat(it.quantity)         || 0;
-      var disc  = parseFloat(it.discount_percent) || 0;
-      var vat   = parseFloat(it.vat_rate)         || 0;
-      var sum   = parseFloat(it.sum_row)          || 0;
-      var ship  = parseFloat(it.shipped_quantity) || 0;
-      var stock = (it.stock_sklad !== null && it.stock_sklad !== undefined && it.stock_sklad !== '') ? parseInt(it.stock_sklad, 10) : null;
-      var stkLow = (stock !== null && stock < qty);
-
+      var qty  = parseFloat(it.quantity)         || 0;
+      var disc = parseFloat(it.discount_percent) || 0;
+      var vat  = parseFloat(it.vat_rate)         || 0;
+      var sum  = parseFloat(it.sum_row)          || 0;
+      var ship = parseFloat(it.shipped_quantity) || 0;
       var shipNote = (ship > 0 && ship < qty) ? ' <span style="color:#ea580c;font-size:9px">відвант:' + ship + '</span>' : '';
-      var stkCell  = stock !== null
-        ? '<td class="ws-of-stk-cell' + (stkLow ? ' ws-of-stk-warn' : '') + '" title="Залишок на складі">' + stock + '</td>'
-        : '<td class="ws-of-stk-cell" title="Залишок невідомий">—</td>';
 
       itemsHtml += '<tr class="ws-of-items-body" data-item-id="' + it.id + '" data-local-id="' + it.id + '" data-sum-changed="0">'
         + '<td class="ws-of-name-cell">'
@@ -3408,7 +3400,6 @@ var WS = {
         +   shipNote
         + '</td>'
         + '<td><input class="ws-cell-input" data-field="quantity" value="' + qty + '" type="text"></td>'
-        + stkCell
         + '<td><input class="ws-cell-input" data-field="price" value="' + parseFloat(it.price||0).toFixed(2) + '" type="text"></td>'
         + '<td><input class="ws-cell-input" data-field="discount_percent" value="' + (disc > 0 ? disc : '') + '" placeholder="0" type="text"></td>'
         + '<td><select class="ws-cell-sel" data-field="vat_rate">'
