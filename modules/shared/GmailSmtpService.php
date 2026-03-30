@@ -13,14 +13,17 @@ class GmailSmtpService
     const APP_PASS   = 'dhdjsinqzviptfod';  // App Password без пробелов
 
     /**
-     * Send email.
-     * @param string $toEmail
-     * @param string $toName
-     * @param string $subject
-     * @param string $bodyText  Plain text body
+     * Send email with optional file attachment.
+     * @param string      $toEmail
+     * @param string      $toName
+     * @param string      $subject
+     * @param string      $bodyText        Plain text body
+     * @param string|null $attachmentPath  Absolute local path to file (optional)
+     * @param string|null $attachmentName  Original filename shown to recipient (optional)
      * @return array ['ok'=>bool, 'error'=>string]
      */
-    public static function send($toEmail, $toName, $subject, $bodyText)
+    public static function send($toEmail, $toName, $subject, $bodyText,
+                                $attachmentPath = null, $attachmentName = null)
     {
         $toEmail = trim($toEmail);
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
@@ -102,24 +105,50 @@ class GmailSmtpService
         $toFmt   = ($toName ? self::encodeHeader($toName) . ' ' : '') . '<' . $toEmail . '>';
         $subjFmt = self::encodeHeader($subject);
 
-        // Dot-stuffing: lines starting with "." get an extra "."
-        $lines = explode("\n", str_replace("\r\n", "\n", $bodyText));
-        $stuffed = array();
-        foreach ($lines as $line) {
-            $stuffed[] = (isset($line[0]) && $line[0] === '.') ? '.' . $line : $line;
-        }
-        $bodyStuffed = implode("\r\n", $stuffed);
+        $hasAttachment = $attachmentPath && file_exists($attachmentPath);
 
-        $msg  = "Date: {$date}\r\n";
-        $msg .= "From: {$fromFmt}\r\n";
-        $msg .= "To: {$toFmt}\r\n";
-        $msg .= "Subject: {$subjFmt}\r\n";
-        $msg .= "MIME-Version: 1.0\r\n";
-        $msg .= "Content-Type: text/plain; charset=UTF-8\r\n";
-        $msg .= "Content-Transfer-Encoding: base64\r\n";
-        $msg .= "\r\n";
-        $msg .= chunk_split(base64_encode($bodyText), 76, "\r\n");
-        $msg .= "\r\n.";
+        if ($hasAttachment) {
+            $boundary = '----=_Part_' . md5(uniqid('', true));
+            $attName  = $attachmentName ? $attachmentName : basename($attachmentPath);
+            $attMime  = mime_content_type($attachmentPath);
+            if (!$attMime) $attMime = 'application/octet-stream';
+            $attData  = base64_encode(file_get_contents($attachmentPath));
+
+            $msg  = "Date: {$date}\r\n";
+            $msg .= "From: {$fromFmt}\r\n";
+            $msg .= "To: {$toFmt}\r\n";
+            $msg .= "Subject: {$subjFmt}\r\n";
+            $msg .= "MIME-Version: 1.0\r\n";
+            $msg .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
+            $msg .= "\r\n";
+            // Text part
+            $msg .= "--{$boundary}\r\n";
+            $msg .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $msg .= "Content-Transfer-Encoding: base64\r\n";
+            $msg .= "\r\n";
+            $msg .= chunk_split(base64_encode($bodyText), 76, "\r\n");
+            // Attachment part
+            $attNameFmt = self::encodeHeader($attName);
+            $msg .= "--{$boundary}\r\n";
+            $msg .= "Content-Type: {$attMime}; name=\"{$attNameFmt}\"\r\n";
+            $msg .= "Content-Transfer-Encoding: base64\r\n";
+            $msg .= "Content-Disposition: attachment; filename=\"{$attNameFmt}\"\r\n";
+            $msg .= "\r\n";
+            $msg .= chunk_split($attData, 76, "\r\n");
+            $msg .= "--{$boundary}--\r\n";
+            $msg .= "\r\n.";
+        } else {
+            $msg  = "Date: {$date}\r\n";
+            $msg .= "From: {$fromFmt}\r\n";
+            $msg .= "To: {$toFmt}\r\n";
+            $msg .= "Subject: {$subjFmt}\r\n";
+            $msg .= "MIME-Version: 1.0\r\n";
+            $msg .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $msg .= "Content-Transfer-Encoding: base64\r\n";
+            $msg .= "\r\n";
+            $msg .= chunk_split(base64_encode($bodyText), 76, "\r\n");
+            $msg .= "\r\n.";
+        }
 
         self::smtpWrite($sock, $msg);
         $read = self::smtpRead($sock);

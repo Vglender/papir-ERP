@@ -113,8 +113,30 @@ if ($channel === 'viber' || $channel === 'sms') {
         echo json_encode(array('ok' => false, 'error' => 'Не вказано email контрагента'));
         exit;
     }
-    $toName = $cp['name'] ? $cp['name'] : '';
-    $result = GmailSmtpService::send($email, $toName, $subject, $body);
+    $toName = isset($cp['name']) ? $cp['name'] : '';
+
+    // Resolve media_url to local path for attachment
+    $attachPath = null;
+    $attachName = null;
+    if ($mediaUrl) {
+        // Files are stored at officetorg.com.ua/image/... → local /var/www/menufold/data/www/officetorg.com.ua/image/...
+        $localBase = '/var/www/menufold/data/www/officetorg.com.ua/image/';
+        $urlBase   = 'https://officetorg.com.ua/image/';
+        if (strpos($mediaUrl, $urlBase) === 0) {
+            $relPath    = substr($mediaUrl, strlen($urlBase));
+            $candidate  = $localBase . $relPath;
+            if (file_exists($candidate)) {
+                $attachPath = $candidate;
+                $attachName = basename($relPath);
+            }
+        }
+        // If attachment not resolved but body is only placeholder, add URL as text
+        if (!$attachPath && (!$body || $body === '[файл]')) {
+            $body = $mediaUrl;
+        }
+    }
+
+    $result = GmailSmtpService::send($email, $toName, $subject, $body, $attachPath, $attachName);
     if (!$result['ok']) {
         echo json_encode(array('ok' => false, 'error' => $result['error']));
         exit;
@@ -131,14 +153,21 @@ if ($channel === 'viber' || $channel === 'sms') {
         exit;
     }
     if ($mediaUrl && preg_match('/\.(jpg|jpeg|png|gif|webp)(\?|$)/i', $mediaUrl)) {
-        // Send photo; text becomes the caption (combined in one message)
+        // Image — send as photo with caption
         $caption = ($body && $body !== '[файл]') ? $body : '';
         $result  = TelegramBotService::sendPhoto($tgChatId, $mediaUrl, $caption);
-        // Caption already sent with photo — don't save separate text body in DB
         if ($result['ok'] && $caption) {
             $body = '[фото] ' . $caption;
         } elseif ($result['ok']) {
             $body = '[фото]';
+        }
+    } elseif ($mediaUrl) {
+        // Non-image file (PDF, docx, etc.) — send as document
+        $caption = ($body && $body !== '[файл]') ? $body : '';
+        $result  = TelegramBotService::sendDocument($tgChatId, $mediaUrl, $caption);
+        if ($result['ok']) {
+            $fname = basename(parse_url($mediaUrl, PHP_URL_PATH));
+            $body  = $caption ? '[файл: ' . $fname . '] ' . $caption : '[файл: ' . $fname . ']';
         }
     } else {
         $result = TelegramBotService::sendMessage($tgChatId, $body);
