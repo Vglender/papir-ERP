@@ -120,12 +120,8 @@ $subNav    = 'orders';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 14px;
-            margin: 20px;
-            color: #222;
-            background: #f7f7f9;
+        .co-registry-wrap {
+            padding: 20px;
         }
 
         .page-title {
@@ -303,6 +299,7 @@ require_once __DIR__ . '/../../shared/layout.php';
         }
     </style>
 
+<div class="co-registry-wrap">
 <h1 class="page-title">Реестр заказов</h1>
 
 <?php if (!$result['ok']): ?>
@@ -503,4 +500,5 @@ require_once __DIR__ . '/../../shared/layout.php';
         </div>
     <?php endif; ?>
 </div>
+</div><!-- /co-registry-wrap -->
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

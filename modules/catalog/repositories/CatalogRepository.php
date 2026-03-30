@@ -495,12 +495,12 @@ class CatalogRepository
                 && empty(array_diff($allSiteIdsNorm, $checkedSiteIds));
             $allChecked      = $bkChecked && $allSitesChecked;
 
-            if (!$allChecked) {
-                // BK filter: checked = active products only (status=1)
-                if ($bkChecked) {
-                    $base .= " AND pp.`status` = 1";
-                }
+            // BK filter: always apply status=1 when BK is checked (even if all filters on)
+            if ($bkChecked) {
+                $base .= " AND pp.`status` = 1";
+            }
 
+            if (!$allChecked) {
                 // Site filter
                 if (!$allSitesChecked) {
                     if (empty($checkedSiteIds)) {

@@ -18,6 +18,7 @@ class Router
 		'/action-update-stock' => '/modules/action/update_stock.php',
 		'/action-update-site'  => '/modules/action/update_site.php',
 		'/catalog'             => '/modules/catalog/index.php',
+        '/ttn-ukr.html'             => '/pages/ttn-ukr.html',
 		'/manufacturers'                          => '/modules/catalog/manufacturers.php',
 		'/category-mapping'                       => '/modules/catalog/category_mapping.php',
 		'/catalog/api/get_manufacturers'          => '/modules/catalog/api/get_manufacturers.php',
@@ -204,6 +205,8 @@ class Router
 		'/print/api/save_bank_account'  => '/modules/print/api/save_bank_account.php',
 		'/print/api/upload_org_asset'   => '/modules/print/api/upload_org_asset.php',
 		'/print/api/delete_org_asset'   => '/modules/print/api/delete_org_asset.php',
+		'/print/api/render_doc'         => '/modules/print/api/render_doc.php',
+		'/print/api/get_doc_templates'  => '/modules/print/api/get_doc_templates.php',
 
 		// ── Auth ──────────────────────────────────────────────────────────────
 		'/login'                     => '/modules/auth/login.php',
