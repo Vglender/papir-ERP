@@ -1701,13 +1701,8 @@ var WS = {
       + self.shipStatusBadge(order.shipment_status)
       + '<span class="ws-of-head-sep"></span>'
       + '<div class="ws-of-head-btns">'
-      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfPrintBtn" title="Друк">🖨'
-      +   '<div class="ws-of-print-dd" id="wsOfPrintDd" style="display:none">'
-      +     '<a href="/customerorder/edit?id=' + order.id + '" target="_blank">Відкрити замовлення →</a>'
-      +     '<div class="disabled">Рахунок (незабаром)</div>'
-      +     '<div class="disabled">Накладна (незабаром)</div>'
-      +   '</div>'
-      + '</button>'
+      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfPrintBtn"'
+      +   ' onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">🖨</button>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfEditBtn" title="Редагувати позиції">✏</button>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-save-btn" id="wsOfSaveBtn" title="Зберегти зміни" style="display:none">💾</button>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfSendBtn" title="Надіслати клієнту / команди (або / в чаті)">💬</button>'
@@ -3377,11 +3372,11 @@ var WS = {
     // ── Items table ───────────────────────────────────────────────────────────
     var itemsHtml = '<div class="ws-of-items-wrap"><table class="ws-of-items">'
       + '<colgroup>'
-      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col class="ws-of-col-price">'
+      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col style="width:52px"><col class="ws-of-col-price">'
       + '<col class="ws-of-col-disc"><col class="ws-of-col-vat"><col class="ws-of-col-sum"><col class="ws-of-col-del">'
       + '</colgroup>'
       + '<thead><tr>'
-      + '<th class="left">Товар</th><th>К-ть</th><th>Ціна</th>'
+      + '<th class="left">Товар</th><th>К-ть</th><th title="Залишок на складі (Склад)">Зал.</th><th>Ціна</th>'
       + '<th title="Знижка %">Зн%</th><th>ПДВ</th><th>Сума</th><th></th>'
       + '</tr></thead><tbody>';
 
@@ -3393,12 +3388,18 @@ var WS = {
     }
 
     items.forEach(function(it) {
-      var qty  = parseFloat(it.quantity)         || 0;
-      var disc = parseFloat(it.discount_percent) || 0;
-      var vat  = parseFloat(it.vat_rate)         || 0;
-      var sum  = parseFloat(it.sum_row)          || 0;
-      var ship = parseFloat(it.shipped_quantity) || 0;
+      var qty   = parseFloat(it.quantity)         || 0;
+      var disc  = parseFloat(it.discount_percent) || 0;
+      var vat   = parseFloat(it.vat_rate)         || 0;
+      var sum   = parseFloat(it.sum_row)          || 0;
+      var ship  = parseFloat(it.shipped_quantity) || 0;
+      var stock = (it.stock_sklad !== null && it.stock_sklad !== undefined && it.stock_sklad !== '') ? parseInt(it.stock_sklad, 10) : null;
+      var stkLow = (stock !== null && stock < qty);
+
       var shipNote = (ship > 0 && ship < qty) ? ' <span style="color:#ea580c;font-size:9px">відвант:' + ship + '</span>' : '';
+      var stkCell  = stock !== null
+        ? '<td class="ws-of-stk-cell' + (stkLow ? ' ws-of-stk-warn' : '') + '" title="Залишок на складі">' + stock + '</td>'
+        : '<td class="ws-of-stk-cell" title="Залишок невідомий">—</td>';
 
       itemsHtml += '<tr class="ws-of-items-body" data-item-id="' + it.id + '" data-local-id="' + it.id + '" data-sum-changed="0">'
         + '<td class="ws-of-name-cell">'
@@ -3407,6 +3408,7 @@ var WS = {
         +   shipNote
         + '</td>'
         + '<td><input class="ws-cell-input" data-field="quantity" value="' + qty + '" type="text"></td>'
+        + stkCell
         + '<td><input class="ws-cell-input" data-field="price" value="' + parseFloat(it.price||0).toFixed(2) + '" type="text"></td>'
         + '<td><input class="ws-cell-input" data-field="discount_percent" value="' + (disc > 0 ? disc : '') + '" placeholder="0" type="text"></td>'
         + '<td><select class="ws-cell-sel" data-field="vat_rate">'
@@ -4241,6 +4243,8 @@ function showToast(msg, isError) {
 .ws-of-nm   { font-size: 11px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
 .ws-of-stk-hint { font-size: 9px; color: #9ca3af; margin-left: 2px; white-space: nowrap; }
 .ws-of-stk-hint.low { color: #dc2626; }
+.ws-of-stk-cell { font-size: 12px; text-align: center; color: #374151; white-space: nowrap; }
+.ws-of-stk-cell.ws-of-stk-warn { color: #dc2626; font-weight: 600; background: #fef2f2; }
 /* Delete button — hidden in view mode, shown only when editing */
 .ws-item-del-btn {
     display: none; width: 16px; height: 16px; line-height: 14px; text-align: center;
@@ -4383,4 +4387,5 @@ function showToast(msg, isError) {
 
 <div id="wsToast" class="toast"></div>
 
+<?php require_once __DIR__ . '/../../shared/print-modal.php'; ?>
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>
