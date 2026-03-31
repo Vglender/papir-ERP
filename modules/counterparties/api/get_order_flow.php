@@ -16,17 +16,39 @@ if ($orderId <= 0) {
 
 // ── Order + items ─────────────────────────────────────────────────────────────
 $rOrder = \Database::fetchRow('Papir',
-    "SELECT id, version, number, status, payment_status, shipment_status,
-            sum_items, sum_discount, sum_vat, sum_total,
-            moment, description, applicable, sales_channel
-     FROM customerorder
-     WHERE id = {$orderId} AND deleted_at IS NULL LIMIT 1");
+    "SELECT co.id, co.version, co.number, co.status, co.payment_status, co.shipment_status,
+            co.sum_items, co.sum_discount, co.sum_vat, co.sum_total,
+            co.moment, co.description, co.applicable, co.sales_channel,
+            co.organization_id, co.manager_employee_id,
+            co.delivery_method_id,
+            dm.code    AS delivery_method_code,
+            dm.name_uk AS delivery_method_name,
+            dm.has_ttn AS delivery_method_has_ttn,
+            o.name  AS org_name,
+            o.vat_number AS org_vat_number,
+            e.full_name AS manager_name
+     FROM customerorder co
+     LEFT JOIN organization o   ON o.id  = co.organization_id
+     LEFT JOIN employee e       ON e.id  = co.manager_employee_id
+     LEFT JOIN delivery_method dm ON dm.id = co.delivery_method_id
+     WHERE co.id = {$orderId} AND co.deleted_at IS NULL LIMIT 1");
 
 if (!$rOrder['ok'] || empty($rOrder['row'])) {
     echo json_encode(array('ok' => false, 'error' => 'Order not found'));
     exit;
 }
 $order = $rOrder['row'];
+
+// ── Status auto flags ─────────────────────────────────────────────────────────
+$rAutoFlags = \Database::fetchAll('Papir',
+    "SELECT DISTINCT new_value FROM customerorder_history
+     WHERE customerorder_id = {$orderId} AND event_type = 'status_change' AND is_auto = 1");
+$statusAutoFlags = array();
+if ($rAutoFlags['ok']) {
+    foreach ($rAutoFlags['rows'] as $afRow) {
+        if ($afRow['new_value']) $statusAutoFlags[$afRow['new_value']] = true;
+    }
+}
 
 $rItems = \Database::fetchAll('Papir',
     "SELECT ci.id, ci.product_id, ci.line_no, ci.quantity,
@@ -142,6 +164,18 @@ $rRet = \Database::fetchAll('Papir',
      ORDER BY sr.moment ASC");
 $returns = ($rRet['ok']) ? $rRet['rows'] : array();
 
+// ── Order deliveries (courier / pickup facts) ─────────────────────────────────
+$rOdl = \Database::fetchAll('Papir',
+    "SELECT od.id, od.delivery_method_id, od.status,
+            od.sent_at, od.delivered_at, od.comment, od.created_at,
+            dm.code AS method_code, dm.name_uk AS method_name
+     FROM order_delivery od
+     JOIN delivery_method dm ON dm.id = od.delivery_method_id
+     WHERE od.customerorder_id = {$orderId}
+       AND od.status != 'cancelled'
+     ORDER BY od.created_at ASC");
+$orderDeliveries = ($rOdl['ok']) ? $rOdl['rows'] : array();
+
 // ── Aggregates ────────────────────────────────────────────────────────────────
 $sumPaid = 0;
 foreach ($demands as $d) { $sumPaid += (float)$d['sum_paid']; }
@@ -156,8 +190,10 @@ echo json_encode(array(
     'demands'      => $demands,
     'ttns_np'      => $ttnsNp,
     'ttns_up'      => $ttnsUp,
+    'order_deliveries' => $orderDeliveries,
     'payments'     => $payments,
     'returns'      => $returns,
-    'sum_paid'     => $sumPaid,
-    'sum_payments' => $sumPayments,
+    'sum_paid'          => $sumPaid,
+    'sum_payments'      => $sumPayments,
+    'status_auto_flags' => $statusAutoFlags,
 ));

@@ -43,15 +43,9 @@ if ($action !== 'viber/2way' || !$phone) {
     exit;
 }
 
-// Empty message with no media = delivery report for our outbound message (Alpha SMS limitation)
-// We try to detect by checking if $sender matches our alpha name — skip delivery reports
-$isDeliveryReport = (!$message && !$mediaUrl && $sender === 'OfficeTorg');
-if ($isDeliveryReport) {
-    echo json_encode(array('ok' => true));
-    exit;
-}
-
-// Client sent something (text or possibly an attachment Alpha SMS doesn't forward)
+// Client sent something (text or possibly an attachment Alpha SMS doesn't forward as text)
+// Note: real delivery reports have action='' and are already filtered above.
+// Do NOT filter by sender='OfficeTorg' here — Alpha SMS sets our own sender name even on incoming messages.
 if (!$message && !$mediaUrl) {
     $message = '[📷 Медіа-повідомлення]';
 }
@@ -62,43 +56,82 @@ $leadRepo = new LeadRepository();
 $normalizedPhone = AlphaSmsService::normalizePhone($phone);
 $messageBody     = $message ? $message : ($mediaUrl ? '[фото]' : '');
 
+// External ID for deduplication with poll_viber_replies
+// Format: vh_{last9digits}_{YmdHi} — minute-level bucket prevents cross-save duplicates
+$phone9  = AlphaSmsService::phoneLast9($normalizedPhone);
+$dtTs    = $dt ? @strtotime($dt) : time();
+$extId   = 'vh_' . $phone9 . '_' . date('YmdHi', $dtTs ? $dtTs : time());
+
+// Dedup 1: by webhook external_id (prevents webhook retries)
+$dupCheck = Database::exists('Papir', 'cp_messages', array(
+    'external_id' => $extId, 'channel' => 'viber', 'direction' => 'in',
+));
+if ($dupCheck['ok'] && $dupCheck['exists']) {
+    echo json_encode(array('ok' => true));
+    exit;
+}
+
+// Dedup 2: content-based — catches messages already saved by poll_viber_replies.php
+// (poll uses a different external_id format, so external_id check above won't catch them)
+if ($messageBody !== '') {
+    $bodyEsc  = Database::escape('Papir', $messageBody);
+    $phoneEsc2 = Database::escape('Papir', $normalizedPhone);
+    $contentDup = Database::fetchRow('Papir',
+        "SELECT id FROM cp_messages
+         WHERE channel = 'viber' AND direction = 'in'
+           AND phone = '{$phoneEsc2}'
+           AND body  = '{$bodyEsc}'
+           AND created_at >= NOW() - INTERVAL 15 MINUTE
+         LIMIT 1");
+    if ($contentDup['ok'] && !empty($contentDup['row'])) {
+        echo json_encode(array('ok' => true));
+        exit;
+    }
+}
+
+// ── Перевірка блок-ліста спамерів ────────────────────────────────────────────
+$phoneEsc = Database::escape('Papir', $normalizedPhone);
+$spamChk  = Database::fetchRow('Papir',
+    "SELECT id FROM spam_senders WHERE channel='viber' AND identifier='{$phoneEsc}' LIMIT 1");
+if ($spamChk['ok'] && !empty($spamChk['row'])) {
+    echo json_encode(array('ok' => true));
+    exit;
+}
+
 // 1. Try to find known counterparty
 $counterpartyId = $chatRepo->findCounterpartyByPhone($phone);
 
 if ($counterpartyId > 0) {
-    // Known counterparty — save to their history
     $chatRepo->saveMessage(array(
         'counterparty_id' => $counterpartyId,
         'channel'         => 'viber',
         'direction'       => 'in',
-        'status'          => 'read',
+        'status'          => 'delivered',
         'phone'           => $normalizedPhone,
         'body'            => $messageBody,
         'media_url'       => $mediaUrl ? $mediaUrl : null,
+        'external_id'     => $extId,
         'read_at'         => null,
     ));
 } else {
-    // Unknown number — find or create a lead
     $leadId = $leadRepo->findByPhone($phone);
-
     if (!$leadId) {
-        // New contact — create lead with display_name from phone
         $leadId = $leadRepo->create(array(
             'source'       => 'viber',
             'display_name' => $normalizedPhone,
             'phone'        => $normalizedPhone,
         ));
     }
-
     if ($leadId) {
         $leadRepo->saveMessage($leadId, array(
-            'channel'   => 'viber',
-            'direction' => 'in',
-            'status'    => 'read',
-            'phone'     => $normalizedPhone,
-            'body'      => $messageBody,
-            'media_url' => $mediaUrl ? $mediaUrl : null,
-            'read_at'   => null,
+            'channel'     => 'viber',
+            'direction'   => 'in',
+            'status'      => 'delivered',
+            'phone'       => $normalizedPhone,
+            'body'        => $messageBody,
+            'media_url'   => $mediaUrl ? $mediaUrl : null,
+            'external_id' => $extId,
+            'read_at'     => null,
         ));
     }
 }

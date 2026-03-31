@@ -123,6 +123,15 @@ foreach (array_keys($msgIds) as $msgId) {
     // Extract attachments (download and save to CRM storage)
     $attachments = _gmail_get_attachments($gmail, $msgId, $payload);
 
+    // ── Перевірка блок-ліста спамерів ──────────────────────────────────────────
+
+    $emailEsc = Database::escape('Papir', strtolower(trim($fromEmail)));
+    $spamChk  = Database::fetchRow('Papir',
+        "SELECT id FROM spam_senders WHERE channel='email' AND identifier='{$emailEsc}' LIMIT 1");
+    if ($spamChk['ok'] && !empty($spamChk['row'])) {
+        return; // відправник заблокований — ігноруємо лист
+    }
+
     // ── Route to counterparty or lead ──────────────────────────────────────────
 
     $counterpartyId = _gmail_find_counterparty($fromEmail);

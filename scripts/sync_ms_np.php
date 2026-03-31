@@ -77,9 +77,11 @@ out('Відвантажень: ' . count($demandMap));
 // ── Існуючі ТТН: ref → updated_at ────────────────────────────────────────────
 
 out('Завантаження існуючих ТТН...');
-$existing = array(); // ref → updated_at
-$r = Database::fetchAll('Papir', "SELECT ref, updated_at FROM ttn_novaposhta");
-if ($r['ok']) foreach ($r['rows'] as $row) $existing[$row['ref']] = $row['updated_at'];
+$existing = array(); // ref → ['id' => int, 'updated_at' => string]
+$r = Database::fetchAll('Papir', "SELECT id, ref, updated_at FROM ttn_novaposhta");
+if ($r['ok']) foreach ($r['rows'] as $row) {
+    $existing[$row['ref']] = array('id' => (int)$row['id'], 'updated_at' => $row['updated_at']);
+}
 out('В нашій БД: ' . count($existing));
 
 // ── Загальна кількість в ms ───────────────────────────────────────────────────
@@ -171,7 +173,7 @@ while (true) {
 
         // ── UPDATE ────────────────────────────────────────────────────────────
         if (isset($existing[$ref])) {
-            if ($updatedMs && $updatedMs <= $existing[$ref]) {
+            if ($updatedMs && $updatedMs <= $existing[$ref]['updated_at']) {
                 $stats['skipped']++;
                 continue;
             }
@@ -198,13 +200,24 @@ while (true) {
                      WHERE ref={$refS}"
                 );
                 if (!$r2['ok']) { $stats['errors']++; continue; }
+
+                // Синк document_link — INSERT IGNORE на випадок якщо запис ще не існує
+                if ($orderId) {
+                    $ttnId = $existing[$ref]['id'];
+                    Database::query('Papir',
+                        "INSERT IGNORE INTO document_link
+                         (from_type, from_id, from_ms_id, to_type, to_id, to_ms_id, created_at)
+                         VALUES ('ttn_np', {$ttnId}, {$refS}, 'customerorder', {$orderIdSql}, {$idMsOrderS}, NOW())"
+                    );
+                }
             }
-            $existing[$ref] = $updatedMs;
+            $existing[$ref]['updated_at'] = $updatedMs;
             $stats['updated']++;
             continue;
         }
 
         // ── INSERT ────────────────────────────────────────────────────────────
+        $newTtnId = 0;
         if (!$dryRun) {
             $r2 = Database::query('Papir',
                 "INSERT INTO ttn_novaposhta
@@ -237,9 +250,20 @@ while (true) {
                   {$delMark}, {$idOwnerS}, {$updSql})"
             );
             if (!$r2['ok']) { $stats['errors']++; continue; }
+
+            // Отримуємо id нової ТТН і одразу синкуємо document_link
+            $rLast = Database::fetchRow('Papir', "SELECT LAST_INSERT_ID() AS id");
+            $newTtnId = ($rLast['ok'] && $rLast['row']) ? (int)$rLast['row']['id'] : 0;
+            if ($newTtnId > 0 && $orderId) {
+                Database::query('Papir',
+                    "INSERT IGNORE INTO document_link
+                     (from_type, from_id, from_ms_id, to_type, to_id, to_ms_id, created_at)
+                     VALUES ('ttn_np', {$newTtnId}, {$refS}, 'customerorder', {$orderIdSql}, {$idMsOrderS}, NOW())"
+                );
+            }
         }
 
-        $existing[$ref] = $updatedMs;
+        $existing[$ref] = array('id' => $newTtnId, 'updated_at' => $updatedMs);
         $stats['inserted']++;
     }
 

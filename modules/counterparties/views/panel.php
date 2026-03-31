@@ -136,12 +136,12 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
     <?php elseif ($isPerson): ?>
     <div class="cpp-field-row">
         <div class="cpp-field">
-            <label>Прізвище</label>
-            <input type="text" id="cpfLast" value="<?php echo htmlspecialchars((string)$cp['last_name']); ?>">
-        </div>
-        <div class="cpp-field">
             <label>Ім'я</label>
             <input type="text" id="cpfFirst" value="<?php echo htmlspecialchars((string)$cp['first_name']); ?>">
+        </div>
+        <div class="cpp-field">
+            <label>Прізвище</label>
+            <input type="text" id="cpfLast" value="<?php echo htmlspecialchars((string)$cp['last_name']); ?>">
         </div>
     </div>
     <div class="cpp-field">
@@ -595,6 +595,12 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
             .replace(/"/g,'&quot;');
     }
 
+    function linkifyHtml(html) {
+        return html.replace(/(https?:\/\/[^\s<>"']+)/g, function(url) {
+            return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="chat-link">' + url + '</a>';
+        });
+    }
+
     function formatMsgTime(dateStr) {
         var d = new Date(dateStr.replace(' ','T'));
         if (isNaN(d)) return dateStr;
@@ -692,7 +698,19 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
                 else if (m.status === 'failed') statusIcon = ' ✗';
             }
             html += '<div class="cpp-msg cpp-msg-' + dir + '" data-msg-id="' + esc(m.id) + '">';
-            html += '<div class="cpp-msg-bubble">' + esc(m.body).replace(/\n/g,'<br>') + '</div>';
+            if (dir === 'out' && m.operator_name) {
+                html += '<div class="cpp-msg-sender">' + esc(m.operator_name) + '</div>';
+            }
+            if (m.media_url) {
+                html += '<div class="cpp-msg-bubble cpp-msg-bubble-media">';
+                html += '<a href="' + esc(m.media_url) + '" target="_blank"><img src="' + esc(m.media_url) + '" alt="' + esc(m.body) + '" style="max-width:220px;max-height:220px;border-radius:6px;display:block;cursor:pointer"></a>';
+                if (m.body && m.body !== '[медіа]' && m.body !== '[📷 Медіа-повідомлення]') {
+                    html += '<div style="margin-top:4px;font-size:12px;color:#666">' + linkifyHtml(esc(m.body)) + '</div>';
+                }
+                html += '</div>';
+            } else {
+                html += '<div class="cpp-msg-bubble">' + linkifyHtml(esc(m.body).replace(/\n/g,'<br>')) + '</div>';
+            }
             html += '<div class="cpp-msg-meta">' + esc(ts) + statusIcon + '</div>';
             html += '</div>';
         }

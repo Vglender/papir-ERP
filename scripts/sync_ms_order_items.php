@@ -168,12 +168,13 @@ while ($offset < $totalToSync) {
         }
 
         // Вставляємо нові
-        $lineNo = 1;
-        $orderOk = true;
+        $lineNo   = 1;
+        $orderOk  = true;
+        $totalSum = 0.0; // накопичуємо суму для оновлення заголовку
 
         foreach ($positions as $pos) {
-            $qty   = (float)$pos['quantity'];
-            $price = (float)$pos['price'];
+            $qty    = (float)$pos['quantity'];
+            $price  = (float)$pos['price'];
             $sumRow = round($qty * $price, 2);
 
             $productMsId = trim((string)$pos['product_id']);
@@ -194,8 +195,19 @@ while ($offset < $totalToSync) {
                 if (!$r2['ok']) { $orderOk = false; break; }
             }
 
+            $totalSum += $sumRow;
             $lineNo++;
             $stats['items']++;
+        }
+
+        // Оновлюємо sum_total в заголовку замовлення — він завжди = сума позицій
+        if ($orderOk && !$dryRun) {
+            $totalSumRounded = round($totalSum, 2);
+            Database::query('Papir',
+                "UPDATE customerorder
+                 SET sum_items={$totalSumRounded}, sum_total={$totalSumRounded}, sum_discount=0
+                 WHERE id={$orderId}"
+            );
         }
 
         if ($orderOk) {

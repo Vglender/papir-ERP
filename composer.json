@@ -14,5 +14,9 @@
             "name": "vglender"
         }
     ],
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "require": {
+        "mpdf/mpdf": "^7.1",
+        "mustache/mustache": "^2.14"
+    }
 }

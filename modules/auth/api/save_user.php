@@ -25,6 +25,22 @@ $roleId         = isset($_POST['role_id'])         ? (int)$_POST['role_id']     
 $status         = isset($_POST['status'])          ? trim($_POST['status'])           : 'active';
 $employeeId     = isset($_POST['employee_id'])     ? (int)$_POST['employee_id']       : 0;
 $createEmployee = isset($_POST['create_employee']) && $_POST['create_employee'] == '1';
+$linkOnly       = isset($_POST['_link_only'])  && $_POST['_link_only']  == '1';
+$unlinkEmp      = isset($_POST['_unlink'])     && $_POST['_unlink']     == '1';
+
+// Спеціальний режим: тільки прив'язати/відв'язати employee_id
+if ($userId > 0 && ($linkOnly || $unlinkEmp)) {
+    $newEmpId = ($linkOnly && $employeeId > 0) ? $employeeId : null;
+    $r = \Database::update('Papir', 'auth_users',
+        array('employee_id' => $newEmpId),
+        array('user_id' => $userId));
+    if (!$r['ok']) {
+        echo json_encode(array('ok' => false, 'error' => 'Помилка збереження'));
+        exit;
+    }
+    echo json_encode(array('ok' => true, 'user_id' => $userId));
+    exit;
+}
 
 if ($displayName === '') {
     echo json_encode(array('ok' => false, 'error' => 'Вкажіть ім\'я користувача'));
@@ -49,6 +65,12 @@ $data = array(
     'phone'        => $phone !== '' ? $phone : null,
     'employee_id'  => $employeeId > 0 ? $employeeId : null,
 );
+
+// При оновленні — не перетирати phone/email якщо поле взагалі не передано в POST
+if ($userId > 0) {
+    if (!array_key_exists('phone', $_POST)) { unset($data['phone']); }
+    if (!array_key_exists('email', $_POST)) { unset($data['email']); }
+}
 
 if ($userId > 0) {
     // Оновлення

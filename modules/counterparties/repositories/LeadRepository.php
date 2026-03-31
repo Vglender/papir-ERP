@@ -311,13 +311,14 @@ class LeadRepository
             'lead_id'          => (int)$leadId,
             'counterparty_id'  => null,
             'channel'          => $data['channel'],
-            'direction'        => isset($data['direction']) ? $data['direction'] : 'out',
-            'status'           => isset($data['status'])    ? $data['status']    : 'sent',
-            'phone'            => isset($data['phone'])     ? $data['phone']     : null,
-            'email_addr'       => isset($data['email_addr'])? $data['email_addr']: null,
-            'subject'          => isset($data['subject'])   ? $data['subject']   : null,
+            'direction'        => isset($data['direction'])     ? $data['direction']     : 'out',
+            'operator_name'    => isset($data['operator_name']) ? $data['operator_name'] : null,
+            'status'           => isset($data['status'])        ? $data['status']        : 'sent',
+            'phone'            => isset($data['phone'])         ? $data['phone']         : null,
+            'email_addr'       => isset($data['email_addr'])    ? $data['email_addr']    : null,
+            'subject'          => isset($data['subject'])       ? $data['subject']       : null,
             'body'             => $data['body'],
-            'external_id'      => isset($data['external_id']) ? (string)$data['external_id'] : null,
+            'external_id'      => isset($data['external_id'])   ? (string)$data['external_id'] : null,
         );
         $r = Database::insert('Papir', 'cp_messages', $row);
         return $r['ok'] ? (int)$r['insert_id'] : 0;

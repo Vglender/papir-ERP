@@ -269,6 +269,18 @@ Database::escape($db, $value)
 | `product_site`               | Привязка товаров к сайтам: product_id, site_id(1=off,2=mff), site_product_id. Уникальный: (product_id,site_id) и (site_id,site_product_id) |
 | `product_image`              | Фото товаров (мастер): image_id, product_id, path, sort_order |
 | `product_image_site`         | Привязка фото к сайтам: image_id, site_id=1(off)/2(mff), sort_order |
+| `organization`               | Наши юрлица-продавцы: id, id_ms (UUID МойСклад), name, inn, okpo, iban, bank_name, mfo, director_name, logo_path, stamp_path, signature_path |
+| `organization_bank_account`  | Счета организаций: organization_id, iban, bank_name, mfo, is_default |
+
+**Организации (id → name → id_ms):**
+- `1` → ТОВ "Папір Інвест" → `188cd89b-d2ab-11ea-0a80-017f000f84f7`
+- `5` → ФОП Гльондер В.В. → `41b6ac22-d29a-11ea-0a80-0517000f0d25` (основная, ~111к заказов)
+- `6` → ФОП Чумаченко Вікторія Вікторівна → `2aac93f7-1edf-11f0-0a80-18810000bd68`
+- `7` → ФОП Рибка Лариса Олександрівна → `a629ed1b-67db-11ef-0a80-186b0029469f`
+- `8` → ТОВ "Архор" → `043320a2-1e56-11f1-0a80-1d8800016a44`
+- `9`, `10` → [Архів] — удалённые из МС (status=0, только для исторических данных)
+
+`customerorder.organization_id` — заполнено из ms.customerorder.organization через маппинг id_ms (все 118933 записей заполнены). `finance_bank.organization_ms` и `finance_cash.organization_ms` — UUID организации МС (VARCHAR, не FK).
 
 **Ключевые поля `product_papir`:**
 - `id_off` — ⚠️ **устаревшее поле**, product_id в OpenCart offtorg. Использовать только для legacy-кода и ms-интеграции (ms.stock_.model = id_off). **В новом коде брать из `product_site`.**
@@ -473,6 +485,8 @@ Database::update('Papir', 'product_papir',
 
 5. **PHP-FPM кэширует Router.php** — после изменений маршрутов нужен `systemctl reload php-fpm`.
 
+5a. **PHP-FPM работает от пользователя `apache`** — при создании файлов/папок через CLI (mkdir, touch и т.д.) они создаются от `root` и PHP не сможет в них писать. После создания директорий для хранения файлов всегда выполнять `chown apache:apache <dir>`. Путь для хранения файлов CRM: `/var/www/papir/storage/` (владелец `apache`).
+
 6. **Цены в МойСклад в копейках** — `(int)round($price * 100)`.
 
 7. **`product_stock`** — зеркало `ms.stock_` в Papir. Warehouse stock для деталей товара в каталоге (не `ms.stock_` напрямую).
@@ -483,7 +497,9 @@ Database::update('Papir', 'product_papir',
 
 10. **`image_audit.php --fix-broken`** — проверяет файлы только по off-пути (`/var/www/menufold/data/www/officetorg.com.ua/image/`). **Не применять к mff** — mff сервер отдельный, его файлы недоступны локально.
 
-11. **Два отдельных сервера**:
+11. **Изменение статуса заказа — запись в `customerorder_history`**: При **любом** изменении статуса заказа (ручном или автоматическом) нужно писать запись в `customerorder_history` с `event_type='status_change'`, `field_name='status'`, `old_value`, `new_value`, и **`is_auto=1`** если изменение автоматическое (без участия пользователя), **`is_auto=0`** если ручное. Это поле отображается в пайплайне заказа как бейджик «авто» под шагом. Ручное изменение через UI уже логируется в `save_order_status.php` (is_auto=0). Автоматические изменения (cron, интеграции, триггеры) обязаны писать is_auto=1.
+
+12. **Два отдельных сервера**:
     - `officetorg.com.ua` (off) — на ЭТОМ сервере. Файлы изображений: `/var/www/menufold/data/www/officetorg.com.ua/image/`. Папка `menufold` в пути — историческое название, не связано с menufolder.com.ua.
     - `menufolder.com.ua` (mff) — на ДРУГОМ сервере. БД доступна через `menufold.mysql.tools`. FTP: `menufold.ftp.tools:21`, user `menufold_vas`. Образы хранятся в `/menufolder.com.ua/www/image/` (относительно FTP root `/`).
     - **Синхронизация изображений**: `ProductImageService` при загрузке/удалении/замене фото автоматически вызывает `MffFtpSync` для зеркалирования на mff. Bulk sync: `scripts/sync_images_to_mff.php` (только для товаров в product_site site_id=2).

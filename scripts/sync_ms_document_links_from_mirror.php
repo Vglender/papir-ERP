@@ -16,6 +16,9 @@
  *   php scripts/sync_ms_document_links_from_mirror.php
  */
 
+$_lockFp = fopen('/tmp/sync_ms_document_links_from_mirror.lock', 'c');
+if (!flock($_lockFp, LOCK_EX | LOCK_NB)) { echo date('[H:i:s] ') . 'Already running, exit.' . PHP_EOL; exit(0); }
+
 require_once __DIR__ . '/../modules/database/database.php';
 
 $dryRun  = in_array('--dry-run', $argv);

@@ -24,16 +24,20 @@ class ChatRepository
         $row = array(
             'counterparty_id' => (int)$data['counterparty_id'],
             'channel'         => $data['channel'],
-            'direction'       => isset($data['direction'])    ? $data['direction']    : 'out',
-            'status'          => isset($data['status'])       ? $data['status']       : 'sent',
-            'phone'           => isset($data['phone'])        ? $data['phone']        : null,
-            'email_addr'      => isset($data['email_addr'])   ? $data['email_addr']   : null,
-            'subject'         => isset($data['subject'])      ? $data['subject']      : null,
+            'direction'       => isset($data['direction'])       ? $data['direction']       : 'out',
+            'operator_name'   => isset($data['operator_name'])   ? $data['operator_name']   : null,
+            'status'          => isset($data['status'])          ? $data['status']          : 'sent',
+            'phone'           => isset($data['phone'])           ? $data['phone']           : null,
+            'email_addr'      => isset($data['email_addr'])      ? $data['email_addr']      : null,
+            'subject'         => isset($data['subject'])         ? $data['subject']         : null,
             'body'            => $data['body'],
-            'media_url'       => isset($data['media_url'])    ? $data['media_url']    : null,
-            'external_id'     => isset($data['external_id'])  ? (string)$data['external_id'] : null,
-            'order_id'        => isset($data['order_id'])     ? (int)$data['order_id'] : null,
+            'media_url'       => isset($data['media_url'])       ? $data['media_url']       : null,
+            'external_id'     => isset($data['external_id'])     ? (string)$data['external_id'] : null,
+            'order_id'        => isset($data['order_id'])        ? (int)$data['order_id']   : null,
         );
+        if (!empty($data['created_at'])) {
+            $row['created_at'] = $data['created_at'];
+        }
         $r = Database::insert('Papir', 'cp_messages', $row);
         return ($r['ok']) ? (int)$r['insert_id'] : 0;
     }
@@ -120,8 +124,8 @@ class ChatRepository
              LEFT JOIN counterparty_person  cp ON cp.counterparty_id = c.id
              WHERE c.status = 1
                AND (
-                   REPLACE(REPLACE(REPLACE(REPLACE(cc.phone,'+',''),' ',''),'-',''),'(','') LIKE '%{$last9}'
-                OR REPLACE(REPLACE(REPLACE(REPLACE(cp.phone,'+',''),' ',''),'-',''),'(','') LIKE '%{$last9}'
+                   REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(cc.phone,'+',''),' ',''),'-',''),'(',''),')','') LIKE '%{$last9}'
+                OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(cp.phone,'+',''),' ',''),'-',''),'(',''),')','') LIKE '%{$last9}'
                )
              LIMIT 1");
         return ($r['ok'] && $r['row']) ? (int)$r['row']['id'] : 0;

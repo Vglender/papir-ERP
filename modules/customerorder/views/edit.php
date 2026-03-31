@@ -748,7 +748,14 @@ require_once __DIR__ . '/../../shared/layout.php';
                 <button type="submit" class="btn btn-save">Зберегти</button>
                 <a href="/customerorder" class="btn btn-close">Закрити</a>
                 <button type="button" class="btn">Дії ▾</button>
-                <button type="button" class="btn">Друк ▾</button>
+                <?php if (!empty($order['id'])): ?>
+                <button type="button" class="btn" id="printOpenBtn"
+                        onclick="PrintModal.open('order', <?php echo (int)$order['id']; ?>, <?php echo (int)isset($order['organization_id']) ? (int)$order['organization_id'] : 0; ?>)">
+                    Друк ▾
+                </button>
+                <?php else: ?>
+                <button type="button" class="btn" disabled title="Спочатку збережіть замовлення">Друк ▾</button>
+                <?php endif; ?>
                 <button type="button" class="btn">Надіслати ▾</button>
                 <label class="check-label">
                     <input type="checkbox" name="applicable" value="1" <?= checked_attr(field_value($order, 'applicable', 1)) ?>>
@@ -1639,4 +1646,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
+
+<?php require_once __DIR__ . '/../../shared/print-modal.php'; ?>
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

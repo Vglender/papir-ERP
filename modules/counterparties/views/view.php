@@ -170,6 +170,14 @@ $orderStatusLabels = array(
 .form-row input:focus,.form-row select:focus,.form-row textarea:focus { border-color:var(--blue-light); }
 .form-row textarea { resize:vertical; min-height:60px; }
 
+/* Type segmented control */
+.cp-type-seg { display:flex; gap:0; margin-bottom:16px; border:1px solid var(--border-input); border-radius:var(--radius-sm); overflow:hidden; width:fit-content; }
+.cp-type-btn { padding:6px 16px; font-size:12px; font-weight:600; border:none; background:#fff; color:var(--text-muted); cursor:pointer; border-right:1px solid var(--border-input); font-family:var(--font); transition:background .12s,color .12s; }
+.cp-type-btn:last-child { border-right:none; }
+.cp-type-btn.active { background:var(--blue); color:#fff; }
+.cp-type-btn:not(.active):hover { background:var(--blue-bg); color:var(--blue); }
+.cp-form-section-hd { grid-column:1/-1; font-size:12px; font-weight:700; color:var(--text); margin-top:4px; padding-top:12px; border-top:1px solid var(--border); }
+
 /* Contacts tab */
 .cp-contact-cards { display:flex; flex-direction:column; gap:10px; }
 .cp-contact-card {
@@ -250,6 +258,97 @@ $orderStatusLabels = array(
 .act-empty { text-align:center; padding:32px; color:var(--text-muted); font-size:13px; }
 
 /* Toast is in ui.css */
+
+/* ── Relations CRUD ───────────────────────────────────────────────── */
+.rl-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.rl-toolbar h3 { margin:0; font-size:14px; font-weight:700; }
+.rl-add-form { background:var(--bg-page); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:14px; display:none; }
+.rl-add-form.open { display:block; }
+.rl-form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:10px; }
+.rl-form-row:last-child { margin-bottom:0; }
+.rl-form-group { display:flex; flex-direction:column; gap:4px; }
+.rl-form-group label { font-size:11px; font-weight:600; color:var(--text-muted); }
+.rl-form-group input, .rl-form-group select { height:32px; padding:0 9px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font); background:#fff; }
+.rl-form-group input:focus, .rl-form-group select:focus { border-color:var(--blue-light); outline:none; }
+.rl-cp-picker-wrap { position:relative; flex:1; min-width:220px; }
+.rl-cp-picker-wrap input { width:100%; box-sizing:border-box; }
+.rl-cp-dd { position:absolute; top:100%; left:0; right:0; z-index:200; background:#fff; border:1px solid var(--border-input); border-top:none; border-radius:0 0 var(--radius-sm) var(--radius-sm); max-height:200px; overflow-y:auto; box-shadow:var(--shadow); }
+.rl-cp-opt { padding:8px 10px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
+.rl-cp-opt:last-child { border-bottom:none; }
+.rl-cp-opt:hover { background:var(--blue-bg); }
+.rl-cp-opt .rl-cp-badge { font-size:10px; font-weight:600; padding:1px 5px; border-radius:3px; background:#e5e7eb; color:#6b7280; flex-shrink:0; }
+.rl-dir-toggle { display:flex; align-items:center; gap:6px; height:32px; white-space:nowrap; font-size:12px; color:var(--text-muted); flex-shrink:0; }
+.rl-dir-toggle button { border:none; background:var(--border); border-radius:var(--radius-sm); padding:4px 8px; cursor:pointer; font-size:14px; line-height:1; }
+.rl-dir-toggle button:hover { background:var(--blue-bg); }
+.rl-primary-wrap { display:flex; align-items:center; gap:6px; height:32px; font-size:12px; font-weight:600; white-space:nowrap; cursor:pointer; }
+.rl-form-actions { display:flex; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+
+/* Relations table */
+.rl-table { width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px; }
+.rl-table th { font-size:11px; font-weight:600; color:var(--text-muted); text-align:left; padding:0 8px 8px; border-bottom:2px solid var(--border); white-space:nowrap; }
+.rl-table td { padding:9px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.rl-table tr:last-child td { border-bottom:none; }
+.rl-cp-name { font-weight:600; color:var(--text); text-decoration:none; }
+.rl-cp-name:hover { color:var(--blue); }
+.rl-type-badge { display:inline-block; font-size:10px; font-weight:600; padding:1px 6px; border-radius:10px; background:#e5e7eb; color:#6b7280; margin-left:5px; vertical-align:middle; }
+.rl-type-badge.company { background:#dbeafe; color:#1d4ed8; }
+.rl-type-badge.fop     { background:#e0f2fe; color:#0369a1; }
+.rl-type-badge.person  { background:#f3e8ff; color:#7c3aed; }
+.rl-role-pill { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:10px; background:#f3f4f6; color:#374151; }
+.rl-role-pill.role-dir { background:#dcfce7; color:#15803d; }
+.rl-role-pill.role-acc { background:#fef9c3; color:#a16207; }
+.rl-role-pill.role-mgr { background:#ede9fe; color:#6d28d9; }
+.rl-dir-arrow { font-size:16px; color:var(--text-muted); padding:0 4px; }
+.rl-primary-star { color:var(--blue); font-size:14px; }
+.rl-del-btn { border:none; background:none; cursor:pointer; padding:4px 6px; color:#d1d5db; border-radius:4px; line-height:1; }
+.rl-del-btn:hover { color:var(--red); background:#fef2f2; }
+.rl-row-actions { white-space:nowrap; display:flex; align-items:center; gap:2px; }
+.rl-edit-btn { font-size:11px; color:var(--blue); opacity:0; transition:opacity .15s; }
+.rl-table tr:hover .rl-edit-btn { opacity:1; }
+.rl-form-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:12px; }
+.rl-cp-picker-wrap { display:flex; }
+.rl-cp-picker-wrap select { border-radius:4px 0 0 4px; flex-shrink:0; }
+.rl-cp-picker-wrap input  { border-radius:0 4px 4px 0; border-left:none; flex:1; }
+.rl-empty { text-align:center; padding:24px; color:var(--text-muted); font-size:13px; }
+
+/* Graph section label */
+.rg-section-hd { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:12px; padding-top:4px; border-top:1px solid var(--border); }
+
+/* ── Files tab ─────────────────────────────────────────────────────────── */
+.fl-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.fl-toolbar h3 { margin:0; font-size:15px; font-weight:700; flex-shrink:0; }
+.fl-filters { display:flex; gap:8px; flex:1; }
+.fl-sel { height:32px; padding:0 8px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font); background:#fff; cursor:pointer; }
+.fl-upload-form { background:var(--bg-page); border:1px solid var(--border); border-radius:var(--radius-sm); padding:14px 16px; margin-bottom:14px; display:none; }
+.fl-upload-form.open { display:block; }
+.fl-upload-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; margin-bottom:12px; }
+.fl-fg { display:flex; flex-direction:column; gap:4px; }
+.fl-fg label { font-size:11px; font-weight:600; color:var(--text-muted); }
+.fl-fg input[type=text], .fl-fg select { height:32px; padding:0 9px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-size:13px; font-family:var(--font); }
+.fl-fg input[type=file] { font-size:12px; padding:4px 0; }
+.fl-required { color:var(--red); }
+.fl-upload-actions { display:flex; align-items:center; gap:8px; }
+.fl-err { color:var(--red); font-size:12px; margin-bottom:10px; }
+
+/* File list table */
+.fl-table { width:100%; border-collapse:collapse; font-size:13px; }
+.fl-table th { font-size:11px; font-weight:600; color:var(--text-muted); text-align:left; padding:0 8px 8px; border-bottom:2px solid var(--border); white-space:nowrap; }
+.fl-table td { padding:9px 8px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.fl-table tr:last-child td { border-bottom:none; }
+.fl-file-icon { font-size:18px; line-height:1; }
+.fl-file-name { font-weight:600; color:var(--text); text-decoration:none; }
+.fl-file-name:hover { color:var(--blue); }
+.fl-comment { font-size:11px; color:var(--text-muted); margin-top:2px; }
+.fl-type-badge { display:inline-block; font-size:10px; font-weight:600; padding:2px 7px; border-radius:10px; background:#e5e7eb; color:#6b7280; }
+.fl-size { color:var(--text-muted); white-space:nowrap; }
+.fl-date { color:var(--text-muted); white-space:nowrap; }
+.fl-del-btn { border:none; background:none; cursor:pointer; padding:4px 6px; color:#d1d5db; border-radius:4px; line-height:1; opacity:0; transition:opacity .15s; }
+.fl-table tr:hover .fl-del-btn { opacity:1; }
+.fl-del-btn:hover { color:var(--red); background:#fef2f2; }
+.fl-empty { text-align:center; padding:32px; color:var(--text-muted); font-size:13px; }
+.fl-loading { text-align:center; padding:24px; color:var(--text-muted); font-size:13px; }
+.cpp-msg-bubble .chat-link { color:inherit; text-decoration:underline; word-break:break-all; opacity:.9; }
+.cpp-msg-bubble .chat-link:hover { opacity:1; }
 </style>
 
 <div class="cp-view">
@@ -361,6 +460,7 @@ $orderStatusLabels = array(
     <a href="#documents" class="cp-tab-lnk <?php echo $tab==='documents'?'active':''; ?>" data-tab="documents">
         Документи <?php if ($stats['order_count']>0): ?><span style="font-size:11px;color:var(--text-faint)">(<?php echo (int)$stats['order_count']; ?>)</span><?php endif; ?>
     </a>
+    <a href="#files" class="cp-tab-lnk <?php echo $tab==='files'?'active':''; ?>" data-tab="files">Файли</a>
     <a href="#activity" class="cp-tab-lnk <?php echo $tab==='activity'?'active':''; ?>" data-tab="activity">Активність</a>
     <a href="#analytics" class="cp-tab-lnk <?php echo $tab==='analytics'?'active':''; ?>" data-tab="analytics">Аналітика</a>
 </div>
@@ -467,11 +567,11 @@ $orderStatusLabels = array(
         <div class="cp-info-section">
             <div class="cp-info-section-hd">Особиста інформація</div>
             <div class="cp-info-pairs">
-                <?php if ($cp['last_name']): ?>
-                <span class="lbl">Прізвище</span><span class="val"><?php echo htmlspecialchars($cp['last_name']); ?></span>
-                <?php endif; ?>
                 <?php if ($cp['first_name']): ?>
                 <span class="lbl">Ім'я</span><span class="val"><?php echo htmlspecialchars($cp['first_name']); ?></span>
+                <?php endif; ?>
+                <?php if ($cp['last_name']): ?>
+                <span class="lbl">Прізвище</span><span class="val"><?php echo htmlspecialchars($cp['last_name']); ?></span>
                 <?php endif; ?>
                 <?php if ($cp['middle_name']): ?>
                 <span class="lbl">По батькові</span><span class="val"><?php echo htmlspecialchars($cp['middle_name']); ?></span>
@@ -534,130 +634,135 @@ $orderStatusLabels = array(
     <div id="reqEditMode" class="hidden">
     <div id="reqFormError" class="modal-error hidden" style="margin-bottom:12px"></div>
 
-    <!-- Common fields -->
-    <div class="cp-form-grid">
-        <div class="form-row full">
-            <label>Назва / ПІБ</label>
+    <?php
+    $initPhone = ($cp['type'] === 'person') ? (string)$cp['person_phone'] : (string)$cp['company_phone'];
+    $initEmail = ($cp['type'] === 'person') ? (string)$cp['person_email'] : (string)$cp['company_email'];
+    $initNotes = ($cp['type'] === 'person') ? (string)$cp['person_notes'] : (string)$cp['company_notes'];
+    ?>
+    <!-- Type selector -->
+    <input type="hidden" id="fType" value="<?php echo htmlspecialchars($cp['type']); ?>">
+    <div class="cp-type-seg" id="fTypeSegs">
+        <button type="button" class="cp-type-btn" data-type="company">Юридична особа</button>
+        <button type="button" class="cp-type-btn" data-type="fop">ФОП</button>
+        <button type="button" class="cp-type-btn" data-type="person">Фізична особа</button>
+    </div>
+
+    <div class="cp-form-grid" id="fFormGrid">
+
+        <!-- Назва: company + fop -->
+        <div class="form-row full fg-company fg-fop">
+            <label>Назва / ПІБ ФОП</label>
             <input type="text" id="fName" value="<?php echo htmlspecialchars($cp['name']); ?>">
         </div>
 
-        <?php if ($isCompany): ?>
-        <div class="form-row">
-            <label>Коротка назва</label>
-            <input type="text" id="fShortName" value="<?php echo htmlspecialchars((string)$cp['short_name']); ?>">
-        </div>
-        <div class="form-row">
-            <label>Повна юридична назва</label>
-            <input type="text" id="fFullName" value="<?php echo htmlspecialchars((string)$cp['full_legal_name']); ?>">
-        </div>
-        <div class="form-row">
-            <label>ЄДРПОУ</label>
-            <input type="text" id="fOkpo" value="<?php echo htmlspecialchars((string)$cp['okpo']); ?>" maxlength="12">
-        </div>
-        <div class="form-row">
-            <label>ІПН</label>
-            <input type="text" id="fInn" value="<?php echo htmlspecialchars((string)$cp['inn']); ?>" maxlength="12">
-        </div>
-        <div class="form-row">
-            <label>Номер ПДВ</label>
-            <input type="text" id="fVat" value="<?php echo htmlspecialchars((string)$cp['vat_number']); ?>">
-        </div>
-        <div class="form-row full" style="margin-top:4px; margin-bottom:4px; border-top:1px solid var(--border); padding-top:12px">
-            <label style="font-size:13px; font-weight:700; color:var(--text)">Банківські реквізити</label>
-        </div>
-        <div class="form-row full">
-            <label>IBAN</label>
-            <input type="text" id="fIban" value="<?php echo htmlspecialchars((string)$cp['iban']); ?>" placeholder="UA…" maxlength="34">
-        </div>
-        <div class="form-row">
-            <label>Банк</label>
-            <input type="text" id="fBankName" value="<?php echo htmlspecialchars((string)$cp['bank_name']); ?>">
-        </div>
-        <div class="form-row">
-            <label>МФО</label>
-            <input type="text" id="fMfo" value="<?php echo htmlspecialchars((string)$cp['mfo']); ?>" maxlength="10">
-        </div>
-        <div class="form-row full" style="margin-top:4px; margin-bottom:4px; border-top:1px solid var(--border); padding-top:12px">
-            <label style="font-size:13px; font-weight:700; color:var(--text)">Контакти і адреси</label>
-        </div>
-        <div class="form-row">
-            <label>Телефон</label>
-            <input type="text" id="fPhone" value="<?php echo htmlspecialchars((string)$cp['company_phone']); ?>">
-        </div>
-        <div class="form-row">
-            <label>Email</label>
-            <input type="email" id="fEmail" value="<?php echo htmlspecialchars((string)$cp['company_email']); ?>">
-        </div>
-        <div class="form-row">
-            <label>Сайт</label>
-            <input type="text" id="fWebsite" value="<?php echo htmlspecialchars((string)$cp['website']); ?>" placeholder="https://…">
-        </div>
-        <div class="form-row"></div>
-        <div class="form-row full">
-            <label>Юридична адреса</label>
-            <input type="text" id="fLegalAddr" value="<?php echo htmlspecialchars((string)$cp['legal_address']); ?>">
-        </div>
-        <div class="form-row full">
-            <label>Фактична адреса</label>
-            <input type="text" id="fActualAddr" value="<?php echo htmlspecialchars((string)$cp['actual_address']); ?>">
-        </div>
-        <div class="form-row full">
-            <label>Нотатки</label>
-            <textarea id="fNotes" rows="3"><?php echo htmlspecialchars((string)$cp['company_notes']); ?></textarea>
-        </div>
-
-        <?php elseif ($isPerson): ?>
-        <div class="form-row">
-            <label>Прізвище</label>
-            <input type="text" id="fLastName" value="<?php echo htmlspecialchars((string)$cp['last_name']); ?>">
-        </div>
-        <div class="form-row">
+        <!-- ПІБ: person only -->
+        <div class="form-row fg-person">
             <label>Ім'я</label>
             <input type="text" id="fFirstName" value="<?php echo htmlspecialchars((string)$cp['first_name']); ?>">
         </div>
-        <div class="form-row">
+        <div class="form-row fg-person">
+            <label>Прізвище</label>
+            <input type="text" id="fLastName" value="<?php echo htmlspecialchars((string)$cp['last_name']); ?>">
+        </div>
+        <div class="form-row fg-person">
             <label>По батькові</label>
             <input type="text" id="fMiddleName" value="<?php echo htmlspecialchars((string)$cp['middle_name']); ?>">
         </div>
-        <div class="form-row">
+        <div class="form-row fg-person">
             <label>Посада</label>
             <input type="text" id="fPosition" value="<?php echo htmlspecialchars((string)$cp['position_name']); ?>">
         </div>
-        <div class="form-row full" style="margin-top:4px; margin-bottom:4px; border-top:1px solid var(--border); padding-top:12px">
-            <label style="font-size:13px; font-weight:700; color:var(--text)">Контакти</label>
+
+        <!-- Реквізити: company only -->
+        <div class="cp-form-section-hd fg-company">Реквізити</div>
+        <div class="form-row fg-company">
+            <label>Коротка назва</label>
+            <input type="text" id="fShortName" value="<?php echo htmlspecialchars((string)$cp['short_name']); ?>">
         </div>
+        <div class="form-row fg-company">
+            <label>Повна юридична назва</label>
+            <input type="text" id="fFullName" value="<?php echo htmlspecialchars((string)$cp['full_legal_name']); ?>">
+        </div>
+        <div class="form-row fg-company">
+            <label>ЄДРПОУ</label>
+            <input type="text" id="fOkpo" value="<?php echo htmlspecialchars((string)$cp['okpo']); ?>" maxlength="12" placeholder="12345678">
+        </div>
+
+        <!-- ІПН + ПДВ: company + fop -->
+        <div class="form-row fg-company fg-fop">
+            <label>ІПН</label>
+            <input type="text" id="fInn" value="<?php echo htmlspecialchars((string)$cp['inn']); ?>" maxlength="12" placeholder="1234567890">
+        </div>
+        <div class="form-row fg-company fg-fop">
+            <label>Свідоцтво ПДВ</label>
+            <input type="text" id="fVat" value="<?php echo htmlspecialchars((string)$cp['vat_number']); ?>" placeholder="№ свідоцтва або НЕ ПЛАТНИК">
+        </div>
+
+        <!-- Банківські: company + fop -->
+        <div class="cp-form-section-hd fg-company fg-fop">Банківські реквізити</div>
+        <div class="form-row full fg-company fg-fop">
+            <label>IBAN</label>
+            <input type="text" id="fIban" value="<?php echo htmlspecialchars((string)$cp['iban']); ?>" placeholder="UA…" maxlength="34">
+        </div>
+        <div class="form-row fg-company fg-fop">
+            <label>Банк</label>
+            <input type="text" id="fBankName" value="<?php echo htmlspecialchars((string)$cp['bank_name']); ?>">
+        </div>
+        <div class="form-row fg-company fg-fop">
+            <label>МФО</label>
+            <input type="text" id="fMfo" value="<?php echo htmlspecialchars((string)$cp['mfo']); ?>" maxlength="10">
+        </div>
+
+        <!-- Контакти: всі -->
+        <div class="cp-form-section-hd">Контакти</div>
         <div class="form-row">
             <label>Телефон</label>
-            <input type="text" id="fPhone" value="<?php echo htmlspecialchars((string)$cp['person_phone']); ?>">
+            <input type="text" id="fPhone" value="<?php echo htmlspecialchars($initPhone); ?>">
         </div>
-        <div class="form-row">
+        <div class="form-row fg-person">
             <label>Телефон (дод.)</label>
             <input type="text" id="fPhoneAlt" value="<?php echo htmlspecialchars((string)$cp['phone_alt']); ?>">
         </div>
         <div class="form-row">
             <label>Email</label>
-            <input type="email" id="fEmail" value="<?php echo htmlspecialchars((string)$cp['person_email']); ?>">
+            <input type="email" id="fEmail" value="<?php echo htmlspecialchars($initEmail); ?>">
         </div>
-        <div class="form-row">
+        <div class="form-row fg-company">
+            <label>Сайт</label>
+            <input type="text" id="fWebsite" value="<?php echo htmlspecialchars((string)$cp['website']); ?>" placeholder="https://…">
+        </div>
+        <div class="form-row fg-person">
             <label>Дата народження</label>
             <input type="date" id="fBirthDate" value="<?php echo htmlspecialchars((string)$cp['birth_date']); ?>">
         </div>
-        <div class="form-row">
+        <div class="form-row fg-person">
             <label>Telegram</label>
             <input type="text" id="fTelegram" value="<?php echo htmlspecialchars((string)$cp['telegram']); ?>" placeholder="@username">
         </div>
-        <div class="form-row">
+        <div class="form-row fg-person">
             <label>Viber</label>
             <input type="text" id="fViber" value="<?php echo htmlspecialchars((string)$cp['viber']); ?>">
         </div>
+
+        <!-- Адреси: company + fop -->
+        <div class="cp-form-section-hd fg-company fg-fop">Адреси</div>
+        <div class="form-row full fg-company fg-fop">
+            <label>Юридична адреса</label>
+            <input type="text" id="fLegalAddr" value="<?php echo htmlspecialchars((string)$cp['legal_address']); ?>">
+        </div>
+        <div class="form-row full fg-company fg-fop">
+            <label>Фактична адреса</label>
+            <input type="text" id="fActualAddr" value="<?php echo htmlspecialchars((string)$cp['actual_address']); ?>">
+        </div>
+
+        <!-- Нотатки: всі -->
         <div class="form-row full">
             <label>Нотатки</label>
-            <textarea id="fNotes" rows="3"><?php echo htmlspecialchars((string)$cp['person_notes']); ?></textarea>
+            <textarea id="fNotes" rows="3"><?php echo htmlspecialchars($initNotes); ?></textarea>
         </div>
-        <?php endif; ?>
 
-        <!-- Group (common) -->
-        <div class="form-row full" style="margin-top:4px; border-top:1px solid var(--border); padding-top:12px">
+        <!-- Група: company only -->
+        <div class="form-row full fg-company" style="border-top:1px solid var(--border); padding-top:12px; margin-top:4px">
             <label>Група компаній</label>
             <div class="cp-group-row">
                 <select id="fGroupId">
@@ -750,101 +855,223 @@ $orderStatusLabels = array(
 <div class="card rg-wrap">
 
 <?php
-// Prepare role CSS class
 function rgRoleClass($relType) {
     if ($relType === 'director')   return 'role-dir';
     if ($relType === 'accountant') return 'role-acc';
     if ($relType === 'manager')    return 'role-mgr';
     return '';
 }
-$hasAnything = !empty($groupMembers) || !empty($contacts) || !empty($relations);
+$allRelations = array_merge($contacts, $relations);
+$relTypeOptions = array(
+    // person ↔ company
+    'contact_person'     => 'Контактна особа',
+    'director'           => 'Директор',
+    'accountant'         => 'Бухгалтер',
+    'manager'            => 'Менеджер',
+    'signer'             => 'Підписант',
+    'employee'           => 'Співробітник',
+    'buyer'              => 'Покупець',
+    'receiver'           => 'Отримувач',
+    'payer'              => 'Платник',
+    'department_contact' => 'Контакт підрозділу',
+    // company ↔ company
+    'subsidiary'         => 'Дочірня компанія',
+    'branch'             => 'Філія',
+    'partner'            => 'Партнер',
+    'supplier'           => 'Постачальник',
+    'client'             => 'Клієнт',
+    'other'              => 'Інше',
+);
 ?>
 
-<?php if (!$hasAnything): ?>
-    <div class="rg-empty">Зв'язків ще немає.<br>Додайте контактні особи або пов'яжіть з іншими контрагентами.</div>
-<?php else: ?>
+<!-- ── CRUD section ───────────────────────────────────────────────────── -->
+<div class="rl-toolbar">
+    <h3>Зв'язки та контакти</h3>
+    <button class="btn btn-primary btn-sm" id="btnAddRelation" type="button">+ Додати зв'язок</button>
+</div>
 
-    <?php /* ── Group strip ───────────────────────────────────────────── */ ?>
-    <?php if (!empty($groupMembers)): ?>
-    <div class="rg-group-strip">
-        <div class="rg-group-lbl">Група: <?php echo htmlspecialchars($cp['group_name']); ?></div>
-        <div class="rg-group-nodes">
-            <?php foreach ($groupMembers as $gi => $m):
-                $mInit   = mb_strtoupper(mb_substr($m['name'],0,1,'UTF-8'),'UTF-8');
-                $isSelf  = ((int)$m['id'] === $id);
-            ?>
-            <?php if ($gi > 0): ?><span class="rg-group-sep">—</span><?php endif; ?>
-            <a href="/counterparties/view?id=<?php echo $m['id']; ?>"
-               class="rg-group-node <?php echo $isSelf ? 'rg-self' : ''; ?>">
-                <div class="mini-av"><?php echo $mInit; ?></div>
-                <?php echo htmlspecialchars($m['name']); ?>
-                <?php if ($m['group_is_head']): ?>
-                    <span style="font-size:9px;color:var(--blue);font-weight:400"> ★</span>
-                <?php endif; ?>
+<!-- Add/Edit form (hidden by default) -->
+<div class="rl-add-form" id="rlAddForm">
+    <div class="rl-form-title" id="rlFormTitle">Новий зв'язок</div>
+    <input type="hidden" id="rlRelId" value="">
+    <div id="rlAddErr" style="display:none;color:var(--red);font-size:12px;margin-bottom:8px"></div>
+    <div class="rl-form-row">
+        <!-- Counterparty picker -->
+        <div class="rl-form-group" style="flex:1;min-width:200px" id="rlCpPickerGroup">
+            <label>Контрагент</label>
+            <div class="rl-cp-picker-wrap">
+                <select id="rlSearchScope" style="height:32px;font-size:12px;border:1px solid var(--border);border-radius:4px 0 0 4px;padding:0 6px;background:#fff;cursor:pointer">
+                    <option value="">Усі</option>
+                    <option value="person">Фізособи</option>
+                    <option value="business">Юрособи та ФОП</option>
+                </select>
+                <input type="text" id="rlCpSearch" placeholder="Пошук за назвою або ID…" autocomplete="off" style="border-radius:0 4px 4px 0;border-left:none">
+                <div class="rl-cp-dd" id="rlCpDd" style="display:none"></div>
+            </div>
+        </div>
+        <input type="hidden" id="rlCpId" value="">
+        <!-- Role -->
+        <div class="rl-form-group">
+            <label>Роль / тип зв'язку</label>
+            <select id="rlRelType">
+                <?php foreach ($relTypeOptions as $v => $l): ?>
+                <option value="<?php echo $v; ?>"><?php echo $l; ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <!-- Job title -->
+        <div class="rl-form-group">
+            <label>Посада / уточнення</label>
+            <input type="text" id="rlJobTitle" placeholder="напр. Головний бухгалтер" style="width:180px">
+        </div>
+        <!-- Is primary -->
+        <label class="rl-primary-wrap">
+            <input type="checkbox" id="rlIsPrimary">
+            Основний
+        </label>
+    </div>
+    <!-- Direction row (only for new relations) -->
+    <div class="rl-dir-toggle" id="rlDirWrap">
+        <span id="rlDirLabel"></span>
+        <button type="button" id="rlDirSwap" title="Змінити напрямок">⇄</button>
+    </div>
+    <div class="rl-form-actions">
+        <button class="btn btn-primary btn-sm" id="rlBtnSave" type="button">Зберегти</button>
+        <button class="btn btn-ghost btn-sm" id="rlBtnCancel" type="button">Скасувати</button>
+    </div>
+</div>
+
+<!-- Relations table -->
+<?php if (empty($allRelations)): ?>
+<div class="rl-empty">Зв'язків ще немає. Натисніть «+ Додати зв'язок».</div>
+<?php else: ?>
+<table class="rl-table">
+    <thead>
+        <tr>
+            <th>Контрагент</th>
+            <th>Роль</th>
+            <th>Посада</th>
+            <th></th><!-- is_primary -->
+            <th>Напрям</th>
+            <th></th><!-- edit/delete -->
+        </tr>
+    </thead>
+    <tbody>
+    <?php foreach ($allRelations as $rel):
+        $rType = $rel['type'];
+        $rBadgeCls = in_array($rType, array('company','fop','person')) ? $rType : '';
+        $rTypeLabel = CounterpartyRepository::typeLabel($rType);
+        $roleLabel  = CounterpartyRepository::relationTypeLabel($rel['relation_type']);
+        $roleCls    = rgRoleClass($rel['relation_type']);
+        $dir        = isset($rel['direction']) ? $rel['direction'] : 'outgoing';
+    ?>
+    <tr data-rel-id="<?php echo (int)$rel['relation_id']; ?>">
+        <td>
+            <a href="/counterparties/view?id=<?php echo (int)$rel['id']; ?>" class="rl-cp-name">
+                <?php echo htmlspecialchars($rel['name']); ?>
             </a>
-            <?php endforeach; ?>
+            <span class="rl-type-badge <?php echo $rBadgeCls; ?>"><?php echo $rTypeLabel; ?></span>
+        </td>
+        <td><span class="rl-role-pill <?php echo $roleCls ? 'role-dir' === $roleCls ? 'role-dir' : ($roleCls === 'role-acc' ? 'role-acc' : 'role-mgr') : ''; ?>"><?php echo $roleLabel; ?></span></td>
+        <td style="color:var(--text-muted)"><?php echo htmlspecialchars((string)$rel['job_title']); ?></td>
+        <td><?php if ($rel['is_primary']): ?><span class="rl-primary-star" title="Основний">★</span><?php endif; ?></td>
+        <td class="rl-dir-arrow" title="<?php echo $dir === 'outgoing' ? 'Поточний → Інший' : 'Інший → Поточний'; ?>">
+            <?php echo $dir === 'outgoing' ? '→' : '←'; ?>
+        </td>
+        <td class="rl-row-actions">
+            <button class="rl-edit-btn btn btn-ghost btn-xs"
+                data-id="<?php echo (int)$rel['relation_id']; ?>"
+                data-other-id="<?php echo (int)$rel['id']; ?>"
+                data-other-name="<?php echo htmlspecialchars($rel['name'], ENT_QUOTES); ?>"
+                data-rel-type="<?php echo htmlspecialchars($rel['relation_type'], ENT_QUOTES); ?>"
+                data-job-title="<?php echo htmlspecialchars((string)$rel['job_title'], ENT_QUOTES); ?>"
+                data-is-primary="<?php echo $rel['is_primary'] ? '1' : '0'; ?>"
+                data-dir="<?php echo $dir === 'outgoing' ? 'out' : 'in'; ?>"
+                title="Редагувати">Змінити</button>
+            <button class="rl-del-btn" data-id="<?php echo (int)$rel['relation_id']; ?>" title="Видалити зв'язок">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </button>
+        </td>
+    </tr>
+    <?php endforeach; ?>
+    </tbody>
+</table>
+<?php endif; ?>
+
+<!-- ── Graph section ──────────────────────────────────────────────────── -->
+<?php if (!empty($groupMembers) || !empty($contacts) || !empty($relations)): ?>
+<div class="rg-section-hd">Схема зв'язків</div>
+
+<?php if (!empty($groupMembers)): ?>
+<div class="rg-group-strip">
+    <div class="rg-group-lbl">Група: <?php echo htmlspecialchars($cp['group_name']); ?></div>
+    <div class="rg-group-nodes">
+        <?php foreach ($groupMembers as $gi => $m):
+            $mInit  = mb_strtoupper(mb_substr($m['name'],0,1,'UTF-8'),'UTF-8');
+            $isSelf = ((int)$m['id'] === $id);
+        ?>
+        <?php if ($gi > 0): ?><span class="rg-group-sep">—</span><?php endif; ?>
+        <a href="/counterparties/view?id=<?php echo $m['id']; ?>" class="rg-group-node <?php echo $isSelf ? 'rg-self' : ''; ?>">
+            <div class="mini-av"><?php echo $mInit; ?></div>
+            <?php echo htmlspecialchars($m['name']); ?>
+            <?php if ($m['group_is_head']): ?><span style="font-size:9px;color:var(--blue);font-weight:400"> ★</span><?php endif; ?>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</div>
+<?php endif; ?>
+
+<div class="rg-main" id="rgMain">
+    <svg class="rg-svg" id="rgSvg"></svg>
+    <div class="rg-row" id="rgRowSelf">
+        <div class="rg-node-wrap">
+            <div class="rg-node rg-self <?php echo htmlspecialchars($cp['type']); ?>" id="rgNodeSelf">
+                <div class="rg-av"><?php echo $initials; ?></div>
+                <div class="rg-name"><?php echo htmlspecialchars($cp['name']); ?></div>
+                <div class="rg-type"><?php echo CounterpartyRepository::typeLabel($cp['type']); ?></div>
+            </div>
         </div>
     </div>
-    <?php endif; ?>
 
-    <?php /* ── Main graph ───────────────────────────────────────────── */ ?>
-    <div class="rg-main" id="rgMain">
-        <svg class="rg-svg" id="rgSvg"></svg>
-
-        <?php /* Row 0 — self node */ ?>
-        <div class="rg-row" id="rgRowSelf">
-            <div class="rg-node-wrap">
-                <div class="rg-node rg-self <?php echo htmlspecialchars($cp['type']); ?>" id="rgNodeSelf">
-                    <div class="rg-av"><?php echo $initials; ?></div>
-                    <div class="rg-name"><?php echo htmlspecialchars($cp['name']); ?></div>
-                    <div class="rg-type"><?php echo CounterpartyRepository::typeLabel($cp['type']); ?></div>
-                </div>
-            </div>
-        </div>
-
-        <?php /* Row 1 — connected nodes */ ?>
-        <?php $allChildren = array_merge($contacts, $relations); ?>
-        <?php if (!empty($allChildren)): ?>
-        <div class="rg-row" id="rgRowChildren">
-            <?php foreach ($contacts as $c):
-                $cInit    = mb_strtoupper(mb_substr($c['name'],0,1,'UTF-8'),'UTF-8');
-                $roleClass = rgRoleClass($c['relation_type']);
-                $roleLabel = CounterpartyRepository::relationTypeLabel($c['relation_type']);
-            ?>
-            <div class="rg-node-wrap" data-child-of="rgNodeSelf">
-                <?php if ($c['is_primary']): ?>
-                    <div class="rg-dir-badge">Основний</div>
+    <?php $allChildren = array_merge($contacts, $relations); ?>
+    <?php if (!empty($allChildren)): ?>
+    <div class="rg-row" id="rgRowChildren">
+        <?php foreach ($contacts as $c):
+            $cInit    = mb_strtoupper(mb_substr($c['name'],0,1,'UTF-8'),'UTF-8');
+            $roleClass = rgRoleClass($c['relation_type']);
+            $roleLabel = CounterpartyRepository::relationTypeLabel($c['relation_type']);
+        ?>
+        <div class="rg-node-wrap" data-child-of="rgNodeSelf">
+            <?php if ($c['is_primary']): ?><div class="rg-dir-badge">Основний</div><?php endif; ?>
+            <a href="/counterparties/view?id=<?php echo $c['id']; ?>" class="rg-node person">
+                <div class="rg-av"><?php echo $cInit; ?></div>
+                <div class="rg-name"><?php echo htmlspecialchars($c['name']); ?></div>
+                <div class="rg-role <?php echo $roleClass; ?>"><?php echo $roleLabel; ?></div>
+                <?php if ($c['job_title']): ?>
+                    <div class="rg-contact"><?php echo htmlspecialchars($c['job_title']); ?></div>
+                <?php elseif (!empty($c['phone'])): ?>
+                    <div class="rg-contact"><?php echo htmlspecialchars($c['phone']); ?></div>
                 <?php endif; ?>
-                <a href="/counterparties/view?id=<?php echo $c['id']; ?>" class="rg-node person">
-                    <div class="rg-av"><?php echo $cInit; ?></div>
-                    <div class="rg-name"><?php echo htmlspecialchars($c['name']); ?></div>
-                    <div class="rg-role <?php echo $roleClass; ?>"><?php echo $roleLabel; ?></div>
-                    <?php if ($c['job_title']): ?>
-                        <div class="rg-contact"><?php echo htmlspecialchars($c['job_title']); ?></div>
-                    <?php elseif ($c['phone']): ?>
-                        <div class="rg-contact"><?php echo htmlspecialchars($c['phone']); ?></div>
-                    <?php endif; ?>
-                </a>
-            </div>
-            <?php endforeach; ?>
-
-            <?php foreach ($relations as $rel):
-                $rInit    = mb_strtoupper(mb_substr($rel['name'],0,1,'UTF-8'),'UTF-8');
-                $rCls     = in_array($rel['type'],array('company','fop','person')) ? $rel['type'] : 'other';
-                $roleLabel = CounterpartyRepository::relationTypeLabel($rel['relation_type']);
-            ?>
-            <div class="rg-node-wrap" data-child-of="rgNodeSelf">
-                <a href="/counterparties/view?id=<?php echo $rel['id']; ?>" class="rg-node <?php echo $rCls; ?>">
-                    <div class="rg-av"><?php echo $rInit; ?></div>
-                    <div class="rg-name"><?php echo htmlspecialchars($rel['name']); ?></div>
-                    <div class="rg-role <?php echo rgRoleClass($rel['relation_type']); ?>"><?php echo $roleLabel; ?></div>
-                </a>
-            </div>
-            <?php endforeach; ?>
+            </a>
         </div>
-        <?php endif; ?>
+        <?php endforeach; ?>
 
-    </div><!-- /rg-main -->
+        <?php foreach ($relations as $rel):
+            $rInit    = mb_strtoupper(mb_substr($rel['name'],0,1,'UTF-8'),'UTF-8');
+            $rCls     = in_array($rel['type'],array('company','fop','person')) ? $rel['type'] : 'other';
+            $roleLabel = CounterpartyRepository::relationTypeLabel($rel['relation_type']);
+        ?>
+        <div class="rg-node-wrap" data-child-of="rgNodeSelf">
+            <a href="/counterparties/view?id=<?php echo $rel['id']; ?>" class="rg-node <?php echo $rCls; ?>">
+                <div class="rg-av"><?php echo $rInit; ?></div>
+                <div class="rg-name"><?php echo htmlspecialchars($rel['name']); ?></div>
+                <div class="rg-role <?php echo rgRoleClass($rel['relation_type']); ?>"><?php echo $roleLabel; ?></div>
+            </a>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div><!-- /rg-main -->
 
 <script>
 (function() {
@@ -861,12 +1088,12 @@ $hasAnything = !empty($groupMembers) || !empty($contacts) || !empty($relations);
         var sx = sr.left - mr.left + sr.width / 2;
         var sy = sr.top  - mr.top  + sr.height;
         main.querySelectorAll('[data-child-of="rgNodeSelf"] .rg-node').forEach(function(node) {
-            var nr = node.getBoundingClientRect();
-            var nx = nr.left - mr.left + nr.width / 2;
-            var ny = nr.top  - mr.top;
+            var nr  = node.getBoundingClientRect();
+            var nx  = nr.left - mr.left + nr.width / 2;
+            var ny  = nr.top  - mr.top;
             var midY = sy + (ny - sy) * 0.5;
-            var d = 'M'+sx+' '+sy+' C'+sx+' '+midY+','+nx+' '+midY+','+nx+' '+ny;
-            var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            var d  = 'M'+sx+' '+sy+' C'+sx+' '+midY+','+nx+' '+midY+','+nx+' '+ny;
+            var path = document.createElementNS('http://www.w3.org/2000/svg','path');
             path.setAttribute('d', d);
             path.setAttribute('fill', 'none');
             path.setAttribute('stroke', '#d0d9e3');
@@ -887,6 +1114,201 @@ $hasAnything = !empty($groupMembers) || !empty($contacts) || !empty($relations);
 </script>
 
 <?php endif; ?>
+
+<!-- ── CRUD JS ────────────────────────────────────────────────────────── -->
+<script>
+(function() {
+    var cpId    = <?php echo $id; ?>;
+    var cpName  = <?php echo json_encode($cp['name']); ?>;
+
+    // Direction state: 'out' = current→other (current=parent), 'in' = other→current (current=child)
+    var dir     = 'out';
+    var selCpId = 0;
+    var searchTimer = null;
+
+    // ── DOM refs ──
+    var btnAdd      = document.getElementById('btnAddRelation');
+    var form        = document.getElementById('rlAddForm');
+    var btnCancel   = document.getElementById('rlBtnCancel');
+    var relIdInp    = document.getElementById('rlRelId');
+    var formTitle   = document.getElementById('rlFormTitle');
+    var cpPickerGrp = document.getElementById('rlCpPickerGroup');
+    var dirWrap     = document.getElementById('rlDirWrap');
+    var searchInp   = document.getElementById('rlCpSearch');
+    var cpDd        = document.getElementById('rlCpDd');
+    var cpIdInp     = document.getElementById('rlCpId');
+    var scopeSel    = document.getElementById('rlSearchScope');
+
+    function updateDirLabel() {
+        var other = searchInp.value || '\u2026';
+        var lbl   = document.getElementById('rlDirLabel');
+        if (dir === 'out') lbl.textContent = cpName + '  \u2192  ' + other;
+        else               lbl.textContent = other + '  \u2192  ' + cpName;
+    }
+
+    function openForm(editMode) {
+        form.classList.add('open');
+        btnAdd.style.display = 'none';
+        dirWrap.style.display     = editMode ? 'none' : '';
+        cpPickerGrp.style.display = editMode ? 'none' : '';
+        if (!editMode) { updateDirLabel(); searchInp.focus(); }
+    }
+
+    function resetForm() {
+        selCpId = 0;
+        dir     = 'out';
+        relIdInp.value  = '';
+        searchInp.value = '';
+        cpIdInp.value   = '';
+        document.getElementById('rlJobTitle').value = '';
+        document.getElementById('rlIsPrimary').checked = false;
+        document.getElementById('rlRelType').selectedIndex = 0;
+        document.getElementById('rlAddErr').style.display = 'none';
+        cpDd.style.display = 'none';
+        formTitle.textContent = 'Новий зв\u2019язок';
+    }
+
+    if (btnAdd) btnAdd.addEventListener('click', function() {
+        resetForm();
+        openForm(false);
+    });
+    if (btnCancel) btnCancel.addEventListener('click', function() {
+        form.classList.remove('open');
+        btnAdd.style.display = '';
+        resetForm();
+    });
+
+    document.getElementById('rlDirSwap').addEventListener('click', function() {
+        dir = (dir === 'out') ? 'in' : 'out';
+        updateDirLabel();
+    });
+
+    // ── Counterparty picker ──
+    searchInp.addEventListener('input', function() {
+        var q = this.value.trim();
+        updateDirLabel();
+        if (q.length < 1) { cpDd.style.display = 'none'; return; }
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function() { doSearch(q); }, 250);
+    });
+
+    searchInp.addEventListener('blur', function() {
+        setTimeout(function() { cpDd.style.display = 'none'; }, 180);
+    });
+
+    function doSearch(q) {
+        var scope = scopeSel ? scopeSel.value : '';
+        fetch('/counterparties/api/search?q=' + encodeURIComponent(q) + '&exclude=' + cpId + (scope ? '&type=' + scope : ''))
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            cpDd.innerHTML = '';
+            if (!d.ok || !d.items || !d.items.length) { cpDd.style.display = 'none'; return; }
+            d.items.forEach(function(item) {
+                var opt = document.createElement('div');
+                opt.className = 'rl-cp-opt';
+                var badgeCls = (item.type === 'company' || item.type === 'fop' || item.type === 'person') ? item.type : '';
+                opt.innerHTML = '<span class="rl-cp-badge ' + badgeCls + '">' + escHtml(item.type_label || item.type) + '</span>'
+                              + '<span>' + escHtml(item.name) + '</span>';
+                opt.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    selCpId = item.id;
+                    cpIdInp.value      = item.id;
+                    searchInp.value    = item.name;
+                    cpDd.style.display = 'none';
+                    updateDirLabel();
+                });
+                cpDd.appendChild(opt);
+            });
+            cpDd.style.display = 'block';
+        })
+        .catch(function() { cpDd.style.display = 'none'; });
+    }
+
+    // ── Edit button ──
+    document.querySelectorAll('.rl-edit-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var b = this.dataset;
+            resetForm();
+            relIdInp.value = b.id;
+            // Pre-fill counterparty name (readonly in edit mode)
+            searchInp.value = b.otherName;
+            cpIdInp.value   = b.otherId;
+            selCpId = parseInt(b.otherId, 10);
+            // Pre-fill rel type
+            var sel = document.getElementById('rlRelType');
+            for (var i = 0; i < sel.options.length; i++) {
+                if (sel.options[i].value === b.relType) { sel.selectedIndex = i; break; }
+            }
+            document.getElementById('rlJobTitle').value     = b.jobTitle || '';
+            document.getElementById('rlIsPrimary').checked  = b.isPrimary === '1';
+            dir = b.dir || 'out';
+            formTitle.textContent = '\u0420\u0435\u0434\u0430\u0433\u0443\u0432\u0430\u0442\u0438 \u0437\u0432\u2019\u044f\u0437\u043e\u043a';
+            openForm(true);
+        });
+    });
+
+    // ── Save ──
+    document.getElementById('rlBtnSave').addEventListener('click', function() {
+        var errBox  = document.getElementById('rlAddErr');
+        var saveBtn = document.getElementById('rlBtnSave');
+        errBox.style.display = 'none';
+
+        var relType  = document.getElementById('rlRelType').value;
+        var editRelId = parseInt(relIdInp.value, 10);
+
+        if (!relType) { errBox.textContent = 'Оберіть тип зв\u2019язку'; errBox.style.display = 'block'; return; }
+
+        var fd = new FormData();
+        fd.append('relation_type', relType);
+        fd.append('job_title',    document.getElementById('rlJobTitle').value.trim());
+        if (document.getElementById('rlIsPrimary').checked) fd.append('is_primary', '1');
+
+        if (editRelId > 0) {
+            // Update mode — only role/job fields, not participants
+            fd.append('id', editRelId);
+        } else {
+            // Create mode — need participants
+            var otherId = parseInt(cpIdInp.value, 10);
+            if (!otherId) { errBox.textContent = 'Оберіть контрагента'; errBox.style.display = 'block'; return; }
+            fd.append('parent_id', (dir === 'out') ? cpId : otherId);
+            fd.append('child_id',  (dir === 'out') ? otherId : cpId);
+        }
+
+        saveBtn.disabled = true;
+        fetch('/counterparties/api/save_relation', { method:'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            saveBtn.disabled = false;
+            if (!res.ok) { errBox.textContent = res.error || 'Помилка'; errBox.style.display = 'block'; return; }
+            window.location.href = '/counterparties/view?id=' + cpId + '&tab=relations';
+        })
+        .catch(function() {
+            saveBtn.disabled = false;
+            errBox.textContent = 'Помилка мережі'; errBox.style.display = 'block';
+        });
+    });
+
+    // ── Delete ──
+    document.querySelectorAll('.rl-del-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var relId = parseInt(this.dataset.id, 10);
+            if (!relId || !confirm('Видалити цей зв\u2019язок?')) return;
+            var fd = new FormData();
+            fd.append('id', relId);
+            fetch('/counterparties/api/delete_relation', { method:'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.ok) window.location.href = '/counterparties/view?id=' + cpId + '&tab=relations';
+                else alert(res.error || 'Помилка видалення');
+            });
+        });
+    });
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+}());
+</script>
 
 </div>
 </div>
@@ -936,6 +1358,59 @@ $hasAnything = !empty($groupMembers) || !empty($contacts) || !empty($relations);
 </div>
 </div>
 
+
+<!-- ═══ Tab: Файли ═══════════════════════════════════════════════════════════ -->
+<div class="cp-tab-panel <?php echo $tab==='files'?'active':''; ?>" id="panel-files">
+<div class="card" style="padding:20px 24px">
+
+    <!-- Toolbar -->
+    <div class="fl-toolbar">
+        <h3>Файли</h3>
+        <div class="fl-filters">
+            <select id="flTypeFilter" class="fl-sel">
+                <option value="">Всі типи</option>
+            </select>
+            <select id="flSortSel" class="fl-sel">
+                <option value="desc">Нові спочатку</option>
+                <option value="asc">Старі спочатку</option>
+            </select>
+        </div>
+        <button class="btn btn-primary btn-sm" id="flBtnUpload" type="button">+ Завантажити</button>
+    </div>
+
+    <!-- Upload form -->
+    <div class="fl-upload-form" id="flUploadForm">
+        <div id="flUploadErr" class="fl-err" style="display:none"></div>
+        <div class="fl-upload-row">
+            <div class="fl-fg">
+                <label>Файл <span class="fl-required">*</span></label>
+                <input type="file" id="flFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.svg,.webp,.ai,.psd,.eps,.indd,.cdr,.zip,.rar,.7z,.txt,.csv,.odt,.ods">
+            </div>
+            <div class="fl-fg">
+                <label>Тип документа</label>
+                <select id="flTypeSelect" class="fl-sel">
+                    <option value="0">— Без типу —</option>
+                </select>
+            </div>
+            <div class="fl-fg" style="flex:1">
+                <label>Коментар</label>
+                <input type="text" id="flComment" placeholder="необов'язково" style="width:100%">
+            </div>
+        </div>
+        <div class="fl-upload-actions">
+            <button class="btn btn-primary btn-sm" id="flBtnSave" type="button">Зберегти</button>
+            <button class="btn btn-ghost btn-sm" id="flBtnCancel" type="button">Скасувати</button>
+            <span id="flProgress" style="display:none;font-size:12px;color:var(--text-muted)">Завантаження…</span>
+        </div>
+    </div>
+
+    <!-- File list -->
+    <div id="flList">
+        <div class="fl-loading">Завантаження…</div>
+    </div>
+
+</div>
+</div>
 
 <!-- ═══ Tab: Активність ══════════════════════════════════════════════════════ -->
 <div class="cp-tab-panel <?php echo $tab==='activity'?'active':''; ?>" id="panel-activity">
@@ -1037,12 +1512,12 @@ $hasAnything = !empty($groupMembers) || !empty($contacts) || !empty($relations);
             <div id="contactNewForm">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 12px">
                     <div class="form-row">
-                        <label>Прізвище</label>
-                        <input type="text" id="cLastName" placeholder="Іванченко">
-                    </div>
-                    <div class="form-row">
                         <label>Ім'я</label>
                         <input type="text" id="cFirstName" placeholder="Олег">
+                    </div>
+                    <div class="form-row">
+                        <label>Прізвище</label>
+                        <input type="text" id="cLastName" placeholder="Іванченко">
                     </div>
                     <div class="form-row">
                         <label>По батькові</label>
@@ -1145,6 +1620,31 @@ function showToast(msg) {
         showToast(msg);
     }
 
+    // ── Type switcher ────────────────────────────────────────────────────────
+    function switchType(type) {
+        document.getElementById('fType').value = type;
+        var grid = document.getElementById('fFormGrid');
+        // Hide all typed groups first
+        grid.querySelectorAll('.fg-company, .fg-fop, .fg-person').forEach(function(el) {
+            el.style.display = 'none';
+        });
+        // Show groups matching selected type
+        grid.querySelectorAll('.fg-' + type).forEach(function(el) {
+            el.style.display = '';
+        });
+        // Update button states
+        document.querySelectorAll('.cp-type-btn').forEach(function(b) {
+            b.classList.toggle('active', b.dataset.type === type);
+        });
+    }
+
+    document.querySelectorAll('.cp-type-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { switchType(this.dataset.type); });
+    });
+
+    // Init with current type
+    switchType(document.getElementById('fType').value);
+
     // ── Requisites view/edit toggle ──────────────────────────────────────────
     var btnEditToggle = document.getElementById('btnEditToggle');
     var reqViewMode   = document.getElementById('reqViewMode');
@@ -1235,45 +1735,50 @@ function showToast(msg) {
         var btn    = this;
         var errBox = document.getElementById('reqFormError');
         var status = document.getElementById('reqSaveStatus');
+        var type   = document.getElementById('fType').value;
 
         var fd = new FormData();
-        fd.append('id', cpId);
-        fd.append('name', document.getElementById('fName').value.trim());
-        fd.append('description', document.getElementById('fDescription') ? document.getElementById('fDescription').value : '');
-        fd.append('group_id',     document.getElementById('fGroupId').value);
-        if (document.getElementById('fGroupIsHead').checked) fd.append('group_is_head', '1');
+        fd.append('id',   cpId);
+        fd.append('type', type);
+        fd.append('description', document.getElementById('fDescription').value);
+        fd.append('phone', document.getElementById('fPhone').value.trim());
+        fd.append('email', document.getElementById('fEmail').value.trim());
+        fd.append('notes', document.getElementById('fNotes').value);
 
-        <?php if ($isCompany): ?>
-        fd.append('short_name',    document.getElementById('fShortName').value);
-        fd.append('full_name',     document.getElementById('fFullName').value);
-        fd.append('okpo',          document.getElementById('fOkpo').value.trim());
-        fd.append('inn',           document.getElementById('fInn').value.trim());
-        fd.append('vat_number',    document.getElementById('fVat').value.trim());
-        fd.append('iban',          document.getElementById('fIban').value.trim());
-        fd.append('bank_name',     document.getElementById('fBankName').value.trim());
-        fd.append('mfo',           document.getElementById('fMfo').value.trim());
-        fd.append('legal_address', document.getElementById('fLegalAddr').value);
-        fd.append('actual_address',document.getElementById('fActualAddr').value);
-        fd.append('phone',         document.getElementById('fPhone').value.trim());
-        fd.append('email',         document.getElementById('fEmail').value.trim());
-        fd.append('website',       document.getElementById('fWebsite').value.trim());
-        fd.append('notes',         document.getElementById('fNotes').value);
-        <?php elseif ($isPerson): ?>
-        fd.append('last_name',     document.getElementById('fLastName').value.trim());
-        fd.append('first_name',    document.getElementById('fFirstName').value.trim());
-        fd.append('middle_name',   document.getElementById('fMiddleName').value.trim());
-        fd.append('position_name', document.getElementById('fPosition').value.trim());
-        fd.append('phone',         document.getElementById('fPhone').value.trim());
-        fd.append('phone_alt',     document.getElementById('fPhoneAlt').value.trim());
-        fd.append('email',         document.getElementById('fEmail').value.trim());
-        fd.append('birth_date',    document.getElementById('fBirthDate').value);
-        fd.append('telegram',      document.getElementById('fTelegram').value.trim());
-        fd.append('viber',         document.getElementById('fViber').value.trim());
-        fd.append('notes',         document.getElementById('fNotes').value);
-        <?php endif; ?>
+        if (type === 'person') {
+            var fn = document.getElementById('fFirstName').value.trim();
+            var ln = document.getElementById('fLastName').value.trim();
+            var mn = document.getElementById('fMiddleName').value.trim();
+            fd.append('name',          [fn, ln, mn].filter(Boolean).join(' '));
+            fd.append('first_name',    fn);
+            fd.append('last_name',     ln);
+            fd.append('middle_name',   mn);
+            fd.append('position_name', document.getElementById('fPosition').value.trim());
+            fd.append('phone_alt',     document.getElementById('fPhoneAlt').value.trim());
+            fd.append('birth_date',    document.getElementById('fBirthDate').value);
+            fd.append('telegram',      document.getElementById('fTelegram').value.trim());
+            fd.append('viber',         document.getElementById('fViber').value.trim());
+        } else {
+            fd.append('name',          document.getElementById('fName').value.trim());
+            fd.append('inn',           document.getElementById('fInn').value.trim());
+            fd.append('vat_number',    document.getElementById('fVat').value.trim());
+            fd.append('iban',          document.getElementById('fIban').value.trim());
+            fd.append('bank_name',     document.getElementById('fBankName').value.trim());
+            fd.append('mfo',           document.getElementById('fMfo').value.trim());
+            fd.append('legal_address', document.getElementById('fLegalAddr').value);
+            fd.append('actual_address',document.getElementById('fActualAddr').value);
+            if (type === 'company') {
+                fd.append('short_name',  document.getElementById('fShortName').value);
+                fd.append('full_name',   document.getElementById('fFullName').value);
+                fd.append('okpo',        document.getElementById('fOkpo').value.trim());
+                fd.append('website',     document.getElementById('fWebsite').value.trim());
+                fd.append('group_id',    document.getElementById('fGroupId').value);
+                if (document.getElementById('fGroupIsHead').checked) fd.append('group_is_head', '1');
+            }
+        }
 
         if (!fd.get('name')) {
-            errBox.textContent = 'Назва обовʼязкова';
+            errBox.textContent = type === 'person' ? 'Введіть імʼя або прізвище' : 'Назва обовʼязкова';
             errBox.classList.remove('hidden');
             return;
         }
@@ -1541,6 +2046,205 @@ function showToast(msg) {
         });
     });
 
+}());
+</script>
+
+<!-- ── Files tab JS ──────────────────────────────────────────────────────── -->
+<script>
+(function() {
+    var cpId        = <?php echo $id; ?>;
+    var flPanel     = document.getElementById('panel-files');
+    if (!flPanel) return;
+
+    var flList      = document.getElementById('flList');
+    var flTypeFilter = document.getElementById('flTypeFilter');
+    var flSortSel   = document.getElementById('flSortSel');
+    var flUploadForm = document.getElementById('flUploadForm');
+    var flBtnUpload = document.getElementById('flBtnUpload');
+    var flBtnCancel = document.getElementById('flBtnCancel');
+    var flBtnSave   = document.getElementById('flBtnSave');
+    var flTypeSelect = document.getElementById('flTypeSelect');
+    var flFileInput = document.getElementById('flFileInput');
+    var flComment   = document.getElementById('flComment');
+    var flProgress  = document.getElementById('flProgress');
+    var flErr       = document.getElementById('flUploadErr');
+
+    var allTypes    = [];
+    var loaded      = false;
+
+    // Load when tab becomes active
+    document.querySelectorAll('.cp-tab-lnk[data-tab="files"]').forEach(function(lnk) {
+        lnk.addEventListener('click', function() {
+            if (!loaded) { loaded = true; loadFiles(); }
+        });
+    });
+    // Also load if tab is already active on page load
+    if (flPanel.classList.contains('active')) { loaded = true; loadFiles(); }
+
+    function loadFiles() {
+        var typeId = flTypeFilter.value || '';
+        var sort   = flSortSel.value || 'desc';
+        var url    = '/counterparties/api/get_files?id=' + cpId
+                   + (typeId ? '&type_id=' + typeId : '')
+                   + '&sort=' + sort;
+        flList.innerHTML = '<div class="fl-loading">Завантаження\u2026</div>';
+        fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.ok) { flList.innerHTML = '<div class="fl-empty">Помилка завантаження</div>'; return; }
+            // Populate type filters once
+            if (allTypes.length === 0 && d.types && d.types.length) {
+                allTypes = d.types;
+                populateTypeSelects(d.types);
+            }
+            renderFiles(d.files);
+        })
+        .catch(function() { flList.innerHTML = '<div class="fl-empty">Помилка мережі</div>'; });
+    }
+
+    function populateTypeSelects(types) {
+        var optHtml = '<option value="">Всі типи</option>';
+        var optHtml2 = '<option value="0">\u2014 Без типу \u2014</option>';
+        types.forEach(function(t) {
+            optHtml  += '<option value="' + t.id + '">' + escHtml(t.name) + '</option>';
+            optHtml2 += '<option value="' + t.id + '">' + escHtml(t.name) + '</option>';
+        });
+        flTypeFilter.innerHTML = optHtml;
+        flTypeSelect.innerHTML = optHtml2;
+    }
+
+    function formatSize(bytes) {
+        bytes = parseInt(bytes, 10) || 0;
+        if (bytes < 1024)        return bytes + ' Б';
+        if (bytes < 1024*1024)   return Math.round(bytes/1024) + ' КБ';
+        return (bytes/1024/1024).toFixed(1) + ' МБ';
+    }
+
+    function fileIcon(mime, name) {
+        var ext = (name || '').split('.').pop().toLowerCase();
+        if (ext === 'pdf')                        return '\uD83D\uDCC4';
+        if (/(doc|docx|odt)/.test(ext))           return '\uD83D\uDCDD';
+        if (/(xls|xlsx|ods|csv)/.test(ext))       return '\uD83D\uDCC8';
+        if (/(ppt|pptx)/.test(ext))               return '\uD83D\uDCCA';
+        if (/(jpg|jpeg|png|gif|svg|webp)/.test(ext)) return '\uD83D\uDDBC\uFE0F';
+        if (/(ai|psd|eps|indd|cdr)/.test(ext))    return '\uD83C\uDFA8';
+        if (/(zip|rar|7z)/.test(ext))             return '\uD83D\uDDC2\uFE0F';
+        return '\uD83D\uDCC1';
+    }
+
+    function renderFiles(files) {
+        if (!files || !files.length) {
+            flList.innerHTML = '<div class="fl-empty">Файлів ще немає. Натисніть «+ Завантажити».</div>';
+            return;
+        }
+        var rows = '';
+        files.forEach(function(f) {
+            var icon    = fileIcon(f.mime_type, f.original_name);
+            var dateStr = f.uploaded_at ? f.uploaded_at.substr(0,16).replace('T',' ') : '';
+            var comment = f.comment ? '<div class="fl-comment">' + escHtml(f.comment) + '</div>' : '';
+            rows += '<tr>'
+                + '<td style="width:32px;text-align:center"><span class="fl-file-icon">' + icon + '</span></td>'
+                + '<td><a href="/counterparties/api/download_file?id=' + f.id + '" class="fl-file-name" target="_blank">'
+                +     escHtml(f.original_name) + '</a>' + comment + '</td>'
+                + '<td><span class="fl-type-badge">' + escHtml(f.type_name || 'Інше') + '</span></td>'
+                + '<td class="fl-size">' + formatSize(f.file_size) + '</td>'
+                + '<td class="fl-date">' + escHtml(dateStr) + '</td>'
+                + '<td><button class="fl-del-btn" data-id="' + f.id + '" title="\u0412\u0438\u0434\u0430\u043b\u0438\u0442\u0438">'
+                +     '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
+                + '</button></td>'
+                + '</tr>';
+        });
+        flList.innerHTML = '<table class="fl-table">'
+            + '<thead><tr><th></th><th>Назва</th><th>Тип</th><th>Розмір</th><th>Дата</th><th></th></tr></thead>'
+            + '<tbody>' + rows + '</tbody></table>';
+
+        // Bind delete buttons
+        flList.querySelectorAll('.fl-del-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                if (!confirm('Видалити файл?')) return;
+                var fid = parseInt(this.dataset.id, 10);
+                var fd = new FormData();
+                fd.append('id', fid);
+                fetch('/counterparties/api/delete_file', { method:'POST', body:fd })
+                .then(function(r){ return r.json(); })
+                .then(function(res) {
+                    if (res.ok) { loadFiles(); if (typeof showToast === 'function') showToast('Файл видалено'); }
+                    else alert(res.error || 'Помилка');
+                });
+            });
+        });
+    }
+
+    // ── Upload form ──
+    flBtnUpload.addEventListener('click', function() {
+        flUploadForm.classList.add('open');
+        flBtnUpload.style.display = 'none';
+        // Ensure type selects are populated
+        if (allTypes.length === 0) {
+            fetch('/counterparties/api/get_files?id=' + cpId + '&sort=desc')
+            .then(function(r){ return r.json(); })
+            .then(function(d) {
+                if (d.types && d.types.length) { allTypes = d.types; populateTypeSelects(d.types); }
+                renderFiles(d.files || []);
+            });
+        }
+    });
+
+    flBtnCancel.addEventListener('click', function() {
+        flUploadForm.classList.remove('open');
+        flBtnUpload.style.display = '';
+        flFileInput.value = '';
+        flComment.value   = '';
+        flErr.style.display = 'none';
+    });
+
+    flBtnSave.addEventListener('click', function() {
+        flErr.style.display = 'none';
+        if (!flFileInput.files || !flFileInput.files.length) {
+            flErr.textContent = 'Оберіть файл';
+            flErr.style.display = 'block';
+            return;
+        }
+        var fd = new FormData();
+        fd.append('id',       cpId);
+        fd.append('type_id',  flTypeSelect.value || '0');
+        fd.append('comment',  flComment.value.trim());
+        fd.append('file',     flFileInput.files[0]);
+
+        flBtnSave.disabled    = true;
+        flProgress.style.display = '';
+        fetch('/counterparties/api/upload_file', { method:'POST', body:fd })
+        .then(function(r){ return r.json(); })
+        .then(function(res) {
+            flBtnSave.disabled    = false;
+            flProgress.style.display = 'none';
+            if (!res.ok) {
+                flErr.textContent   = res.error || 'Помилка';
+                flErr.style.display = 'block';
+                return;
+            }
+            flUploadForm.classList.remove('open');
+            flBtnUpload.style.display = '';
+            flFileInput.value = '';
+            flComment.value   = '';
+            loadFiles();
+            if (typeof showToast === 'function') showToast('Файл завантажено');
+        })
+        .catch(function() {
+            flBtnSave.disabled    = false;
+            flProgress.style.display = 'none';
+            flErr.textContent   = 'Помилка мережі';
+            flErr.style.display = 'block';
+        });
+    });
+
+    // Filters
+    flTypeFilter.addEventListener('change', loadFiles);
+    flSortSel.addEventListener('change',   loadFiles);
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 }());
 </script>
 

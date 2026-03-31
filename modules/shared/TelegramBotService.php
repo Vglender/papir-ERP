@@ -48,6 +48,26 @@ class TelegramBotService
     }
 
     /**
+     * Send document (any file type) to a chat_id.
+     * @return array ['ok'=>bool, 'error'=>string|null]
+     */
+    public static function sendDocument($chatId, $fileUrl, $caption = '')
+    {
+        $data = array(
+            'chat_id'  => (string)$chatId,
+            'document' => $fileUrl,
+        );
+        if ($caption !== '') {
+            $data['caption'] = $caption;
+        }
+        $result = self::call('sendDocument', $data);
+        if ($result['ok']) {
+            return array('ok' => true);
+        }
+        return array('ok' => false, 'error' => isset($result['description']) ? $result['description'] : 'Telegram error');
+    }
+
+    /**
      * Download a file from Telegram by file_id and save it to CRM media storage.
      * Returns public HTTPS URL or null on failure.
      */

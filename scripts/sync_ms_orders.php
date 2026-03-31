@@ -113,6 +113,22 @@ if (!$dryRun) {
 
 out($dryRun ? '=== DRY RUN ===' : '=== СИНК ЗАМОВЛЕНЬ ===');
 
+// ── Organization map: id_ms → id ─────────────────────────────────────────────
+
+out('Завантаження organization map...');
+$orgMap = array();
+$r = Database::fetchAll('Papir', "SELECT id, id_ms FROM organization WHERE id_ms IS NOT NULL");
+if ($r['ok']) foreach ($r['rows'] as $row) $orgMap[$row['id_ms']] = (int)$row['id'];
+out('Організацій: ' . count($orgMap));
+
+// ── Employee map: id_ms → id ──────────────────────────────────────────────────
+
+out('Завантаження employee map...');
+$empMap = array();
+$r = Database::fetchAll('Papir', "SELECT id, id_ms FROM employee WHERE id_ms IS NOT NULL AND status = 1");
+if ($r['ok']) foreach ($r['rows'] as $row) $empMap[$row['id_ms']] = (int)$row['id'];
+out('Співробітників: ' . count($empMap));
+
 // ── Counterparty map: id_ms → id ─────────────────────────────────────────────
 
 out('Завантаження counterparty map...');
@@ -124,9 +140,14 @@ out('Контрагентів: ' . count($cpMap));
 // ── Існуючі замовлення: id_ms → updated_at ───────────────────────────────────
 
 out('Завантаження існуючих замовлень...');
-$existing = array(); // id_ms → updated_at
-$r = Database::fetchAll('Papir', "SELECT id_ms, updated_at FROM customerorder WHERE id_ms IS NOT NULL");
-if ($r['ok']) foreach ($r['rows'] as $row) $existing[$row['id_ms']] = $row['updated_at'];
+$existing = array(); // id_ms → ['updated_at' => ..., 'has_cp' => bool]
+$r = Database::fetchAll('Papir', "SELECT id_ms, updated_at, counterparty_id FROM customerorder WHERE id_ms IS NOT NULL");
+if ($r['ok']) foreach ($r['rows'] as $row) {
+    $existing[$row['id_ms']] = array(
+        'updated_at' => $row['updated_at'],
+        'has_cp'     => ($row['counterparty_id'] !== null),
+    );
+}
 out('В нашій базі: ' . count($existing));
 
 // ── Загальна кількість в ms ───────────────────────────────────────────────────
@@ -141,7 +162,7 @@ $offset = 0;
 while (true) {
     $rows = Database::fetchAll('ms',
         "SELECT meta, updated, name, description, externalCode, moment, applicable,
-                sum, agent, state, payedSum, shippedSum, reservedSum, vatSum,
+                sum, agent, organization, owner, state, payedSum, shippedSum, reservedSum, vatSum,
                 salesChannel, demands
          FROM customerorder
          WHERE meta IS NOT NULL AND meta != ''
@@ -169,6 +190,14 @@ while (true) {
         $cpId       = ($agentMs !== '' && isset($cpMap[$agentMs])) ? $cpMap[$agentMs] : null;
         $cpIdSql    = $cpId ? $cpId : 'NULL';
 
+        $orgMs      = trim((string)$row['organization']);
+        $orgId      = ($orgMs !== '' && isset($orgMap[$orgMs])) ? $orgMap[$orgMs] : null;
+        $orgIdSql   = $orgId ? $orgId : 'NULL';
+
+        $ownerMs    = trim((string)$row['owner']);
+        $empId      = ($ownerMs !== '' && isset($empMap[$ownerMs])) ? $empMap[$ownerMs] : null;
+        $empIdSql   = $empId ? $empId : 'NULL';
+
         $applicable  = $row['applicable'] ? 1 : 0;
         $momentSql   = $row['moment'] ? "'" . e($row['moment']) . "'" : 'NULL';
         $updatedSql  = $updatedMs ? "'" . e($updatedMs) . "'" : 'NOW()';
@@ -182,7 +211,11 @@ while (true) {
 
         // ── UPDATE ───────────────────────────────────────────────────────────
         if (isset($existing[$idMs])) {
-            if ($updatedMs && $updatedMs <= $existing[$idMs]) {
+            $existingUpd  = $existing[$idMs]['updated_at'];
+            $existingHasCp = $existing[$idMs]['has_cp'];
+            // Пропускаємо якщо: дані не змінились І контрагент вже прив'язаний
+            // (або контрагент так і невідомий — cpId=null)
+            if ($updatedMs && $updatedMs <= $existingUpd && ($existingHasCp || $cpId === null)) {
                 $stats['skipped']++;
                 continue;
             }
@@ -192,7 +225,9 @@ while (true) {
                      number={$numberS}, external_code={$extCodeS}, moment={$momentSql},
                      applicable={$applicable}, sum_total={$sum}, sum_paid={$payedSum},
                      sum_shipped={$shippedSum}, sum_reserved={$reservedSum}, sum_vat={$vatSum},
-                     counterparty_id={$cpIdSql}, status='{$status}',
+                     counterparty_id={$cpIdSql}, organization_id={$orgIdSql},
+                     manager_employee_id = IF(manager_employee_id IS NULL, {$empIdSql}, manager_employee_id),
+                     status='{$status}',
                      payment_status='{$paymentStatus}', shipment_status='{$shipmentStatus}',
                      sales_channel={$channelS}, description={$descS},
                      sync_state='synced', updated_at={$updatedSql}
@@ -200,7 +235,7 @@ while (true) {
                 );
                 if (!$r2['ok']) { $stats['errors']++; continue; }
             }
-            $existing[$idMs] = $updatedMs;
+            $existing[$idMs] = array('updated_at' => $updatedMs, 'has_cp' => ($cpId !== null));
             $stats['updated']++;
             continue;
         }
@@ -211,20 +246,21 @@ while (true) {
             $r2 = Database::query('Papir',
                 "INSERT INTO customerorder
                  (uuid, id_ms, source, external_code, number, moment, applicable,
-                  counterparty_id, status, payment_status, shipment_status,
+                  counterparty_id, organization_id, manager_employee_id,
+                  status, payment_status, shipment_status,
                   sum_total, sum_paid, sum_shipped, sum_reserved, sum_vat,
                   sales_channel, description, sync_state, updated_at)
                  VALUES
                  ('{$uuid}', {$idMsS}, 'moysklad', {$extCodeS}, {$numberS}, {$momentSql},
-                  {$applicable}, {$cpIdSql}, '{$status}', '{$paymentStatus}',
-                  '{$shipmentStatus}', {$sum}, {$payedSum}, {$shippedSum},
-                  {$reservedSum}, {$vatSum}, {$channelS}, {$descS},
-                  'synced', {$updatedSql})"
+                  {$applicable}, {$cpIdSql}, {$orgIdSql}, {$empIdSql},
+                  '{$status}', '{$paymentStatus}', '{$shipmentStatus}',
+                  {$sum}, {$payedSum}, {$shippedSum}, {$reservedSum}, {$vatSum},
+                  {$channelS}, {$descS}, 'synced', {$updatedSql})"
             );
             if (!$r2['ok']) { $stats['errors']++; continue; }
         }
 
-        $existing[$idMs] = $updatedMs;
+        $existing[$idMs] = array('updated_at' => $updatedMs, 'has_cp' => ($cpId !== null));
         $stats['inserted']++;
     }
 

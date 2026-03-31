@@ -41,6 +41,11 @@ class CounterpartyRepository
             'department_contact'=> 'Контакт підрозділу',
             'manager'           => 'Менеджер',
             'signer'            => 'Підписант',
+            'subsidiary'        => 'Дочірня компанія',
+            'branch'            => 'Філія',
+            'partner'           => 'Партнер',
+            'supplier'          => 'Постачальник',
+            'client'            => 'Клієнт',
             'other'             => 'Інше',
         );
         return isset($map[$type]) ? $map[$type] : $type;
@@ -455,6 +460,19 @@ class CounterpartyRepository
             'comment'                => isset($data['comment'])         ? trim($data['comment'])         : '',
         ));
         return $r['ok'] ? (int)$r['insert_id'] : 0;
+    }
+
+    public function updateRelation($id, $data)
+    {
+        $fields = array(
+            'relation_type'   => isset($data['relation_type']) ? $data['relation_type'] : 'other',
+            'job_title'       => isset($data['job_title'])     ? trim($data['job_title']) : '',
+            'department_name' => isset($data['department_name']) ? trim($data['department_name']) : '',
+            'is_primary'      => isset($data['is_primary'])    ? (int)(bool)$data['is_primary'] : 0,
+            'comment'         => isset($data['comment'])       ? trim($data['comment']) : '',
+        );
+        $r = Database::update('Papir', 'counterparty_relation', $fields, array('id' => (int)$id));
+        return $r['ok'];
     }
 
     public function deleteRelation($id)

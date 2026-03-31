@@ -25,6 +25,13 @@ if (!in_array($channel, $allowed)) {
     exit;
 }
 
+// ── Current operator name ─────────────────────────────────────────────────────
+$currentUser  = \Papir\Crm\AuthService::getCurrentUser();
+$operatorName = null;
+if ($currentUser) {
+    $operatorName = !empty($currentUser['display_name']) ? $currentUser['display_name'] : null;
+}
+
 // ── Resolve contact info (counterparty or lead) ───────────────────────────────
 $cp    = null;
 $lead  = null;
@@ -188,21 +195,23 @@ if ($channel === 'viber' || $channel === 'sms') {
 
 if ($leadId > 0) {
     $msgId = $leadRepo->saveMessage($leadId, array(
-        'channel'     => $channel,
-        'direction'   => 'out',
-        'status'      => $status,
-        'phone'       => $savePhone,
-        'email_addr'  => ($channel === 'email') ? $email : null,
-        'subject'     => ($channel === 'email') ? $subject : null,
-        'body'        => $body,
-        'media_url'   => $mediaUrl ? $mediaUrl : null,
-        'external_id' => $externalId,
+        'channel'       => $channel,
+        'direction'     => 'out',
+        'operator_name' => $operatorName,
+        'status'        => $status,
+        'phone'         => $savePhone,
+        'email_addr'    => ($channel === 'email') ? $email : null,
+        'subject'       => ($channel === 'email') ? $subject : null,
+        'body'          => $body,
+        'media_url'     => $mediaUrl ? $mediaUrl : null,
+        'external_id'   => $externalId,
     ));
 } else {
     $msgId = $chatRepo->saveMessage(array(
         'counterparty_id' => $counterpartyId,
         'channel'         => $channel,
         'direction'       => 'out',
+        'operator_name'   => $operatorName,
         'status'          => $status,
         'phone'           => $savePhone,
         'email_addr'      => ($channel === 'email') ? $email : null,

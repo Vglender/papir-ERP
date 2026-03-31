@@ -49,49 +49,60 @@ $bodyText = $text ? $text : $caption;
 if (!empty($msg['photo']) && is_array($msg['photo'])) {
     $photo    = end($msg['photo']);
     $mediaUrl = TelegramBotService::downloadAndSaveFile($photo['file_id']);
+    if (!$bodyText) $bodyText = $mediaUrl ? '[фото]' : '[фото — не вдалося завантажити]';
 }
 // Document (image sent as file, or other file types)
 elseif (!empty($msg['document'])) {
+    $docName  = isset($msg['document']['file_name']) ? $msg['document']['file_name'] : 'файл';
     $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['document']['file_id']);
+    if (!$bodyText) $bodyText = $mediaUrl ? '[файл: ' . $docName . ']' : '[файл: ' . $docName . ' — не вдалося завантажити]';
 }
 // Voice message
 elseif (!empty($msg['voice'])) {
     $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['voice']['file_id']);
-    if (!$bodyText) $bodyText = '🎤 Голосове повідомлення';
+    if (!$bodyText) $bodyText = $mediaUrl ? '[голосове повідомлення]' : '[голосове — не вдалося завантажити]';
 }
 // Audio file
 elseif (!empty($msg['audio'])) {
     $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['audio']['file_id']);
-    if (!$bodyText) $bodyText = '🎵 Аудіо';
+    if (!$bodyText) $bodyText = $mediaUrl ? '[аудіо]' : '[аудіо — не вдалося завантажити]';
 }
 // Video
 elseif (!empty($msg['video'])) {
     $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['video']['file_id']);
-    if (!$bodyText) $bodyText = '🎬 Відео';
+    if (!$bodyText) $bodyText = $mediaUrl ? '[відео]' : '[відео — не вдалося завантажити]';
 }
 // Video note (круговое видео)
 elseif (!empty($msg['video_note'])) {
     $mediaUrl = TelegramBotService::downloadAndSaveFile($msg['video_note']['file_id']);
-    if (!$bodyText) $bodyText = '⏺ Відео-повідомлення';
+    if (!$bodyText) $bodyText = $mediaUrl ? '[відео-повідомлення]' : '[відео — не вдалося завантажити]';
 }
 // Sticker — save emoji/name as text, no file
 elseif (!empty($msg['sticker'])) {
-    $bodyText = '🎭 Стікер' . (!empty($msg['sticker']['emoji']) ? ' ' . $msg['sticker']['emoji'] : '');
+    $bodyText = '[стікер' . (!empty($msg['sticker']['emoji']) ? ' ' . $msg['sticker']['emoji'] . ']' : ']');
 }
 
-// Skip if nothing to save (sticker, voice, video note, etc.)
+// Skip only if truly nothing — no text, no media, no media-type indicator
 if (!$bodyText && !$mediaUrl) {
     echo json_encode(array('ok' => true));
     exit;
 }
 
-$messageBody = ($fromName ? "[{$fromName}] " : '') . $bodyText;
+$messageBody = $bodyText;
 
 // ── Route to counterparty or lead ────────────────────────────────────────────
 
 $chatRepo = new ChatRepository();
 $leadRepo = new LeadRepository();
 $tgEsc    = Database::escape('Papir', $chatId);
+
+// ── Перевірка блок-ліста спамерів ────────────────────────────────────────────
+$spamChk = Database::fetchRow('Papir',
+    "SELECT id FROM spam_senders WHERE channel='telegram' AND identifier='{$tgEsc}' LIMIT 1");
+if ($spamChk['ok'] && !empty($spamChk['row'])) {
+    echo json_encode(array('ok' => true));
+    exit;
+}
 
 // 1. Try to find known counterparty
 $cpRow = Database::fetchRow('Papir',

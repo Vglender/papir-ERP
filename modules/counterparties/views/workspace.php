@@ -7,6 +7,19 @@ $extraCss  = array(
     '<link rel="stylesheet" href="/modules/shared/chip-search.js?noop=1" style="display:none">',
 );
 require_once __DIR__ . '/../../shared/layout.php';
+
+// Load organizations and employees for order header selectors
+$rOrgs = Database::fetchAll('Papir',
+    "SELECT id, name, short_name, vat_number FROM organization WHERE status=1 ORDER BY name ASC");
+$wsOrgs = ($rOrgs['ok'] && !empty($rOrgs['rows'])) ? $rOrgs['rows'] : array();
+
+$rEmps = Database::fetchAll('Papir',
+    "SELECT id, full_name AS name FROM employee WHERE status = 1 ORDER BY last_name ASC");
+$wsEmployees = ($rEmps['ok'] && !empty($rEmps['rows'])) ? $rEmps['rows'] : array();
+
+$rDMs = Database::fetchAll('Papir',
+    "SELECT id, code, name_uk, has_ttn FROM delivery_method WHERE status=1 ORDER BY sort_order");
+$wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : array();
 ?>
 <style>
 /* ── Workspace layout ───────────────────────────────────────────────────────── */
@@ -194,6 +207,8 @@ require_once __DIR__ . '/../../shared/layout.php';
     font-size: 12px; font-weight: 700; color: #fff; background: #7c3aed;
 }
 .ws-hub-name { font-weight: 700; font-size: 14px; color: #111827; }
+.ws-hub-card-link { color: #9ca3af; font-size: 12px; line-height: 1; text-decoration: none; flex-shrink: 0; }
+.ws-hub-card-link:hover { color: #6b7280; }
 .ws-hub-sub { font-size: 11px; color: #6b7280; }
 .ws-hub-acts { margin-left: auto; display: flex; gap: 5px; }
 .ws-hub-act {
@@ -307,7 +322,7 @@ require_once __DIR__ . '/../../shared/layout.php';
 .ws-textarea {
     width: 100%; padding: 6px 14px 2px; border: none; outline: none;
     font-size: 13px; font-family: inherit; resize: vertical; background: transparent;
-    line-height: 1.5; min-height: 64px; max-height: 260px; color: #1a1a1a;
+    line-height: 1.5; min-height: 96px; max-height: 400px; color: #1a1a1a;
 }
 .ws-textarea::placeholder { color: #9ca3af; }
 .ws-textarea:disabled { opacity: .5; cursor: not-allowed; }
@@ -568,6 +583,8 @@ require_once __DIR__ . '/../../shared/layout.php';
 .ws-attach-remove:hover { background: #fee2e2; color: #dc2626; }
 .ws-attach-uploading { font-size: 11px; color: #7c3aed; animation: ws-pulse 1s infinite; }
 @keyframes ws-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.ws-bubble .chat-link { color: inherit; text-decoration: underline; word-break: break-all; opacity: .9; }
+.ws-bubble .chat-link:hover { opacity: 1; }
 </style>
 
 <div class="ws-wrap">
@@ -582,6 +599,7 @@ require_once __DIR__ . '/../../shared/layout.php';
           <button class="ws-mode-tab" data-mode="orders" title="За замовленнями">📦<span class="ws-mode-badge" id="wsModeBadgeOrders"></span></button>
         </div>
         <button class="ws-add-btn" id="wsBtnNew">+ Новий</button>
+        <button class="ws-mode-tab" id="wsBtnSpam" title="Заблоковані відправники" onclick="WS.openSpamModal()">🚫</button>
       </div>
       <div class="ws-inbox-search-wrap">
         <div class="ws-search-box">
@@ -1183,7 +1201,7 @@ var WS = {
             if (!d.ok) return;
             self.currentCp   = d;
             self.currentLead = null;
-            self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats);
+            self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats, d.cp.id);
             self.renderCpCtx(d);
             self.applyAiMode();
             self.updateChannelDots(d.unread_by_channel || {});
@@ -1310,7 +1328,7 @@ var WS = {
         if (!d.ok) return;
         self.currentCp   = d;
         self.currentLead = null;
-        self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats);
+        self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats, d.cp.id);
         self.renderCpCtx(d);
         self.applyAiMode();
         self.updateChannelDots(d.unread_by_channel || {});
@@ -1341,10 +1359,23 @@ var WS = {
   },
 
   // ── Hub header ─────────────────────────────────────────────────────────────
-  renderHubHeader: function(initials, name, type, sub, stats) {
+  renderHubHeader: function(initials, name, type, sub, stats, cpId) {
     document.getElementById('wsHubAv').textContent  = initials;
     document.getElementById('wsHubAv').className    = 'ws-hub-av ' + type;
     document.getElementById('wsHubName').textContent = name;
+
+    var nameRow = document.getElementById('wsHubName').parentNode;
+    var oldLink = nameRow.querySelector('.ws-hub-card-link');
+    if (oldLink) oldLink.parentNode.removeChild(oldLink);
+    if (cpId) {
+      var a = document.createElement('a');
+      a.href = '/counterparties/view?id=' + cpId;
+      a.target = '_blank';
+      a.className = 'ws-hub-card-link';
+      a.title = 'Відкрити картку контрагента';
+      a.innerHTML = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M7 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V9" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M10 2h4v4M14 2L8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      nameRow.appendChild(a);
+    }
 
     // Stats chip under name (only for counterparties)
     var subEl = document.getElementById('wsHubSub');
@@ -1378,7 +1409,17 @@ var WS = {
     } else {
       ctxHtml += '<div style="font-size:11px;color:#d1d5db;padding:4px 0">Немає активного замовлення</div>';
     }
+    // Create-bar: shown only when an order is loaded; buttons open creation forms in the detail zone
+    var createBar = ord
+      ? '<div class="ws-create-bar" id="wsCreateBar">'
+          + '<button type="button" class="ws-create-btn" data-create="demand" title="Створити відвантаження"><span class="ws-create-icon">📋</span>Відвантаження</button>'
+          + '<button type="button" class="ws-create-btn" data-create="delivery" title="Доставка або ТТН"><span class="ws-create-icon">🚚</span>Доставка / ТТН</button>'
+          + '<button type="button" class="ws-create-btn" data-create="payment" title="Внести оплату вручну"><span class="ws-create-icon">💰</span>Оплата</button>'
+        + '</div>'
+      : '';
+
     ctxHtml += '</div>'
+             + createBar
              + '<div class="ws-ctx-detail-zone" id="wsDetailZone">'
              + '<div class="ws-ctx-detail-empty"><div>📄</div><div>Натисніть документ у схемі</div></div>'
              + '</div>';
@@ -1444,11 +1485,12 @@ var WS = {
 
     // Collect the rest
     var others = [];
-    (d.demands  || []).forEach(function(x) { others.push({ type:'demand',  data:x, moment:x.moment||'' }); });
-    (d.ttns_np  || []).forEach(function(x) { others.push({ type:'ttn_np',  data:x, moment:x.moment||'' }); });
-    (d.ttns_up  || []).forEach(function(x) { others.push({ type:'ttn_up',  data:x, moment:x.moment||'' }); });
-    (d.payments || []).forEach(function(x) { others.push({ type:'payment', data:x, moment:x.moment||'' }); });
-    (d.returns  || []).forEach(function(x) { others.push({ type:'return',  data:x, moment:x.moment||'' }); });
+    (d.demands          || []).forEach(function(x) { others.push({ type:'demand',   data:x, moment:x.moment||'' }); });
+    (d.ttns_np          || []).forEach(function(x) { others.push({ type:'ttn_np',   data:x, moment:x.moment||'' }); });
+    (d.ttns_up          || []).forEach(function(x) { others.push({ type:'ttn_up',   data:x, moment:x.moment||'' }); });
+    (d.order_deliveries || []).forEach(function(x) { others.push({ type:'delivery', data:x, moment:x.created_at||'' }); });
+    (d.payments         || []).forEach(function(x) { others.push({ type:'payment',  data:x, moment:x.moment||'' }); });
+    (d.returns          || []).forEach(function(x) { others.push({ type:'return',   data:x, moment:x.moment||'' }); });
 
     others.sort(function(a, b) {
       if (!a.moment) return 1;
@@ -1460,9 +1502,11 @@ var WS = {
     // Placeholders for missing document types
     var hasType = {};
     items.forEach(function(it) { hasType[it.type] = true; });
-    if (!hasType.demand)                      items.push({ type:'demand',  data:null, moment:'', empty:true });
-    if (!hasType.ttn_np && !hasType.ttn_up)   items.push({ type:'ttn',    data:null, moment:'', empty:true });
-    if (!hasType.payment)                     items.push({ type:'payment', data:null, moment:'', empty:true });
+    // "delivery" placeholder covers all delivery types: ttn_np, ttn_up, courier, pickup
+    var hasDelivery = hasType.ttn_np || hasType.ttn_up || hasType.delivery;
+    if (!hasType.demand)   items.push({ type:'demand',   data:null, moment:'', empty:true });
+    if (!hasDelivery)      items.push({ type:'delivery', data:null, moment:'', empty:true });
+    if (!hasType.payment)  items.push({ type:'payment',  data:null, moment:'', empty:true });
 
     return items;
   },
@@ -1475,14 +1519,14 @@ var WS = {
 
     var timeline = this.buildTimeline(d);
     var typeMeta = {
-      order:   { cls:'wf-order',   icon:'📦', label:'Замовл.' },
-      demand:  { cls:'wf-demand',  icon:'📋', label:'Відвант.' },
-      ttn_np:  { cls:'wf-ttn-np',  icon:'🚚', label:'НП' },
-      ttn_up:  { cls:'wf-ttn-up',  icon:'📬', label:'УП' },
-      payment: { cls:'wf-payment', icon:'💰', label:'Оплата' },
-      return:  { cls:'wf-return',  icon:'↩️', label:'Поверн.' },
-      ttn:     { cls:'wf-ttn-np',  icon:'🚚', label:'ТТН' },
-      done:    { cls:'wf-done',    icon:'✓',  label:'Отримано' },
+      order:    { cls:'wf-order',    icon:'📦', label:'Замовлення' },
+      demand:   { cls:'wf-demand',   icon:'📋', label:'Відвантаження' },
+      ttn_np:   { cls:'wf-ttn-np',   icon:'🚚', label:'Нова Пошта' },
+      ttn_up:   { cls:'wf-ttn-up',   icon:'📬', label:'Укрпошта' },
+      delivery: { cls:'wf-delivery', icon:'🚴', label:'Доставка' },
+      payment:  { cls:'wf-payment',  icon:'💰', label:'Оплата' },
+      return:   { cls:'wf-return',   icon:'↩️', label:'Повернення' },
+      done:     { cls:'wf-done',     icon:'✓',  label:'Отримано' },
     };
 
     // Add terminal "done" node when order is fully delivered
@@ -1498,64 +1542,75 @@ var WS = {
       var dt    = item.data;
       var cls   = 'wf-node ' + m.cls + (empty ? ' wf-empty' : '');
 
-      var num = '', sub = '', amt = '', progressBar = '';
+      var id2 = '', amt = '', progressBar = '';
 
       if (item.type === 'done') {
         // Terminal node — no extra content
       } else if (!empty && dt) {
         if (item.type === 'order') {
-          num = dt.number ? '#' + dt.number : '';
-          sub = dt.moment ? dt.moment.substr(0,10) : '';
+          id2 = (dt.number ? '#' + dt.number : '') + (dt.moment ? ' від ' + dt.moment.substr(0,10) : '');
           amt = dt.sum_total ? '₴' + self.formatNum(dt.sum_total) : '';
         } else if (item.type === 'demand') {
-          num = dt.number ? '#' + dt.number : 'Відвант.';
-          sub = dt.status || '';
-          amt = dt.sum_total ? '₴' + self.formatNum(dt.sum_total) : '';
+          id2 = (dt.number ? '#' + dt.number : '') + (dt.moment ? ' від ' + dt.moment.substr(0,10) : '');
+          var demAmt = parseFloat(dt.sum_total) > 0 ? dt.sum_total : (parseFloat(dt.sum_paid) > 0 ? dt.sum_paid : null);
+          amt = demAmt ? '₴' + self.formatNum(demAmt) : '';
         } else if (item.type === 'ttn_np') {
           var npNum = dt.int_doc_number ? String(dt.int_doc_number) : '';
           var prog  = self._deliveryProgress('ttn_np', dt);
-          num = npNum ? npNum.substr(-8) : 'НП';
-          sub = prog.label || dt.state_name || '';
-          amt = dt.backward_delivery_money > 0 ? 'Накл.пл. ₴' + self.formatNum(dt.backward_delivery_money) : '';
+          id2 = npNum ? npNum.substr(-10) : '';
+          amt = dt.backward_delivery_money > 0 ? 'Накл. ₴' + self.formatNum(dt.backward_delivery_money) : (prog.label || dt.state_name || '');
           progressBar = self._renderDeliveryBar(prog);
           if (prog.refused) cls += ' wf-ttn-refused';
         } else if (item.type === 'ttn_up') {
           var prog  = self._deliveryProgress('ttn_up', dt);
-          num = dt.barcode ? String(dt.barcode).substr(-8) : 'УП';
-          sub = prog.label || dt.lifecycle_status || '';
-          amt = dt.postPayUah > 0 ? '₴' + self.formatNum(dt.postPayUah) : '';
+          id2 = dt.barcode ? String(dt.barcode).substr(-10) : '';
+          amt = dt.postPayUah > 0 ? '₴' + self.formatNum(dt.postPayUah) : (prog.label || dt.lifecycle_status || '');
           progressBar = self._renderDeliveryBar(prog);
           if (prog.refused) cls += ' wf-ttn-refused';
         } else if (item.type === 'payment') {
-          num = dt.source === 'bank' ? 'Банк' : 'Каса';
-          sub = dt.doc_number || '';
+          id2 = (dt.source === 'bank' ? 'Банк' : 'Каса') + (dt.moment ? ' · ' + dt.moment.substr(0,10) : '');
           amt = dt.amount ? '₴' + self.formatNum(dt.amount) : '';
+        } else if (item.type === 'delivery') {
+          var ODL_STATUS = { pending:'очікується', sent:'передано', delivered:'отримано' };
+          var methodIcons = { pickup:'🏪', courier:'🚴', novaposhta:'🚚', ukrposhta:'📬' };
+          m = { cls: m.cls, icon: methodIcons[dt.method_code] || '🚴', label: dt.method_name || 'Доставка' };
+          id2 = ODL_STATUS[dt.status] || dt.status;
+          amt = dt.delivered_at ? dt.delivered_at.substr(0,10) : (dt.sent_at ? dt.sent_at.substr(0,10) : '');
         } else if (item.type === 'return') {
-          num = dt.number ? '#' + dt.number : 'Поверн.';
-          sub = dt.moment ? dt.moment.substr(0,10) : '';
+          id2 = (dt.number ? '#' + dt.number : '') + (dt.moment ? ' від ' + dt.moment.substr(0,10) : '');
           amt = dt.sum_total ? '₴' + self.formatNum(dt.sum_total) : '';
         }
       } else if (item.type !== 'done') {
-        num = '+ Створити';
+        if (item.type === 'delivery') {
+          var dmName = d && d.order && d.order.delivery_method_name;
+          id2 = dmName ? '+ ' + dmName : '+ Доставка';
+        } else {
+          id2 = '+ Створити';
+        }
       }
 
       html += '<div class="' + cls + '" data-type="' + item.type + '" data-idx="' + i + '">'
-            + '<div class="wf-node-icon">' + m.icon + '</div>'
-            + '<div class="wf-node-type">' + m.label + '</div>'
-            + (num ? '<div class="wf-node-num">' + self.esc(String(num)) + '</div>' : '')
+            + '<div class="wf-node-lbl">' + m.label + '</div>'
+            + (id2 ? '<div class="wf-node-id">' + self.esc(String(id2)) + '</div>' : '')
             + progressBar
-            + (sub ? '<div class="wf-node-sub">' + self.esc(String(sub)) + '</div>' : '')
             + (amt ? '<div class="wf-node-amt">' + self.esc(String(amt)) + '</div>' : '')
             + '</div>';
       if (i < timeline.length - 1) {
-        html += '<div class="wf-arrow">›</div>';
+        html += '<div class="wf-arrow"><span class="wf-dot-sep"></span><span class="wf-dot-sep"></span><span class="wf-dot-sep"></span></div>';
       }
     });
 
     chainEl.innerHTML = html;
+    if (timeline.length <= 4) {
+      chainEl.classList.add('wf-chain-stretch');
+      chainEl.classList.remove('wf-chain-many');
+    } else {
+      chainEl.classList.remove('wf-chain-stretch');
+      chainEl.classList.add('wf-chain-many');
+    }
 
-    // Click handlers
-    chainEl.querySelectorAll('.wf-node:not(.wf-empty)').forEach(function(node) {
+    // Click handlers — all nodes including empty placeholders
+    chainEl.querySelectorAll('.wf-node').forEach(function(node) {
       node.addEventListener('click', function() {
         chainEl.querySelectorAll('.wf-node').forEach(function(n){ n.classList.remove('wf-active'); });
         node.classList.add('wf-active');
@@ -1564,6 +1619,16 @@ var WS = {
         self.openDocDetail(item, d);
       });
     });
+
+    // Create-bar button handlers
+    var createBar = document.getElementById('wsCreateBar');
+    if (createBar) {
+      createBar.querySelectorAll('.ws-create-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          self._openCreateForm(btn.dataset.create, d);
+        });
+      });
+    }
 
     // Auto-open order node if present
     var orderNode = chainEl.querySelector('.wf-node[data-type="order"]');
@@ -1635,12 +1700,28 @@ var WS = {
       rows += this._ddr('Дата',    dt.moment ? dt.moment.substr(0,10) : '—');
       rows += this._ddr('Канал',   dt.source === 'bank' ? 'Банк' : 'Каса');
 
+    } else if (type === 'delivery') {
+      var ODL_STATUS_LABEL = { pending:'Очікується', sent:'Передано кур\'єру', delivered:'Доставлено', cancelled:'Скасовано' };
+      icon  = dt.method_code === 'pickup' ? '🏪' : '🚴';
+      title = (dt.method_name || 'Доставка') + (dt.status ? ' · ' + (ODL_STATUS_LABEL[dt.status] || dt.status) : '');
+      rows += this._ddr('Спосіб',  dt.method_name || '—');
+      rows += this._ddr('Статус',  ODL_STATUS_LABEL[dt.status] || dt.status || '—');
+      if (dt.sent_at)      rows += this._ddr('Відправлено', dt.sent_at.substr(0,10));
+      if (dt.delivered_at) rows += this._ddr('Отримано',    dt.delivered_at.substr(0,10));
+      if (dt.comment)      rows += this._ddr('Коментар',    dt.comment);
+      acts += '<button type="button" class="btn btn-sm" onclick="WS._openDeliveryEditForm(' + dt.id + ')">Змінити статус</button>';
+
     } else if (type === 'return') {
       icon  = '↩️';
       title = 'Повернення' + (dt.number ? ' #' + dt.number : '');
       rows += this._ddr('Сума',     '₴' + this.formatNum(dt.sum_total));
       rows += this._ddr('Дата',     dt.moment ? dt.moment.substr(0,10) : '—');
       if (dt.description) rows += this._ddr('Коментар', dt.description);
+
+    } else if (item.empty) {
+      // Empty placeholder — open creation form
+      this._openCreateForm(type, d);
+      return;
     }
 
     detEl.innerHTML = '<div class="ws-doc-detail">'
@@ -1657,6 +1738,210 @@ var WS = {
     return '<div class="ws-ddr"><span class="ws-ddr-lbl">' + lbl + '</span><span class="ws-ddr-val">' + this.esc(String(val)) + '</span></div>';
   },
 
+  // ── Create-form dispatcher (delivery, payment, demand) ────────────────────
+  // Opens a creation form in wsDetailZone based on document type.
+  // Called from create-bar buttons and from empty flow-graph node clicks.
+  _openCreateForm: function(type, d) {
+    var self   = this;
+    var detEl  = document.getElementById('wsDetailZone');
+    if (!detEl) return;
+
+    var order = d && d.order;
+    if (!order) return;
+
+    if (type === 'delivery') {
+      var dm = order.delivery_method_code;
+      if (dm === 'novaposhta' || dm === 'ukrposhta') {
+        self._openTtnManualForm(dm === 'novaposhta' ? 'np' : 'up', order.id, d);
+      } else {
+        // courier / pickup / not set — show order_delivery form
+        self._openDeliveryForm(order, d);
+      }
+    } else if (type === 'payment') {
+      detEl.innerHTML = '<div class="ws-doc-detail"><div class="ws-doc-detail-head"><span class="ws-doc-detail-icon">💰</span><span class="ws-doc-detail-title">Ручна оплата — незабаром</span></div><div style="padding:12px;font-size:12px;color:#6b7280">Введення платіжних документів вручну буде реалізоване в наступному оновленні.</div></div>';
+    } else if (type === 'demand') {
+      detEl.innerHTML = '<div class="ws-doc-detail"><div class="ws-doc-detail-head"><span class="ws-doc-detail-icon">📋</span><span class="ws-doc-detail-title">Нове відвантаження — незабаром</span></div><div style="padding:12px;font-size:12px;color:#6b7280">Створення відвантаження вручну буде реалізоване в наступному оновленні.</div></div>';
+    }
+  },
+
+  // ── Delivery (courier/pickup) creation / status-change form ──────────────
+  _openDeliveryForm: function(order, d, existingId) {
+    var self  = this;
+    var detEl = document.getElementById('wsDetailZone');
+    if (!detEl) return;
+
+    var WS_DM = <?php echo json_encode(array_values($wsDeliveryMethods)); ?>;
+    var preselectedDmId    = order.delivery_method_id       ? parseInt(order.delivery_method_id)       : 0;
+    var preselectedHasTtn  = order.delivery_method_has_ttn  ? parseInt(order.delivery_method_has_ttn)  : 0;
+    if (preselectedHasTtn) preselectedDmId = 0;
+
+    var dmOpts = '<option value="">— обрати спосіб —</option>';
+    WS_DM.forEach(function(dm) {
+      if (parseInt(dm.has_ttn)) return;
+      var sel = (preselectedDmId && preselectedDmId === parseInt(dm.id)) ? ' selected' : '';
+      dmOpts += '<option value="' + dm.id + '"' + sel + '>' + self.esc(dm.name_uk) + '</option>';
+    });
+
+    // Pre-populate from existing record if editing
+    var existingRec = null;
+    if (existingId && d && d.order_deliveries) {
+      for (var ei = 0; ei < d.order_deliveries.length; ei++) {
+        if (parseInt(d.order_deliveries[ei].id) === parseInt(existingId)) {
+          existingRec = d.order_deliveries[ei]; break;
+        }
+      }
+    }
+    if (existingRec) {
+      // Override preselectedDmId from the actual record
+      var recDmId = parseInt(existingRec.delivery_method_id) || 0;
+      dmOpts = '<option value="">— обрати спосіб —</option>';
+      WS_DM.forEach(function(dm) {
+        if (parseInt(dm.has_ttn)) return;
+        var sel = (recDmId && recDmId === parseInt(dm.id)) ? ' selected' : '';
+        dmOpts += '<option value="' + dm.id + '"' + sel + '>' + self.esc(dm.name_uk) + '</option>';
+      });
+    }
+
+    var today = new Date().toISOString().substr(0,10);
+    var initStatus  = existingRec ? existingRec.status    : 'pending';
+    var initSentAt  = existingRec ? (existingRec.sent_at     ? existingRec.sent_at.substr(0,10)     : today) : today;
+    var initDelivAt = existingRec ? (existingRec.delivered_at ? existingRec.delivered_at.substr(0,10) : '')   : '';
+    var initComment = existingRec ? (existingRec.comment || '') : '';
+
+    var statusOpts = ['pending:Очікується','sent:Передано кур\'єру','delivered:Доставлено'].map(function(s){
+      var p = s.split(':'); return '<option value="'+p[0]+'"'+(initStatus===p[0]?' selected':'')+'>'+p[1]+'</option>';
+    }).join('');
+
+    detEl.innerHTML = '<div class="ws-doc-detail" id="wsDelivForm">'
+      + '<div class="ws-doc-detail-head"><span class="ws-doc-detail-icon">🚴</span>'
+      + '<span class="ws-doc-detail-title">' + (existingRec ? 'Редагувати доставку' : 'Доставка кур\'єром / самовивіз') + '</span>'
+      + '<button type="button" id="wsDfCloseBtn" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer;color:#9ca3af;padding:0 4px" title="Закрити">✕</button>'
+      + '</div>'
+      + '<div class="ws-ddr"><span class="ws-ddr-lbl">Спосіб</span>'
+      +   '<select id="wsDfMethod" style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px">' + dmOpts + '</select></div>'
+      + '<div class="ws-ddr"><span class="ws-ddr-lbl">Статус</span>'
+      +   '<select id="wsDfStatus" style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px">' + statusOpts + '</select></div>'
+      + '<div class="ws-ddr"><span class="ws-ddr-lbl">Дата відправки</span>'
+      +   '<input type="date" id="wsDfSentAt" value="' + self.esc(initSentAt) + '" style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px"></div>'
+      + '<div class="ws-ddr"><span class="ws-ddr-lbl">Дата доставки</span>'
+      +   '<input type="date" id="wsDfDelivAt" value="' + self.esc(initDelivAt) + '" style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px"></div>'
+      + '<div class="ws-ddr"><span class="ws-ddr-lbl">Коментар</span>'
+      +   '<input type="text" id="wsDfComment" value="' + self.esc(initComment) + '" style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:2px 4px;width:160px" placeholder="необов\'язково"></div>'
+      + '<div class="ws-doc-detail-acts">'
+      +   '<button type="button" class="btn btn-sm" id="wsDfCancelBtn">Скасувати</button>'
+      +   '<button type="button" class="btn btn-primary btn-sm" id="wsDfSaveBtn">Зберегти</button>'
+      + '</div></div>';
+
+    function wsDfClose() {
+      detEl.innerHTML = '<div class="ws-ctx-detail-empty"><div>📄</div><div>Натисніть документ у схемі</div></div>';
+      var ch = document.getElementById('wsFlowChain');
+      if (ch) ch.querySelectorAll('.wf-node').forEach(function(n){ n.classList.remove('wf-active'); });
+    }
+    document.getElementById('wsDfCloseBtn').addEventListener('click', wsDfClose);
+    document.getElementById('wsDfCancelBtn').addEventListener('click', wsDfClose);
+
+    document.getElementById('wsDfSaveBtn').addEventListener('click', function() {
+      var dmId    = parseInt(document.getElementById('wsDfMethod').value)  || 0;
+      var status  = document.getElementById('wsDfStatus').value;
+      var sentAt  = document.getElementById('wsDfSentAt').value;
+      var delivAt = document.getElementById('wsDfDelivAt').value;
+      var comment = document.getElementById('wsDfComment').value;
+      if (!dmId) { alert('Оберіть спосіб доставки'); return; }
+
+      var body = (existingId ? 'id=' + existingId + '&' : '')
+               + 'customerorder_id=' + order.id
+               + '&delivery_method_id=' + dmId
+               + '&status=' + encodeURIComponent(status)
+               + (sentAt  ? '&sent_at='      + encodeURIComponent(sentAt)  : '')
+               + (delivAt ? '&delivered_at=' + encodeURIComponent(delivAt) : '')
+               + (comment ? '&comment='      + encodeURIComponent(comment) : '');
+
+      fetch('/counterparties/api/save_order_delivery', {
+        method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body
+      }).then(function(r){ return r.json(); }).then(function(res) {
+        if (!res.ok) { alert('Помилка: ' + (res.error || '')); return; }
+        showToast(existingId ? 'Доставку оновлено' : 'Доставку зареєстровано');
+        self.loadOrderFlow(order.id, '');
+      });
+    });
+  },
+
+  // ── TTN manual entry form ─────────────────────────────────────────────────
+  _openTtnManualForm: function(carrier, orderId, d) {
+    var self  = this;
+    var detEl = document.getElementById('wsDetailZone');
+    if (!detEl) return;
+
+    var carrierLabel = carrier === 'np' ? 'Нова Пошта' : 'Укрпошта';
+    var carrierIcon  = carrier === 'np' ? '🚚' : '📬';
+
+    detEl.innerHTML = '<div class="ws-doc-detail" id="wsTtnForm">'
+      + '<div class="ws-doc-detail-head"><span class="ws-doc-detail-icon">' + carrierIcon + '</span>'
+      + '<span class="ws-doc-detail-title">Введення ТТН · ' + self.esc(carrierLabel) + '</span>'
+      + '<button type="button" id="wsTtnCloseBtn" style="margin-left:auto;background:none;border:none;font-size:16px;cursor:pointer;color:#9ca3af;padding:0 4px" title="Закрити">✕</button>'
+      + '</div>'
+      + '<div class="ws-ddr"><span class="ws-ddr-lbl">Номер ТТН</span>'
+      +   '<input type="text" id="wsTtnNumber" style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:2px 6px;width:175px" placeholder="' + (carrier === 'np' ? '20450000000000' : '0300012345678') + '" autocomplete="off"></div>'
+      + '<div style="padding:2px 0 6px 0;font-size:10px;color:#9ca3af">Статус ТТН оновиться автоматично при наступній синхронізації</div>'
+      + '<div class="ws-doc-detail-acts">'
+      +   '<button type="button" class="btn btn-sm" id="wsTtnCancelBtn">Скасувати</button>'
+      +   '<button type="button" class="btn btn-sm" id="wsTtnCarrierToggle" style="background:#f3f4f6">'
+      +     (carrier === 'np' ? 'Перейти на Укрпошту' : 'Перейти на Нова Пошта') + '</button>'
+      +   '<button type="button" class="btn btn-primary btn-sm" id="wsTtnSaveBtn">Зберегти</button>'
+      + '</div></div>';
+
+    function wsTtnClose() {
+      detEl.innerHTML = '<div class="ws-ctx-detail-empty"><div>📄</div><div>Натисніть документ у схемі</div></div>';
+      var ch = document.getElementById('wsFlowChain');
+      if (ch) ch.querySelectorAll('.wf-node').forEach(function(n){ n.classList.remove('wf-active'); });
+    }
+    document.getElementById('wsTtnCloseBtn').addEventListener('click', wsTtnClose);
+    document.getElementById('wsTtnCancelBtn').addEventListener('click', wsTtnClose);
+
+    document.getElementById('wsTtnSaveBtn').addEventListener('click', function() {
+      var num = (document.getElementById('wsTtnNumber').value || '').trim();
+      if (!num) { alert('Введіть номер ТТН'); return; }
+      fetch('/counterparties/api/save_ttn_manual', {
+        method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'customerorder_id=' + orderId + '&carrier=' + carrier + '&ttn_number=' + encodeURIComponent(num)
+      }).then(function(r){ return r.json(); }).then(function(res) {
+        if (!res.ok) { alert('Помилка: ' + (res.error || '')); return; }
+        showToast('ТТН збережено');
+        self.loadOrderFlow(orderId, '');
+      });
+    });
+
+    document.getElementById('wsTtnCarrierToggle').addEventListener('click', function() {
+      var other = carrier === 'np' ? 'up' : 'np';
+      self._openTtnManualForm(other, orderId, d);
+    });
+  },
+
+  // ── Edit order_delivery status ────────────────────────────────────────────
+  _openDeliveryEditForm: function(odId) {
+    var self  = this;
+    var detEl = document.getElementById('wsDetailZone');
+    if (!detEl) return;
+    var fd = self._flowData;
+    var order = fd && fd.order;
+    if (!order) return;
+    self._openDeliveryForm(order, fd, odId);
+  },
+
+  // ── Delete order delivery ───────────────────────────────────────────────────
+  _deleteOrderDelivery: function(odId, orderId) {
+    var self = this;
+    if (!confirm('Видалити цю доставку? Якщо вона була єдиною — замовлення повернеться в "В роботі".')) return;
+    fetch('/counterparties/api/delete_order_delivery', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'id=' + odId + '&customerorder_id=' + orderId
+    }).then(function(r){ return r.json(); }).then(function(res) {
+      if (!res.ok) { alert('Помилка: ' + (res.error || '')); return; }
+      showToast(res.reverted ? 'Доставку видалено, статус повернуто «В роботі»' : 'Доставку видалено');
+      self.loadOrderFlow(orderId, '');
+    });
+  },
+
   // ── Inline order form (orders mode) ───────────────────────────────────────
   renderOrderForm: function(d) {
     var self  = this;
@@ -1666,47 +1951,93 @@ var WS = {
     var order    = d.order;
     var items    = d.items    || [];
     var demands  = d.demands  || [];
+
+    // ── Org/employee options (injected from PHP) ──────────────────────────────
+    var WS_ORGS             = <?php echo json_encode(array_values($wsOrgs)); ?>;
+    var WS_EMPLOYEES        = <?php echo json_encode(array_values($wsEmployees)); ?>;
+    var WS_DELIVERY_METHODS = <?php echo json_encode(array_values($wsDeliveryMethods)); ?>;
+
+    // Build org select HTML
+    var orgOpts = '<option value="">— організація —</option>';
+    var orgIsVat = false;
+    WS_ORGS.forEach(function(o) {
+      var sel = (parseInt(order.organization_id) === parseInt(o.id)) ? ' selected' : '';
+      orgOpts += '<option value="' + o.id + '"' + sel + '>' + self.esc(o.short_name || o.name) + '</option>';
+      if (sel && o.vat_number) orgIsVat = true;
+    });
+
+    // Build employee select HTML
+    var empOpts = '<option value="">— відповідальний —</option>';
+    WS_EMPLOYEES.forEach(function(e) {
+      var sel = (parseInt(order.manager_employee_id) === parseInt(e.id)) ? ' selected' : '';
+      empOpts += '<option value="' + e.id + '"' + sel + '>' + self.esc(e.name) + '</option>';
+    });
+
+    // Store vat flag in order state so new items use correct default
+    self._orgIsVat = orgIsVat;
     var ttnsNp   = d.ttns_np  || [];
     var ttnsUp   = d.ttns_up  || [];
     var payments = d.payments || [];
     var returns  = d.returns  || [];
 
-    var STATUS_COLORS = {
-      draft:'background:#f3f4f6;color:#6b7280', new:'background:#dbeafe;color:#1d4ed8',
-      confirmed:'background:#d1fae5;color:#065f46', in_progress:'background:#fef3c7;color:#92400e',
-      waiting_payment:'background:#ede9fe;color:#5b21b6', paid:'background:#dcfce7;color:#15803d',
-      partially_shipped:'background:#ecfeff;color:#0e7490',
-      shipped:'background:#cffafe;color:#0e7490', completed:'background:#d1fae5;color:#065f46',
-      cancelled:'background:#fee2e2;color:#b91c1c'
-    };
     var STATUS_LABELS = {
       draft:'Чернетка', new:'Нове', confirmed:'Підтверджено', in_progress:'В роботі',
       waiting_payment:'Очікує оплату', paid:'Оплачено', partially_shipped:'Частково відвант.',
       shipped:'Відвантажено', completed:'Завершено', cancelled:'Скасовано'
     };
     var curStatus = order.status || 'draft';
-    var curStyle  = STATUS_COLORS[curStatus] || STATUS_COLORS['draft'];
 
-    var statusOpts = '';
-    ['draft','new','confirmed','waiting_payment','in_progress','paid','partially_shipped','shipped','completed','cancelled'].forEach(function(s) {
-      statusOpts += '<option value="' + s + '"' + (s === curStatus ? ' selected' : '') + '>' + (STATUS_LABELS[s] || s) + '</option>';
-    });
+    // ── Pipeline block (above header) ─────────────────────────────────────────
+    var autoFlags = (d.status_auto_flags) ? d.status_auto_flags : {};
+    var pipelineBlockHtml = '<div id="wsPipelineBar" class="ws-pl-block">' + self._buildPipelineBarInner(curStatus, order.id, autoFlags) + '</div>';
 
-    // ── Header ────────────────────────────────────────────────────────────────
+    // ── Header (outside edit zone: number, badges, action buttons) ──────────
     var headHtml = '<div class="ws-of-head">'
       + '<span class="ws-of-head-num">#' + self.esc(order.number || '—') + '</span>'
       + (order.moment ? '<span class="ws-of-head-date">' + order.moment.substr(0,10) + '</span>' : '')
-      + '<select class="ws-of-status-sel" id="wsOfStatus" style="' + curStyle + '" onchange="WS.onOrderStatusChange(this)">' + statusOpts + '</select>'
       + self.payStatusBadge(order.payment_status)
       + self.shipStatusBadge(order.shipment_status)
       + '<span class="ws-of-head-sep"></span>'
       + '<div class="ws-of-head-btns">'
-      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfPrintBtn"'
-      +   ' onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">🖨</button>'
-      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfEditBtn" title="Редагувати позиції">✏</button>'
+      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-btn-edit" id="wsOfEditBtn" title="Редагувати позиції">'
+      +   '<svg width="11" height="14" viewBox="0 0 11 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">'
+      +   '<rect x="1.5" y="0.8" width="8" height="9" rx="1"/>'
+      +   '<path d="M1.5 9.8 L5.5 13.2 L9.5 9.8"/>'
+      +   '<line x1="1.5" y1="3.3" x2="9.5" y2="3.3" stroke-width="1.1"/>'
+      +   '</svg></button>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-save-btn" id="wsOfSaveBtn" title="Зберегти зміни" style="display:none">💾</button>'
-      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOfSendBtn" title="Надіслати клієнту / команди (або / в чаті)">💬</button>'
+      + '<span class="ws-of-btns-sep"></span>'
+      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-btn-print" id="wsOfPrintBtn"'
+      +   ' onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">'
+      +   '<svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">'
+      +   '<rect x="3.5" y="0.8" width="8" height="3.5" rx="0.5"/>'
+      +   '<rect x="0.8" y="4.3" width="13.4" height="5.8" rx="1.2"/>'
+      +   '<rect x="3.5" y="9.2" width="8" height="4" rx="0.5"/>'
+      +   '<line x1="5.2" y1="11" x2="9.8" y2="11" stroke-width="1.1"/>'
+      +   '<line x1="5.2" y1="12.5" x2="8.3" y2="12.5" stroke-width="1.1"/>'
+      +   '<circle cx="11.8" cy="7" r="0.9" fill="currentColor" stroke="none"/>'
+      +   '</svg></button>'
+      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-btn-send" id="wsOfSendBtn" title="Надіслати клієнту / команди (або / в чаті)">'
+      +   '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">'
+      +   '<path d="M1 7 L13.5 1 L9.5 13 L6.5 7.5 Z" fill="currentColor" stroke="none"/>'
+      +   '<line x1="6.5" y1="7.5" x2="13.5" y2="1"/>'
+      +   '</svg></button>'
       + '</div>'
+      + '</div>';
+
+    // Build delivery method select HTML
+    var dmOpts = '<option value="">— доставка —</option>';
+    WS_DELIVERY_METHODS.forEach(function(dm) {
+      var sel = (order.delivery_method_id && parseInt(order.delivery_method_id) === parseInt(dm.id)) ? ' selected' : '';
+      dmOpts += '<option value="' + dm.id + '"' + sel + '>' + self.esc(dm.name_uk) + '</option>';
+    });
+
+    // ── Meta row — inside edit zone (org, vat badge, employee, delivery method) ──
+    var metaRowHtml = '<div class="ws-of-meta-row">'
+      + '<select class="ws-of-meta-sel ws-of-org-sel" id="wsOfOrgSel" title="Організація (продавець)">' + orgOpts + '</select>'
+      + (orgIsVat ? '<span class="ws-of-vat-badge" id="wsOfVatBadge">ПДВ</span>' : '<span class="ws-of-vat-badge ws-of-vat-none" id="wsOfVatBadge">без ПДВ</span>')
+      + '<select class="ws-of-meta-sel ws-of-emp-sel" id="wsOfEmpSel" title="Відповідальний">' + empOpts + '</select>'
+      + '<select class="ws-of-meta-sel ws-of-deliv-sel" id="wsOfDelivSel" title="Спосіб доставки">' + dmOpts + '</select>'
       + '</div>';
 
     // ── Items table (editable) ────────────────────────────────────────────────
@@ -1733,11 +2064,11 @@ var WS = {
       var shipNote  = ship > 0 && ship < qty ? ' <span style="color:#ea580c;font-size:9px">відвант:' + ship + '</span>' : '';
       var stkCell   = stock !== null
         ? '<td class="ws-of-stk-cell' + (stkLow ? ' ws-of-stk-warn' : '') + '" title="Залишок на складі">' + stock + '</td>'
-        : '<td class="ws-of-stk-cell" title="Залишок невідомий">—</td>';
+        : '<td class="ws-of-stk-cell ws-of-stk-unknown" title="Товар не знайдено у прайсі Складу">—</td>';
 
       itemsHtml += '<tr class="ws-of-items-body" data-item-id="' + it.id + '" data-local-id="' + it.id + '" data-sum-changed="0">'
         + '<td class="ws-of-name-cell" title="' + self.esc(nameTitle) + '">'
-        +   (it.article ? '<span class="ws-of-sku">' + self.esc(it.article) + '</span>' : '')
+        +   (it.article ? (it.product_id ? '<a class="ws-of-sku" href="/catalog?selected=' + parseInt(it.product_id, 10) + '" target="_blank" title="Відкрити в каталозі">' + self.esc(it.article) + '</a>' : '<span class="ws-of-sku">' + self.esc(it.article) + '</span>') : '')
         +   '<span class="ws-of-nm">' + self.esc(it.name || '—') + '</span>'
         +   shipNote
         + '</td>'
@@ -1773,12 +2104,26 @@ var WS = {
     var sumDiscount = parseFloat(order.sum_discount) || 0;
     var sumVat      = parseFloat(order.sum_vat)      || 0;
     var sumTotal    = parseFloat(order.sum_total)    || 0;
+
+    var dmOpts = '<option value="0">— Спосіб доставки —</option>';
+    var _DMS = [{id:1,code:'pickup',name:'Самовивіз'},{id:2,code:'courier',name:'Кур\'єр'},{id:3,code:'novaposhta',name:'Нова Пошта'},{id:4,code:'ukrposhta',name:'Укрпошта'}];
+    _DMS.forEach(function(dm) {
+      var sel = (order.delivery_method_id && parseInt(order.delivery_method_id) === dm.id) ? ' selected' : '';
+      dmOpts += '<option value="' + dm.id + '"' + sel + '>' + dm.name + '</option>';
+    });
+
     var footHtml = '<div class="ws-of-foot">'
-      + '<div class="ws-of-foot-comment">'
-      +   '<textarea id="wsOfComment" placeholder="Коментар до замовлення…">' + self.esc(order.description || '') + '</textarea>'
+      + '<div class="ws-of-foot-meta">'
+      + '<span class="ws-of-foot-meta-lbl">Доставка</span>'
+      + '<select class="ws-of-dm-sel" id="wsOfDmSel">' + dmOpts + '</select>'
       + '</div>'
-      + '<div class="ws-of-foot-totals" id="wsOfTotals">'
-      + self._footTotalsHtml(sumDiscount, sumVat, sumTotal)
+      + '<div class="ws-of-foot-row">'
+      +   '<div class="ws-of-foot-comment">'
+      +     '<textarea id="wsOfComment" placeholder="Коментар до замовлення…">' + self.esc(order.description || '') + '</textarea>'
+      +   '</div>'
+      +   '<div class="ws-of-foot-totals" id="wsOfTotals">'
+      +     self._footTotalsHtml(sumDiscount, sumVat, sumTotal)
+      +   '</div>'
       + '</div>'
       + '</div>';
 
@@ -1841,7 +2186,10 @@ var WS = {
         }).join('')
       : '<div style="font-size:11px;color:#d1d5db;padding:8px 0">Повернень немає</div>';
 
-    el.innerHTML = editBarHtml + headHtml + itemsHtml + addProductHtml + footHtml;
+    el.innerHTML = pipelineBlockHtml + headHtml
+      + '<div class="ws-of-edit-zone" id="wsOfEditZone">'
+      +   editBarHtml + metaRowHtml + itemsHtml + addProductHtml + footHtml
+      + '</div>';
 
     el.dataset.orderId = order.id;
 
@@ -1893,9 +2241,10 @@ var WS = {
     var saveBtn    = el.querySelector('#wsOfSaveBtn');
     var editDone   = el.querySelector('#wsOfEditDone');
     var searchInp  = el.querySelector('#wsItemSearch');
+    var editZone   = el.querySelector('#wsOfEditZone');
 
     function enterEditMode() {
-      el.classList.add('ws-of-editing');
+      if (editZone) editZone.classList.add('ws-of-editing');
       if (editBtn)   editBtn.style.display   = 'none';
       if (saveBtn)   saveBtn.style.display   = '';
       if (searchInp) { searchInp.disabled = false; searchInp.placeholder = '+ Додати товар…'; }
@@ -1903,7 +2252,7 @@ var WS = {
       if (firstInp) { firstInp.focus(); firstInp.select(); }
     }
     function exitEditMode() {
-      el.classList.remove('ws-of-editing');
+      if (editZone) editZone.classList.remove('ws-of-editing');
       if (editBtn)   { editBtn.style.display = ''; }
       if (saveBtn)   { saveBtn.style.display = 'none'; saveBtn.classList.remove('ws-of-save-btn-dirty'); }
       if (searchInp) { searchInp.disabled = true; searchInp.placeholder = '+ Додати товар… (увімкніть режим ✏)'; searchInp.value = ''; }
@@ -1956,6 +2305,75 @@ var WS = {
           headers: {'Content-Type':'application/x-www-form-urlencoded'},
           body: 'order_id=' + orderId + '&description=' + encodeURIComponent(commentEl.value)
         }).catch(function(){});
+      });
+    }
+
+    // ── Pipeline bar bindings ─────────────────────────────────────────────────
+    self._bindPipelineBar(el);
+
+    // ── Org + Employee selectors — sync to state on change, save with 💾 ────
+    var orgSel   = el.querySelector('#wsOfOrgSel');
+    var vatBadge = el.querySelector('#wsOfVatBadge');
+    var empSel   = el.querySelector('#wsOfEmpSel');
+
+    function updateVatBadge(isVat) {
+      if (!vatBadge) return;
+      vatBadge.textContent = isVat ? 'ПДВ' : 'без ПДВ';
+      vatBadge.classList.toggle('ws-of-vat-none', !isVat);
+    }
+
+    if (orgSel) {
+      orgSel.addEventListener('change', function() {
+        var selOrg = null;
+        WS_ORGS.forEach(function(o) { if (String(o.id) === orgSel.value) selOrg = o; });
+        var isVat = !!(selOrg && selOrg.vat_number);
+        self._orgIsVat = isVat;
+        updateVatBadge(isVat);
+        // Sync to state — will be saved with 💾
+        if (self._orderState) self._orderState.order.organization_id = orgSel.value ? parseInt(orgSel.value) : null;
+        if (saveBtn) { saveBtn.style.display = ''; saveBtn.classList.add('ws-of-save-btn-dirty'); }
+      });
+    }
+
+    if (empSel) {
+      empSel.addEventListener('change', function() {
+        if (self._orderState) self._orderState.order.manager_employee_id = empSel.value ? parseInt(empSel.value) : null;
+        if (saveBtn) { saveBtn.style.display = ''; saveBtn.classList.add('ws-of-save-btn-dirty'); }
+      });
+    }
+
+    // ── Delivery method selector — saves immediately (separate API) ───────────
+    var delivSel = el.querySelector('#wsOfDelivSel');
+    if (delivSel) {
+      delivSel.addEventListener('change', function() {
+        var dmId = delivSel.value ? parseInt(delivSel.value) : 0;
+        fetch('/counterparties/api/save_delivery_method', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: 'order_id=' + orderId + '&delivery_method_id=' + dmId
+        }).then(function(r){ return r.json(); }).then(function(res) {
+          if (!res.ok) { showToast('Помилка збереження способу доставки', true); return; }
+          // Update local state so _openCreateForm sees the new method
+          if (self._flowData && self._flowData.order) {
+            var dm = WS_DELIVERY_METHODS.filter(function(x){ return parseInt(x.id) === dmId; })[0];
+            self._flowData.order.delivery_method_id   = dmId || null;
+            self._flowData.order.delivery_method_code = dm ? dm.code    : null;
+            self._flowData.order.delivery_method_name = dm ? dm.name_uk : null;
+            self._flowData.order.delivery_method_has_ttn = dm ? dm.has_ttn : 0;
+          }
+          if (self._orderState && self._orderState.order) {
+            self._orderState.order.delivery_method_id = dmId || null;
+          }
+          // Refresh empty delivery node label in the flow graph
+          var chainEl = document.getElementById('wsFlowChain');
+          if (chainEl) {
+            var emptyDeliv = chainEl.querySelector('.wf-node.wf-empty[data-type="delivery"] .wf-node-id');
+            if (emptyDeliv && self._flowData) {
+              var dmName = self._flowData.order && self._flowData.order.delivery_method_name;
+              emptyDeliv.textContent = dmName ? '+ ' + dmName : '+ Доставка';
+            }
+          }
+        });
       });
     }
   },
@@ -2078,7 +2496,8 @@ var WS = {
     var stkHint = (stk > 0 || res > 0)
       ? ' <span class="ws-of-stk-hint" title="Залишок/Резерв">(' + (stk||'—') + '/' + (res||'—') + ')</span>' : '';
     return '<td class="ws-of-name-cell">'
-      + (it.article ? '<span class="ws-of-sku">' + self.esc(it.article) + '</span>' : '')
+
+      + (it.article ? (it.product_id ? '<a class="ws-of-sku" href="/catalog?selected=' + parseInt(it.product_id, 10) + '" target="_blank" title="Відкрити в каталозі">' + self.esc(it.article) + '</a>' : '<span class="ws-of-sku">' + self.esc(it.article) + '</span>') : '')
       + '<span class="ws-of-nm">' + self.esc(it.name || it.product_name || '—') + '</span>'
       + stkHint
       + '</td>'
@@ -2100,18 +2519,26 @@ var WS = {
     var orderId = ord.id;
     var version = parseInt(ord.version) || 0;
     var commentEl = el ? el.querySelector('#wsOfComment') : null;
-    var statusSel = el ? el.querySelector('#wsOfStatus')  : null;
     var description = commentEl ? commentEl.value : (ord.description || '');
-    var status      = statusSel ? statusSel.value : (ord.status || '');
-    var items = self._orderState.items || [];
+    var status      = ord.status || '';
+    var items   = self._orderState.items || [];
+    var orgId   = ord.organization_id    != null ? parseInt(ord.organization_id)    : '';
+    var empId   = ord.manager_employee_id != null ? parseInt(ord.manager_employee_id) : '';
+    // Also read current selectors (user may have changed without triggering state sync)
+    var orgSel = document.getElementById('wsOfOrgSel');
+    var empSel = document.getElementById('wsOfEmpSel');
+    if (orgSel && orgSel.value) orgId = parseInt(orgSel.value);
+    if (empSel)                 empId = empSel.value ? parseInt(empSel.value) : '';
     fetch('/counterparties/api/save_order', {
       method: 'POST',
       headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: 'order_id='    + encodeURIComponent(orderId)
-          + '&version='    + encodeURIComponent(version)
-          + '&description='+ encodeURIComponent(description)
-          + '&status='     + encodeURIComponent(status)
-          + '&items='      + encodeURIComponent(JSON.stringify(items))
+      body: 'order_id='           + encodeURIComponent(orderId)
+          + '&version='           + encodeURIComponent(version)
+          + '&description='       + encodeURIComponent(description)
+          + '&status='            + encodeURIComponent(status)
+          + '&organization_id='   + encodeURIComponent(orgId)
+          + '&manager_employee_id='+ encodeURIComponent(empId)
+          + '&items='             + encodeURIComponent(JSON.stringify(items))
     }).then(function(r){ return r.json(); }).then(function(res) {
       if (res.conflict) {
         if (confirm('Замовлення було змінено іншим користувачем.\nОновити та втратити свої зміни?')) {
@@ -2205,7 +2632,7 @@ var WS = {
             quantity:          1,
             price:             parseFloat(product.price) || 0,
             discount_percent:  0,
-            vat_rate:          parseFloat(product.vat) || 0,
+            vat_rate:          parseFloat(product.vat) || (self._orgIsVat ? 20 : 0),
             stock_quantity:    parseFloat(product.quantity) || 0,
             shipped_quantity:  0,
             reserved_quantity: 0,
@@ -2252,27 +2679,174 @@ var WS = {
     inp.addEventListener('keydown', function(e) { if (e.key === 'Escape') { removeDd(); inp.value=''; } });
   },
 
-  onOrderStatusChange: function(sel) {
-    var STATUS_COLORS = {
-      draft:'background:#f3f4f6;color:#6b7280', new:'background:#dbeafe;color:#1d4ed8',
-      confirmed:'background:#d1fae5;color:#065f46', in_progress:'background:#fef3c7;color:#92400e',
-      waiting_payment:'background:#ede9fe;color:#5b21b6', paid:'background:#dcfce7;color:#15803d',
-      partially_shipped:'background:#ecfeff;color:#0e7490',
-      shipped:'background:#cffafe;color:#0e7490', completed:'background:#d1fae5;color:#065f46',
-      cancelled:'background:#fee2e2;color:#b91c1c'
-    };
-    var st = sel.value;
-    sel.style.cssText = STATUS_COLORS[st] || STATUS_COLORS['draft'];
-    var form    = document.getElementById('wsOrderForm');
-    var orderId = form ? form.dataset.orderId : 0;
+  // ── Pipeline helpers ────────────────────────────────────────────────────────
+
+  _PIPELINE_STEPS: [
+    { label: 'Нове',          jump: 'new',             values: ['draft','new'] },
+    { label: 'Прийнято',      jump: 'confirmed',       values: ['confirmed'] },
+    { label: 'Очік. оплати',  jump: 'waiting_payment', values: ['waiting_payment'] },
+    { label: 'В роботі',      jump: 'in_progress',     values: ['in_progress'] },
+    { label: 'Відправлено',   jump: 'shipped',         values: ['partially_shipped','shipped'] },
+    { label: 'Виконано',      jump: 'completed',       values: ['completed'] },
+  ],
+
+  _PIPELINE_NEXT: {
+    'draft':             { label: 'Прийняти →',      status: 'confirmed' },
+    'new':               { label: 'Прийняти →',      status: 'confirmed' },
+    'confirmed':         { label: 'Очік. оплату →',  status: 'waiting_payment' },
+    'waiting_payment':   { label: 'В роботу →',      status: 'in_progress' },
+    'in_progress':       { label: 'Відправити →',    status: 'shipped' },
+    'partially_shipped': { label: 'Завершити →',     status: 'completed' },
+    'shipped':           { label: 'Завершити →',     status: 'completed' },
+  },
+
+  _buildPipelineBarInner: function(status, orderId, autoFlags) {
+    var self  = this;
+    autoFlags = autoFlags || {};
+    var steps = self._PIPELINE_STEPS;
+    var cancelled = (status === 'cancelled');
+
+    var curIdx = -1;
+    steps.forEach(function(s, i) {
+      if (s.values.indexOf(status) !== -1) curIdx = i;
+    });
+
+    var stepsHtml = '';
+    steps.forEach(function(step, i) {
+      var cls = '';
+      if (!cancelled) {
+        if (i < curIdx)        cls = 'done';
+        else if (i === curIdx) cls = 'current';
+      } else {
+        cls = 'done';
+      }
+      var dotContent = (cls === 'done') ? '&#10003;' : '';
+      var isAuto = !!(autoFlags[step.jump]);
+      if (i > 0) {
+        var connDone = (i <= curIdx && !cancelled) || cancelled;
+        stepsHtml += '<div class="ws-pl-conn' + (connDone ? ' done-conn' : '') + '"></div>';
+      }
+      stepsHtml += '<div class="ws-pl-step ' + cls + '" data-pl-status="' + step.jump + '">'
+        + '<div class="ws-pl-dot">' + dotContent + '</div>'
+        + '<div class="ws-pl-lbl">' + step.label + '</div>'
+        + (isAuto ? '<div class="ws-pl-auto">авто</div>' : '')
+        + '</div>';
+    });
+
+    if (cancelled) {
+      stepsHtml += '<div class="ws-pl-conn done-conn"></div>'
+        + '<div class="ws-pl-step current cancelled" data-pl-status="cancelled">'
+        + '<div class="ws-pl-dot">&#10005;</div>'
+        + '<div class="ws-pl-lbl">Скасовано</div>'
+        + (autoFlags['cancelled'] ? '<div class="ws-pl-auto">авто</div>' : '')
+        + '</div>';
+    }
+
+    return '<div class="ws-pl-head-row">'
+      + '<span class="ws-pl-title">ПРОГРЕС ЗАМОВЛЕННЯ</span>'
+      + '</div>'
+      + '<div class="ws-pl-steps">' + stepsHtml + '</div>';
+  },
+
+  // Pipeline step order for direction detection (must match server-side getStepOrder).
+  _STEP_ORDER: {
+    draft: 0, 'new': 0,
+    confirmed: 1, waiting_payment: 2, in_progress: 3,
+    partially_shipped: 4, shipped: 4, completed: 5,
+    cancelled: -1
+  },
+
+  _bindPipelineBar: function(el) {
+    var self = this;
+    var bar = el ? el.querySelector('#wsPipelineBar') : null;
+    if (!bar) return;
+    bar.addEventListener('click', function(e) {
+      var step = e.target.closest('[data-pl-status]');
+      if (!step) return;
+      if (step.classList.contains('current') || step.classList.contains('cancelled')) return;
+
+      var targetStatus  = step.dataset.plStatus;
+      var currentStatus = self._orderState && self._orderState.order && self._orderState.order.status;
+      if (!targetStatus || targetStatus === currentStatus) return;
+
+      var fromStep = self._STEP_ORDER[currentStatus] !== undefined ? self._STEP_ORDER[currentStatus] : -2;
+      var toStep   = self._STEP_ORDER[targetStatus]  !== undefined ? self._STEP_ORDER[targetStatus]  : -2;
+      var isBackward = toStep < fromStep;
+
+      // Moving to "cancelled"
+      if (targetStatus === 'cancelled') {
+        var cancelMsg = currentStatus === 'completed'
+          ? 'Скасувати виконане замовлення? Цю дію важко відмінити.'
+          : 'Скасувати замовлення?';
+        if (!confirm(cancelMsg)) return;
+        self._setOrderStatus(el, targetStatus);
+        return;
+      }
+
+      // Backward from "completed" — server will block unless target is cancelled (handled above)
+      if (isBackward && fromStep >= 5) {
+        alert('Із статусу "Виконано" можна перейти лише в "Скасовано".');
+        return;
+      }
+
+      // Backward from "confirmed" or "waiting_payment" — soft warning
+      if (isBackward && fromStep >= 1 && fromStep <= 2) {
+        var LABELS = { draft:'Нове', 'new':'Нове', confirmed:'Прийнято',
+          waiting_payment:'Очік. оплати', in_progress:'В роботі',
+          shipped:'Відправлено', completed:'Виконано' };
+        if (!confirm('Повернути статус назад до "' + (LABELS[targetStatus] || targetStatus) + '"?')) return;
+      }
+
+      // All other cases (forward, or backward from in_progress/shipped):
+      // server validates and returns error if blocked.
+      self._setOrderStatus(el, targetStatus);
+    });
+  },
+
+  _setOrderStatus: function(el, newStatus) {
+    var self = this;
+    if (!self._orderState || !self._orderState.order) return;
+    var orderId = self._orderState.order.id;
     if (!orderId) return;
+
+    var STATUS_LABELS_LOCAL = {
+      draft:'Чернетка', new:'Нове', confirmed:'Підтверджено', in_progress:'В роботі',
+      waiting_payment:'Очікує оплату', paid:'Оплачено', shipped:'Відвантажено',
+      partially_shipped:'Частково відвант.', completed:'Завершено', cancelled:'Скасовано'
+    };
+
+    var prevStatus = self._orderState.order.status;
+    self._orderState.order.status = newStatus;
+    var aFlags = (self._flowData && self._flowData.status_auto_flags) ? self._flowData.status_auto_flags : {};
+
+    var bar = el ? el.querySelector('#wsPipelineBar') : null;
+    if (bar) {
+      bar.innerHTML = self._buildPipelineBarInner(newStatus, orderId, aFlags);
+      self._bindPipelineBar(el);
+    }
+
     fetch('/counterparties/api/save_order_status', {
       method: 'POST',
       headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: 'order_id=' + orderId + '&status=' + encodeURIComponent(st)
+      body: 'order_id=' + orderId + '&status=' + encodeURIComponent(newStatus)
     }).then(function(r){ return r.json(); }).then(function(d) {
-      if (!d.ok) showToast('Помилка: ' + (d.error || ''));
-      else showToast('Статус оновлено');
+      if (!d.ok) {
+        self._orderState.order.status = prevStatus;
+        if (bar) { bar.innerHTML = self._buildPipelineBarInner(prevStatus, orderId, aFlags); self._bindPipelineBar(el); }
+        // Show error as alert for blocking validation rules (more noticeable than toast)
+        var errMsg = d.error || 'Помилка зміни статусу';
+        if (errMsg.indexOf('Неможливо') !== -1 || errMsg.indexOf('потрібна') !== -1
+            || errMsg.indexOf('Із ') !== -1 || errMsg.indexOf('Є активна') !== -1) {
+          alert(errMsg);
+        } else {
+          showToast('Помилка: ' + errMsg);
+        }
+      } else {
+        showToast(STATUS_LABELS_LOCAL[newStatus] || newStatus);
+      }
+    }).catch(function() {
+      self._orderState.order.status = prevStatus;
+      if (bar) { bar.innerHTML = self._buildPipelineBarInner(prevStatus, orderId, aFlags); self._bindPipelineBar(el); }
     });
   },
 
@@ -2595,8 +3169,15 @@ var WS = {
       msgs.forEach(function(m) {
         var isOut = m.direction === 'out';
         var mediaHtml = '';
+        // Якщо body = '📎 оригінальна_назва' — витягуємо для показу в посиланні
+        var origAttachName = '';
+        if (m.media_url && m.body && /^📎\s/u.test(m.body)) {
+          origAttachName = m.body.replace(/^📎\s*/u, '').trim();
+        }
         if (m.media_url) {
-          var mbottom = (m.body && m.body !== '[файл]' && m.body !== '[фото]') ? '6' : '0';
+          // body-текст відображається окремо лише якщо він НЕ є "📎 filename" (щоб не дублювати)
+          var hasCaption = m.body && m.body !== '[файл]' && m.body !== '[фото]' && !origAttachName;
+          var mbottom = hasCaption ? '6' : '0';
           if (self.isImageUrl(m.media_url)) {
             mediaHtml = '<a href="' + self.esc(m.media_url) + '" target="_blank" rel="noopener">'
                       + '<img src="' + self.esc(m.media_url) + '" style="max-width:220px;max-height:180px;border-radius:6px;display:block;margin-bottom:' + mbottom + 'px">'
@@ -2607,8 +3188,10 @@ var WS = {
                       + '</audio>';
           } else {
             var parts   = m.media_url.split('/');
-            var fname   = parts[parts.length - 1] || 'файл';
-            var extM    = fname.split('.').pop().toLowerCase();
+            var storedName = parts[parts.length - 1] || 'файл';
+            // Показуємо оригінальну назву файлу (з body), а не згенеровану
+            var fname   = origAttachName || storedName;
+            var extM    = storedName.split('.').pop().toLowerCase();
             var icons   = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', txt: '📃' };
             var ic      = icons[extM] || '📎';
             mediaHtml = '<a href="' + self.esc(m.media_url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:inherit;background:rgba(0,0,0,.08);border-radius:6px;padding:5px 8px;font-size:12px;margin-bottom:' + mbottom + 'px">'
@@ -2616,7 +3199,8 @@ var WS = {
                       + '</a>';
           }
         }
-        var bodyText  = (m.body && m.body !== '[файл]' && m.body !== '[фото]') ? '<div>' + self.esc(m.body) + '</div>' : '';
+        // Ховаємо body якщо він є "📎 filename" — файл вже відображено як посилання вище
+        var bodyText  = (m.body && m.body !== '[файл]' && m.body !== '[фото]' && !origAttachName) ? '<div>' + self.linkify(self.esc(m.body).replace(/\\n/g,'<br>').replace(/\n/g,'<br>')) + '</div>' : '';
         var mediaOnly = (m.media_url && !bodyText) ? ' media-only' : '';
         var statusIcon = '';
         if (isOut) {
@@ -2635,7 +3219,7 @@ var WS = {
         }
         html += '<div class="ws-msg-row ' + (isOut ? 'out' : 'in') + '">'
               + '<div class="ws-bubble' + mediaOnly + '">' + mediaHtml + bodyText + '</div>'
-              + '<div class="ws-msg-meta">' + (isOut ? 'Оператор' : 'Клієнт') + ' · ' + self.formatTime(m.created_at) + statusIcon + '</div>'
+              + '<div class="ws-msg-meta">' + (isOut ? (m.operator_name || 'Оператор') : 'Клієнт') + ' · ' + self.formatTime(m.created_at) + statusIcon + '</div>'
               + '</div>';
       });
     }
@@ -2833,14 +3417,24 @@ var WS = {
           list.innerHTML = '<div class="ws-tpl-empty">Немає шаблонів для цього каналу</div>';
           return;
         }
+        // Store bodies in array — avoid inline onclick (breaks when body contains ")
+        self._tplBodies = [];
         var html = '';
-        d.templates.forEach(function(t) {
-          html += '<div class="ws-tpl-item" onclick="WS.insertTemplate(' + JSON.stringify(t.body) + ')">'
+        d.templates.forEach(function(t, i) {
+          self._tplBodies.push(t.body);
+          html += '<div class="ws-tpl-item" data-tpl-idx="' + i + '">'
                 + '<div class="ws-tpl-item-title">' + self.esc(t.title) + '</div>'
                 + '<div class="ws-tpl-item-body">'  + self.esc(t.body)  + '</div>'
                 + '</div>';
         });
         list.innerHTML = html;
+        list.querySelectorAll('.ws-tpl-item').forEach(function(el) {
+          el.addEventListener('mousedown', function(ev) {
+            ev.preventDefault(); // prevent blur → picker close before insert
+            var idx = parseInt(el.getAttribute('data-tpl-idx'), 10);
+            self.insertTemplate(self._tplBodies[idx]);
+          });
+        });
       });
   },
 
@@ -3168,6 +3762,12 @@ var WS = {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   },
 
+  linkify: function(html) {
+    return html.replace(/(https?:\/\/[^\s<>"']+)/g, function(url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer" class="chat-link">' + url + '</a>';
+    });
+  },
+
   truncate: function(s, n) {
     if (!s) return '';
     return s.length > n ? s.substr(0, n) + '…' : s;
@@ -3395,7 +3995,7 @@ var WS = {
 
       itemsHtml += '<tr class="ws-of-items-body" data-item-id="' + it.id + '" data-local-id="' + it.id + '" data-sum-changed="0">'
         + '<td class="ws-of-name-cell">'
-        +   (it.article ? '<span class="ws-of-sku">' + self.esc(it.article) + '</span>' : '')
+        +   (it.article ? (it.product_id ? '<a class="ws-of-sku" href="/catalog?selected=' + parseInt(it.product_id, 10) + '" target="_blank" title="Відкрити в каталозі">' + self.esc(it.article) + '</a>' : '<span class="ws-of-sku">' + self.esc(it.article) + '</span>') : '')
         +   '<span class="ws-of-nm">' + self.esc(it.name || it.product_name || '—') + '</span>'
         +   shipNote
         + '</td>'
@@ -3742,7 +4342,7 @@ var WS = {
             tr.dataset.itemId     = '';
             tr.dataset.sumChanged = '0';
             tr.innerHTML = '<td class="ws-of-name-cell">'
-              + (newItem.article ? '<span class="ws-of-sku">' + self.esc(newItem.article) + '</span>' : '')
+              + (newItem.article ? (newItem.product_id ? '<a class="ws-of-sku" href="/catalog?selected=' + parseInt(newItem.product_id, 10) + '" target="_blank" title="Відкрити в каталозі">' + self.esc(newItem.article) + '</a>' : '<span class="ws-of-sku">' + self.esc(newItem.article) + '</span>') : '')
               + '<span class="ws-of-nm">' + self.esc(newItem.name || '—') + '</span>'
               + '</td>'
               + '<td><input class="ws-cell-input" data-field="quantity" value="1" type="text"></td>'
@@ -3863,11 +4463,43 @@ var WS = {
     menu.querySelectorAll('.ws-cmd-item:not(.disabled)').forEach(function(item) {
       item.addEventListener('click', function() {
         menu.remove();
-        var text = self._buildCmdText(item.dataset.cmd, flowData);
-        var inp  = document.getElementById('wsMsgInput');
-        if (inp) { inp.value = text; inp.focus(); inp.dispatchEvent(new Event('input')); }
+        var cmd = item.dataset.cmd;
+
+        // Switch to chat tab first
         var chatTab = document.querySelector('.ws-hub-tab[data-tab="chat"]');
         if (chatTab && !chatTab.classList.contains('active')) { chatTab.click(); }
+
+        if (cmd === 'invoice' && flowData && flowData.order && flowData.order.id) {
+          // Generate PDF on server, then send link
+          var inp = document.getElementById('wsMsgInput');
+          if (inp) { inp.value = '⏳ Формую рахунок…'; inp.dispatchEvent(new Event('input')); }
+          var fd = new FormData();
+          fd.append('order_id', flowData.order.id);
+          fetch('/print/api/generate_order_pdf', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+              var inp2 = document.getElementById('wsMsgInput');
+              if (!inp2) return;
+              if (d.ok) {
+                var order = flowData.order;
+                var num   = order.number || d.number || '';
+                var date  = order.moment ? order.moment.substr(0, 10) : '';
+                inp2.value = 'Рахунок №' + num + (date ? ' від ' + date : '') + ':\n' + d.url;
+              } else {
+                inp2.value = d.error || 'Помилка генерації PDF';
+              }
+              inp2.focus();
+              inp2.dispatchEvent(new Event('input'));
+            })
+            .catch(function() {
+              var inp2 = document.getElementById('wsMsgInput');
+              if (inp2) { inp2.value = self._buildCmdText(cmd, flowData); inp2.focus(); inp2.dispatchEvent(new Event('input')); }
+            });
+        } else {
+          var text = self._buildCmdText(cmd, flowData);
+          var inp  = document.getElementById('wsMsgInput');
+          if (inp) { inp.value = text; inp.focus(); inp.dispatchEvent(new Event('input')); }
+        }
       });
     });
 
@@ -3996,7 +4628,7 @@ function showToast(msg, isError) {
 }
 .ws-ctx-contacts a { color: #7c3aed; text-decoration: none; }
 .ws-ctx-contacts a:hover { text-decoration: underline; }
-.ws-ctx-flow-zone { flex-shrink: 0; padding: 10px 12px 8px; border-bottom: 1px solid #f3f4f6; background: #fff; }
+.ws-ctx-flow-zone { flex-shrink: 0; padding: 10px 0 8px; border-bottom: 1px solid #f3f4f6; background: #fff; }
 .ws-ctx-detail-zone { flex: 1; overflow-y: auto; min-height: 0; background: #fafafa; }
 .ws-ctx-detail-empty {
     display: flex; align-items: center; justify-content: center;
@@ -4006,19 +4638,20 @@ function showToast(msg, isError) {
 
 /* ── Document flow graph ───────────────────────────────────────────────────── */
 .wf-chain {
-    display: flex; align-items: center; gap: 0;
-    overflow-x: auto; padding-bottom: 3px;
-    scrollbar-width: thin; scrollbar-color: #e5e7eb transparent;
+    display: flex; align-items: stretch; gap: 0;
+    overflow-x: auto; padding: 4px 12px 6px;
+    scrollbar-width: none; -ms-overflow-style: none;
 }
-.wf-chain::-webkit-scrollbar { height: 3px; }
-.wf-chain::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 2px; }
+.wf-chain::-webkit-scrollbar { display: none; }
 .wf-node {
-    flex-shrink: 0; width: 72px;
-    border: 1.5px solid #e5e7eb; border-radius: 8px;
-    padding: 7px 5px 6px; cursor: pointer; text-align: center;
+    flex-shrink: 0; width: 160px;
+    border: 1.5px solid #e5e7eb; border-radius: 24px;
+    padding: 9px 10px 8px; cursor: pointer; text-align: center;
     transition: border-color .12s, box-shadow .12s;
-    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
 }
+/* ≤4 нод — рівномірно на всю ширину */
+.wf-chain-stretch .wf-node { flex: 1; width: auto; }
 .wf-node:hover  { border-color: #a78bfa; box-shadow: 0 1px 5px rgba(124,58,237,.14); }
 .wf-node.wf-active { box-shadow: 0 0 0 2.5px currentColor; }
 .wf-node.wf-empty { border-style: dashed; border-color: #d1d5db; background: #fafafa !important; }
@@ -4035,19 +4668,18 @@ function showToast(msg, isError) {
 .wf-ttn-up.wf-active  { color: #0891b2; }
 .wf-payment.wf-active { color: #16a34a; }
 .wf-return.wf-active  { color: #dc2626; }
-.wf-node-icon { font-size: 16px; line-height: 1; }
-.wf-node-type { font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #9ca3af; margin-top: 1px; }
-.wf-node-num  { font-size: 10px; font-weight: 700; color: #111827; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wf-node-sub  { font-size: 9px; color: #6b7280; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wf-node-amt  { font-size: 9px; font-weight: 600; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-node-lbl { font-size: 10px; font-weight: 700; color: #374151; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-node-id  { font-size: 9px; color: #6b7280; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wf-node-amt { font-size: 9px; font-weight: 600; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .wf-order   .wf-node-amt { color: #7c3aed; }
 .wf-demand  .wf-node-amt { color: #2563eb; }
 .wf-ttn-np  .wf-node-amt { color: #ea580c; }
 .wf-ttn-up  .wf-node-amt { color: #0891b2; }
 .wf-payment .wf-node-amt { color: #16a34a; }
 .wf-return  .wf-node-amt { color: #dc2626; }
-.wf-node.wf-empty .wf-node-num { color: #9ca3af; font-weight: 400; font-size: 9px; }
-.wf-arrow { flex-shrink: 0; color: #d1d5db; font-size: 16px; padding: 0 1px; line-height: 1; user-select: none; align-self: center; }
+.wf-node.wf-empty .wf-node-id { color: #9ca3af; font-weight: 400; }
+.wf-arrow { flex-shrink: 0; display: flex; align-items: center; gap: 4px; padding: 0 8px; align-self: center; }
+.wf-dot-sep { width: 4px; height: 4px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
 /* ── Delivery progress bar (inside TTN nodes) ───────────────────────────────── */
 .wf-delivery-bar { display: flex; align-items: center; gap: 0; margin: 3px 0 1px; width: 100%; justify-content: center; }
 .wf-db-pip  { width: 6px; height: 6px; border-radius: 50%; background: #e5e7eb; flex-shrink: 0; transition: background .15s; }
@@ -4073,7 +4705,14 @@ function showToast(msg, isError) {
 /* Refused/returned TTN */
 .wf-ttn-refused { background: #fff1f2 !important; border-color: #fecdd3 !important; }
 .wf-ttn-refused .wf-node-sub { color: #dc2626; font-weight: 600; }
-
+.wf-delivery { background: #f0fdf4; border-color: #bbf7d0; }
+.wf-delivery.wf-active { background: #dcfce7; border-color: #4ade80; }
+.wf-delivery.wf-empty { background: #f9fafb; border-color: #d1fae5; border-style: dashed; }
+/* ── Document create bar ───────────────────────────────────────────────────── */
+.ws-create-bar { display:flex; align-items:center; gap:6px; padding:6px 10px; background:#f8fafc; border-top:1px solid #e5e7eb; border-bottom:1px solid #e5e7eb; flex-shrink:0; }
+.ws-create-btn { display:inline-flex; align-items:center; gap:4px; padding:3px 10px; font-size:11px; font-weight:500; color:#374151; background:#fff; border:1px solid #d1d5db; border-radius:5px; cursor:pointer; white-space:nowrap; transition:background .12s,border-color .12s; font-family:inherit; }
+.ws-create-btn:hover { background:#f0f9ff; border-color:#93c5fd; color:#1d4ed8; }
+.ws-create-icon { font-size:13px; }
 /* ── Document detail pane ──────────────────────────────────────────────────── */
 .ws-doc-detail { padding: 12px 14px; animation: wsDdIn .12s ease; }
 @keyframes wsDdIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
@@ -4115,7 +4754,17 @@ function showToast(msg, isError) {
     transition: background .1s, border-color .1s;
 }
 .ws-of-head-btn:hover { background: #ede9fe; border-color: #c4b5fd; color: #7c3aed; }
-.ws-of-icon-btn { padding: 3px 6px !important; font-size: 12px !important; }
+.ws-of-icon-btn { padding: 4px 8px !important; font-size: 12px !important; }
+/* Colored action buttons */
+.ws-of-btn-edit  { background: #f59e0b !important; border-color: #d97706 !important; color: #fff !important; }
+.ws-of-btn-edit:hover  { background: #d97706 !important; border-color: #b45309 !important; color: #fff !important; }
+.ws-of-editing .ws-of-btn-edit { display: none !important; }
+.ws-of-btn-print { background: #7c3aed !important; border-color: #6d28d9 !important; color: #fff !important; }
+.ws-of-btn-print:hover { background: #6d28d9 !important; border-color: #5b21b6 !important; color: #fff !important; }
+.ws-of-btn-send  { background: #059669 !important; border-color: #047857 !important; color: #fff !important; }
+.ws-of-btn-send:hover  { background: #047857 !important; border-color: #065f46 !important; color: #fff !important; }
+/* Small gap separator between edit and print/send */
+.ws-of-btns-sep { display: inline-block; width: 8px; }
 /* Payment / shipment status mini-badges in order header */
 .ws-of-mini-badge {
     font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px;
@@ -4132,6 +4781,53 @@ function showToast(msg, isError) {
 .wsof-ship-done     { background: #e0f2fe; color: #0369a1; }
 .wsof-ship-delivered{ background: #dcfce7; color: #15803d; }
 .wsof-ship-returned { background: #fee2e2; color: #9a3412; }
+/* ── Pipeline block ──────────────────────────────────────────────────────── */
+.ws-pl-block {
+    padding: 9px 12px 10px; border-bottom: 1px solid #e5e7eb;
+    background: #fff; flex-shrink: 0;
+}
+.ws-pl-head-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 8px;
+}
+.ws-pl-title {
+    font-size: 9px; font-weight: 700; color: #9ca3af;
+    letter-spacing: .06em; text-transform: uppercase;
+}
+.ws-pl-steps {
+    display: flex; align-items: flex-start; width: 100%;
+}
+.ws-pl-step {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px; flex-shrink: 0; cursor: pointer; min-width: 60px;
+}
+.ws-pl-step:hover:not(.current):not(.cancelled) .ws-pl-dot { border-color: #6b7280; }
+.ws-pl-conn {
+    flex: 1; height: 2px; background: #e5e7eb;
+    margin-top: 9px; min-width: 20px;
+}
+.ws-pl-conn.done-conn { background: #16a34a; }
+.ws-pl-dot {
+    width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+    border: 2px solid #d1d5db; background: #fff; color: #fff;
+    transition: border-color .15s;
+}
+.ws-pl-step.done .ws-pl-dot      { background: #16a34a; border-color: #16a34a; }
+.ws-pl-step.current .ws-pl-dot   { background: #2563eb; border-color: #2563eb; }
+.ws-pl-step.cancelled .ws-pl-dot { background: #dc2626; border-color: #dc2626; }
+.ws-pl-lbl {
+    font-size: 10px; color: #9ca3af; text-align: center;
+    white-space: nowrap; line-height: 1.2;
+}
+.ws-pl-step.done .ws-pl-lbl      { color: #6b7280; }
+.ws-pl-step.current .ws-pl-lbl   { color: #1d4ed8; font-weight: 700; }
+.ws-pl-step.cancelled .ws-pl-lbl { color: #dc2626; font-weight: 700; }
+.ws-pl-auto {
+    font-size: 9px; color: #16a34a; font-weight: 600;
+    background: #dcfce7; padding: 0 5px; border-radius: 3px; line-height: 14px;
+}
 /* Edit mode bar */
 .ws-of-edit-bar {
     display: none; align-items: center; gap: 8px;
@@ -4153,9 +4849,20 @@ function showToast(msg, isError) {
     cursor: pointer; font-family: inherit; flex-shrink: 0;
 }
 .ws-of-edit-bar-done:hover { background: #6d28d9; }
-/* Edit/save state */
-.ws-of-editing .ws-of-head { background: #fefce8; border-bottom-color: #fde68a; }
+/* Edit zone wrapper */
+.ws-of-edit-zone { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.ws-of-edit-zone.ws-of-editing { border-top: 2px solid #fbbf24; }
 .ws-of-save-btn-dirty { background: #fef9c3 !important; border-color: #fbbf24 !important; color: #92400e !important; }
+/* ── Order meta row: org + employee ──────────────────────────── */
+.ws-of-meta-row { display:flex; align-items:center; gap:6px; padding:5px 10px 5px; border-bottom:1px solid #f0f0f0; background:#fafafa; flex-shrink:0; }
+.ws-of-meta-sel { height:26px; border:1px solid transparent; border-radius:6px; font-size:11px; padding:0 6px; background:transparent; color:#374151; font-family:inherit; pointer-events:none; max-width:180px; -webkit-appearance:none; -moz-appearance:none; appearance:none; }
+.ws-of-editing .ws-of-meta-sel { border-color:#e5e7eb; background:#fff; pointer-events:auto; cursor:pointer; -webkit-appearance:auto; -moz-appearance:auto; appearance:auto; }
+.ws-of-editing .ws-of-meta-sel:focus { outline:none; border-color:#a78bfa; }
+.ws-of-org-sel { font-style:italic; font-weight:700; font-size:12px !important; color:#1e3a5f !important; max-width:200px; }
+.ws-of-emp-sel { max-width:150px; }
+.ws-of-deliv-sel { max-width:130px; color:#0f766e; }
+.ws-of-vat-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; background:#d1fae5; color:#065f46; flex-shrink:0; white-space:nowrap; }
+.ws-of-vat-none { background:#f3f4f6; color:#9ca3af; }
 /* Search input disabled state */
 .ws-item-search:disabled { opacity: .5; cursor: not-allowed; }
 .ws-of-editing .ws-item-search:not(:disabled) { border-color: #7c3aed; background: #faf5ff; }
@@ -4213,12 +4920,14 @@ function showToast(msg, isError) {
 .ws-of-col-vat  { width: 38px; }
 .ws-of-col-sum  { width: 56px; }
 .ws-of-col-del  { width: 18px; }
-/* Inline cell inputs */
+/* Inline cell inputs — locked in view mode, active only when editing */
 .ws-cell-input {
     width: 100%; border: none; background: transparent; font-family: inherit;
     font-size: 11px; color: #111827; text-align: right; padding: 2px 2px;
     outline: none; font-variant-numeric: tabular-nums; border-radius: 3px;
+    pointer-events: none;
 }
+.ws-of-editing .ws-cell-input { pointer-events: auto; }
 .ws-cell-input:focus { background: #fffbeb; outline: 1.5px solid #fbbf24; }
 .ws-cell-input::placeholder { color: #d1d5db; }
 .ws-cell-input.sum-field { font-weight: 600; color: #374151; }
@@ -4226,16 +4935,21 @@ function showToast(msg, isError) {
     width: 100%; border: none; background: transparent; font-family: inherit;
     font-size: 10px; color: #6b7280; padding: 2px 1px; outline: none;
     border-radius: 3px; text-align: right; cursor: pointer;
+    pointer-events: none;
 }
+.ws-of-editing .ws-cell-sel { pointer-events: auto; }
 .ws-cell-sel:focus { background: #fffbeb; outline: 1.5px solid #fbbf24; }
 /* Name cell */
 .ws-of-name-cell { padding-left: 10px !important; overflow: hidden; }
 .ws-of-sku  { font-size: 9px; color: #c4b5fd; margin-right: 3px; white-space: nowrap; }
+a.ws-of-sku { text-decoration: none; cursor: pointer; }
+a.ws-of-sku:hover { color: #7c3aed; text-decoration: underline; }
 .ws-of-nm   { font-size: 11px; color: #374151; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
 .ws-of-stk-hint { font-size: 9px; color: #9ca3af; margin-left: 2px; white-space: nowrap; }
 .ws-of-stk-hint.low { color: #dc2626; }
 .ws-of-stk-cell { font-size: 12px; text-align: center; color: #374151; white-space: nowrap; }
 .ws-of-stk-cell.ws-of-stk-warn { color: #dc2626; font-weight: 600; background: #fef2f2; }
+.ws-of-stk-cell.ws-of-stk-unknown { color: #d97706; background: #fffbeb; }
 /* Delete button — hidden in view mode, shown only when editing */
 .ws-item-del-btn {
     display: none; width: 16px; height: 16px; line-height: 14px; text-align: center;
@@ -4275,7 +4989,7 @@ function showToast(msg, isError) {
 
 /* Footer: comment (left) + totals (right) */
 .ws-of-foot {
-    display: flex; align-items: flex-end; gap: 10px;
+    display: flex; align-items: flex-start; gap: 10px;
     padding: 7px 10px; flex-shrink: 0; border-bottom: 1px solid #f3f4f6;
 }
 .ws-of-foot-comment { flex: 1; min-width: 0; }
@@ -4377,6 +5091,123 @@ function showToast(msg, isError) {
 </script>
 
 <div id="wsToast" class="toast"></div>
+
+<!-- ══ SPAM MODAL ════════════════════════════════════════════════════════════ -->
+<div id="wsSpamModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-head">
+      <span>Заблоковані відправники</span>
+      <button class="modal-close" onclick="WS.closeSpamModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:0">
+      <div id="wsSpamLoading" style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">Завантаження…</div>
+      <table id="wsSpamTable" class="crm-table" style="display:none;margin:0">
+        <thead><tr>
+          <th>Канал</th>
+          <th>Відправник</th>
+          <th>Заблоковано</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="wsSpamTbody"></tbody>
+      </table>
+      <div id="wsSpamEmpty" style="display:none;padding:20px;text-align:center;color:#9ca3af;font-size:13px">Список порожній</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+    var channelLabels = { email: 'Email', telegram: 'Telegram', viber: 'Viber', sms: 'SMS', website: 'Сайт' };
+
+    WS.openSpamModal = function() {
+        document.getElementById('wsSpamModal').style.display = 'flex';
+        WS._loadSpamList();
+    };
+
+    WS.closeSpamModal = function() {
+        document.getElementById('wsSpamModal').style.display = 'none';
+    };
+
+    WS._loadSpamList = function() {
+        var loading = document.getElementById('wsSpamLoading');
+        var table   = document.getElementById('wsSpamTable');
+        var empty   = document.getElementById('wsSpamEmpty');
+        var tbody   = document.getElementById('wsSpamTbody');
+
+        loading.style.display = 'block';
+        table.style.display   = 'none';
+        empty.style.display   = 'none';
+
+        fetch('/counterparties/api/spam_senders')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                loading.style.display = 'none';
+                if (!d.ok || !d.rows || d.rows.length === 0) {
+                    empty.style.display = 'block';
+                    return;
+                }
+                tbody.innerHTML = '';
+                d.rows.forEach(function(row) {
+                    var tr = document.createElement('tr');
+                    var ch = channelLabels[row.channel] || row.channel;
+                    var name = row.display_name && row.display_name !== row.identifier
+                        ? WS.esc(row.display_name) + '<br><span style="color:#9ca3af;font-size:11px">' + WS.esc(row.identifier) + '</span>'
+                        : WS.esc(row.identifier);
+                    var dt = row.blocked_at ? row.blocked_at.substring(0, 16).replace('T', ' ') : '';
+                    tr.innerHTML = '<td><span class="badge badge-gray">' + WS.esc(ch) + '</span></td>'
+                        + '<td>' + name + '</td>'
+                        + '<td style="white-space:nowrap;font-size:12px;color:#6b7280">' + WS.esc(dt) + '</td>'
+                        + '<td><button class="btn btn-xs" data-spam-id="' + (parseInt(row.id, 10)) + '">Розблокувати</button></td>';
+                    tbody.appendChild(tr);
+                });
+                table.style.display = '';
+            })
+            .catch(function() {
+                loading.style.display = 'none';
+                empty.textContent = 'Помилка завантаження';
+                empty.style.display = 'block';
+            });
+    };
+
+    document.getElementById('wsSpamTbody').addEventListener('click', function(e) {
+        var btn = e.target.closest('button[data-spam-id]');
+        if (!btn) return;
+        var id = parseInt(btn.dataset.spamId, 10);
+        if (!id) return;
+        btn.disabled = true;
+        btn.textContent = '…';
+        var fd = new FormData();
+        fd.append('action', 'unblock');
+        fd.append('id', id);
+        fetch('/counterparties/api/spam_senders', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (d.ok) {
+                    var tr = btn.closest('tr');
+                    if (tr) tr.remove();
+                    var tbody = document.getElementById('wsSpamTbody');
+                    if (tbody && !tbody.querySelector('tr')) {
+                        document.getElementById('wsSpamTable').style.display = 'none';
+                        document.getElementById('wsSpamEmpty').style.display = 'block';
+                    }
+                    WS.showToast('Розблоковано');
+                } else {
+                    btn.disabled = false;
+                    btn.textContent = 'Розблокувати';
+                    WS.showToast('Помилка', true);
+                }
+            })
+            .catch(function() {
+                btn.disabled = false;
+                btn.textContent = 'Розблокувати';
+            });
+    });
+
+    document.getElementById('wsSpamModal').addEventListener('click', function(e) {
+        if (e.target === this) WS.closeSpamModal();
+    });
+}());
+</script>
 
 <?php require_once __DIR__ . '/../../shared/print-modal.php'; ?>
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

@@ -87,8 +87,23 @@ class AlphaSmsService
         } elseif (strlen($p) === 11 && $p[0] === '8') {
             // 80XXXXXXXXX → 380XXXXXXXXX
             $p = '3' . $p;
+        } elseif (strlen($p) === 12 && substr($p, 0, 2) === '38') {
+            // 38 (097) 350-51-89 → already 380XXXXXXXXX, no change
         }
         return $p;
+    }
+
+    // Normalize if result is a valid UA number (380XXXXXXXXX), else return original trimmed.
+    // Use when saving user input — preserves non-UA numbers as typed.
+    public static function normalizePhoneLoose($phone)
+    {
+        $phone = trim($phone);
+        if ($phone === '') return '';
+        $normalized = self::normalizePhone($phone);
+        if (strlen($normalized) === 12 && substr($normalized, 0, 3) === '380') {
+            return $normalized;
+        }
+        return $phone;
     }
 
     // Normalize to last 9 digits for fuzzy matching in DB
@@ -100,11 +115,12 @@ class AlphaSmsService
 
     private static function post($data)
     {
+        $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
         $ch = curl_init(self::API_URL);
         curl_setopt_array($ch, array(
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => json_encode($data),
+            CURLOPT_POSTFIELDS     => $payload,
             CURLOPT_HTTPHEADER     => array('Content-Type: application/json'),
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_CONNECTTIMEOUT => 10,

@@ -102,6 +102,37 @@
 
 Архивные статусы (`is_archive=1`): `completed`, `cancelled`.
 
+**Правила смены статуса (миграция 008, 2026-03-31):**
+- → `shipped`: требует активного отгрузочного документа (demand) + активной ТТН
+- → `completed`: требует demand + оплаты
+- Назад из `completed`: только в `cancelled`
+- Назад из `shipped`: заблокировано если есть demand, оплата или активная ТТН без зарегистрированного возврата (`return_logistics`)
+- Назад из `in_progress`: заблокировано если есть demand или оплата
+- Назад из `confirmed`/`waiting_payment`: разрешено с подтверждением
+
+**Способи доставки** (міграція 009):
+
+| Таблиця | Призначення |
+|---------|------------|
+| `delivery_method` | Довідник: pickup, courier, novaposhta, ukrposhta. `has_ttn=1` → потрібен TTN-номер |
+| `order_delivery` | Факт доставки (кур'єр/самовивіз): status, sent_at, delivered_at, comment |
+
+`customerorder.delivery_method_id` → FK delivery_method (nullable).
+
+**Логистика возвратов** (`return_logistics`, миграция 008):
+
+| Поле | Тип | Назначение |
+|------|-----|-----------|
+| `customerorder_id` | int | Заказ, по которому возврат |
+| `demand_id` | int | Отгрузка (demand.id), которую возвращают |
+| `salesreturn_id` | int | Документ возврата (salesreturn.id, если есть) |
+| `return_type` | enum | `novaposhta_ttn` / `ukrposhta_ttn` / `manual` |
+| `ttn_np_id` | int | FK → ttn_novaposhta.id (для ТТН возврата НП) |
+| `ttn_up_id` | int | FK → ttn_ukrposhta.id (для ТТН возврата УП) |
+| `manual_description` | varchar(500) | Описание способа ручного возврата |
+| `status` | enum | `expected` / `in_transit` / `received` / `cancelled` |
+| `received_at` | date | Дата фактического получения товара |
+
 **Использование в коде:**
 ```php
 // Получить название статуса на нужном языке
@@ -186,6 +217,66 @@ $r = Database::fetchRow('Papir',
 **Синк (два скрипта):**
 - `scripts/sync_ms_document_links_from_mirror.php` — заполняет из ms-зеркала (быстро, без API): demand→customerorder, supply→purchaseorder, salesreturn→demand, purchaseorder→customerorder/supply
 - `scripts/sync_ms_document_links.php` — заполняет из МойСклад API напрямую (медленнее): operations[] из paymentin/paymentout/cashin/cashout
+
+**Чтение связей (PHP):**
+
+```php
+// Все документы связанные с заказом (платежи, отгрузки и т.д.)
+// — ищем где заказ является ЦЕЛЬЮ (to_id) или ИСТОЧНИКОМ (from_id)
+$orderId = 12345;
+
+$links = Database::fetchAll('Papir',
+    "SELECT from_type, from_id, from_ms_id, to_type, to_id, to_ms_id, link_type, linked_sum
+     FROM document_link
+     WHERE (to_type = 'customerorder' AND to_id = {$orderId})
+        OR (from_type = 'customerorder' AND from_id = {$orderId})"
+);
+
+// Платежи по заказу (входящие)
+$payments = Database::fetchAll('Papir',
+    "SELECT dl.from_type, dl.from_id, dl.from_ms_id, dl.linked_sum,
+            fb.doc_number, fb.moment, fb.sum
+     FROM document_link dl
+     LEFT JOIN finance_bank fb ON fb.id = dl.from_id
+     WHERE dl.to_type = 'customerorder'
+       AND dl.to_id = {$orderId}
+       AND dl.from_type IN ('paymentin', 'cashin')"
+);
+
+// Отгрузки по заказу
+$demands = Database::fetchAll('Papir',
+    "SELECT dl.from_ms_id, dl.link_type,
+            d.name, d.moment, d.sum
+     FROM document_link dl
+     LEFT JOIN ms.demand d ON d.meta = dl.from_ms_id
+     WHERE dl.to_type = 'customerorder'
+       AND dl.to_id = {$orderId}
+       AND dl.from_type = 'demand'"
+);
+
+// Что можно создать из заказа (для UI-кнопок)
+$allowedNext = Database::fetchAll('Papir',
+    "SELECT dtt.to_type, dt.name_uk, dt.direction
+     FROM document_type_transition dtt
+     JOIN document_type dt ON dt.code = dtt.to_type
+     WHERE dtt.from_type = 'customerorder'
+     ORDER BY dt.sort_order"
+);
+```
+
+**Текущие данные (2026-03-29):**
+
+| from_type | to_type | Записей |
+|-----------|---------|---------|
+| demand | customerorder | 70,950 |
+| paymentin | customerorder | 44,030 |
+| cashin | customerorder | 30,052 |
+| purchaseorder | customerorder | 2,197 |
+| purchaseorder | supply | 9,704 |
+| supply | purchaseorder | 8,894 |
+| salesreturn | demand | 2,842 |
+| paymentout | purchaseorder | 2,264 |
+| paymentin | demand | 1,276 |
 
 ---
 

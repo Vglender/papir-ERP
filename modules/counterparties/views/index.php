@@ -233,6 +233,12 @@ require_once __DIR__ . '/../../shared/layout.php';
 .cpp-msg-out .cpp-msg-bubble { background:var(--blue); color:#fff; border-bottom-right-radius:3px; }
 .cpp-msg-meta { font-size:10px; color:var(--text-muted); margin-top:2px; padding:0 2px; }
 .cpp-msg-out .cpp-msg-meta { text-align:right; }
+.cpp-msg-sender { font-size:10px; color:var(--text-muted); margin-bottom:2px; text-align:right; padding:0 2px; font-style:italic; }
+.cpp-msg-bubble-media { padding:4px; }
+.cpp-msg-in  .cpp-msg-bubble-media { background:#e9ecef; }
+.cpp-msg-out .cpp-msg-bubble-media { background:var(--blue); }
+.cpp-msg-bubble .chat-link { color:inherit; text-decoration:underline; word-break:break-all; opacity:.9; }
+.cpp-msg-bubble .chat-link:hover { opacity:1; }
 
 /* ── Template chips ──────────────────────────────────────────────────────── */
 .cpp-tpl-row { display:flex; flex-wrap:wrap; gap:5px; padding:6px 14px; border-top:1px solid var(--border); flex-shrink:0; min-height:0; background:var(--bg-card); }

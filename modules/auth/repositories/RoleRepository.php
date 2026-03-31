@@ -76,6 +76,7 @@ class RoleRepository
             array('key' => 'jobs',            'label' => 'Фонові процеси'),
             array('key' => 'integr',          'label' => 'Інтеграції'),
             array('key' => 'system',          'label' => 'Системні налаштування'),
+            array('key' => 'backlog',         'label' => 'Бэклог'),
         );
     }
 }

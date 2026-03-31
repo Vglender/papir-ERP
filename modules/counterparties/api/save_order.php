@@ -12,11 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$orderId     = isset($_POST['order_id'])   ? (int)$_POST['order_id']      : 0;
-$version     = isset($_POST['version'])    ? (int)$_POST['version']       : 0;
-$itemsJson   = isset($_POST['items'])      ? $_POST['items']               : '[]';
-$description = isset($_POST['description'])? trim($_POST['description'])   : null;
-$status      = isset($_POST['status'])     ? trim($_POST['status'])        : null;
+$orderId          = isset($_POST['order_id'])          ? (int)$_POST['order_id']          : 0;
+$version          = isset($_POST['version'])          ? (int)$_POST['version']           : 0;
+$itemsJson        = isset($_POST['items'])            ? $_POST['items']                   : '[]';
+$description      = isset($_POST['description'])      ? trim($_POST['description'])       : null;
+$status           = isset($_POST['status'])           ? trim($_POST['status'])            : null;
+$organizationId   = isset($_POST['organization_id'])  ? (int)$_POST['organization_id']    : null;
+$managerEmployeeId= isset($_POST['manager_employee_id']) ? (int)$_POST['manager_employee_id'] : null;
 
 if ($orderId <= 0) {
     echo json_encode(array('ok' => false, 'error' => 'order_id required'));
@@ -56,6 +58,8 @@ try {
     // Update header
     $headerData = array('updated_at' => date('Y-m-d H:i:s'));
     if ($description !== null) $headerData['description'] = $description;
+    if ($organizationId !== null && $organizationId > 0) $headerData['organization_id'] = $organizationId;
+    if ($managerEmployeeId !== null) $headerData['manager_employee_id'] = $managerEmployeeId > 0 ? $managerEmployeeId : null;
     if ($status !== null) {
         $allowed = array('draft','new','confirmed','in_progress','waiting_payment','paid',
                          'partially_shipped','shipped','completed','cancelled');
@@ -155,10 +159,16 @@ try {
 
     // Return fresh data
     $rO = \Database::fetchRow('Papir',
-        "SELECT id, version, number, status, payment_status, shipment_status,
-                sum_items, sum_discount, sum_vat, sum_total,
-                moment, description, applicable, sales_channel
-         FROM customerorder WHERE id={$orderId} LIMIT 1");
+        "SELECT co.id, co.version, co.number, co.status, co.payment_status, co.shipment_status,
+                co.sum_items, co.sum_discount, co.sum_vat, co.sum_total,
+                co.moment, co.description, co.applicable, co.sales_channel,
+                co.organization_id, co.manager_employee_id,
+                o.name AS org_name, o.vat_number AS org_vat_number,
+                e.full_name AS manager_name
+         FROM customerorder co
+         LEFT JOIN organization o ON o.id = co.organization_id
+         LEFT JOIN employee e ON e.id = co.manager_employee_id
+         WHERE co.id={$orderId} LIMIT 1");
 
     $rI = \Database::fetchAll('Papir',
         "SELECT ci.id, ci.product_id, ci.line_no, ci.quantity,

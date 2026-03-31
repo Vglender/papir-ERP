@@ -51,17 +51,18 @@ if ($leadId > 0) {
 $result = array();
 foreach ($messages as $msg) {
     $result[] = array(
-        'id'           => (int)$msg['id'],
-        'channel'      => $msg['channel'],
-        'direction'    => $msg['direction'],
-        'status'       => $msg['status'],
-        'body'         => $msg['body'],
-        'media_url'    => $msg['media_url'],
-        'phone'        => $msg['phone'],
-        'created_at'   => $msg['created_at'],
-        'read_at'      => $msg['read_at'],
-        'scheduled_at' => $msg['scheduled_at'],
-        'assigned_to'  => $msg['assigned_to'] ? (int)$msg['assigned_to'] : null,
+        'id'            => (int)$msg['id'],
+        'channel'       => $msg['channel'],
+        'direction'     => $msg['direction'],
+        'operator_name' => $msg['operator_name'] ? $msg['operator_name'] : null,
+        'status'        => $msg['status'],
+        'body'          => $msg['body'],
+        'media_url'     => $msg['media_url'],
+        'phone'         => $msg['phone'],
+        'created_at'    => $msg['created_at'],
+        'read_at'       => $msg['read_at'],
+        'scheduled_at'  => $msg['scheduled_at'],
+        'assigned_to'   => $msg['assigned_to'] ? (int)$msg['assigned_to'] : null,
     );
 }
 

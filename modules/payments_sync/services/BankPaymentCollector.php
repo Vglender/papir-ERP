@@ -187,6 +187,10 @@ class BankPaymentCollector
         }
 
         foreach ($result as $value) {
+            if (!empty($value['_error'])) {
+                continue;
+            }
+
             $map = isset($this->accountsMap['ukrsib']['default'])
                 ? $this->accountsMap['ukrsib']['default']
                 : ['id_org' => null, 'id_acc' => null];

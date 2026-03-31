@@ -37,6 +37,65 @@ $r = Database::fetchAll('Papir',
      ORDER BY id DESC
      LIMIT 20");
 
+// Fallback: если нет исходящих в cp_messages — смотрим в ms.out_viber (старая система).
+// Импортируем исходящие оттуда как 'Вася Робот', затем опрашиваем их ответы.
+if ((!$r['ok'] || empty($r['rows'])) && $counterpartyId > 0) {
+    // Узнаём телефон контрагента
+    $phoneRow = Database::fetchRow('Papir',
+        "SELECT phone FROM counterparty_person WHERE counterparty_id = {$counterpartyId} LIMIT 1");
+    if ($phoneRow['ok'] && !empty($phoneRow['row']['phone'])) {
+        $phone = AlphaSmsService::normalizePhone($phoneRow['row']['phone']);
+        $phoneEsc = Database::escape('ms', $phone);
+        $msRows = Database::fetchAll('ms',
+            "SELECT msg_id, text, last_update FROM out_viber
+             WHERE tel = '{$phoneEsc}' AND last_update >= NOW() - INTERVAL 48 HOUR
+             ORDER BY last_update DESC LIMIT 20");
+        if ($msRows['ok'] && !empty($msRows['rows'])) {
+            $chatRepo = new ChatRepository();
+            $imported = array();
+            foreach ($msRows['rows'] as $msRow) {
+                $extIdOut = 'ms_out_' . $msRow['msg_id'];
+                $ex = Database::exists('Papir', 'cp_messages', array('external_id' => $extIdOut));
+                if (!$ex['ok'] || !$ex['exists']) {
+                    $chatRepo->saveMessage(array(
+                        'counterparty_id' => $counterpartyId,
+                        'channel'         => 'viber',
+                        'direction'       => 'out',
+                        'status'          => 'delivered',
+                        'phone'           => $phone,
+                        'body'            => $msRow['text'],
+                        'operator_name'   => 'Вася Робот',
+                        'external_id'     => $extIdOut,
+                        'created_at'      => $msRow['last_update'],
+                    ));
+                }
+                $imported[] = array(
+                    'id'          => 0,
+                    'external_id' => (string)$msRow['msg_id'],
+                    'phone'       => $phone,
+                    'created_at'  => $msRow['last_update'],
+                );
+            }
+            // Re-fetch from cp_messages so we get proper ids
+            $r = Database::fetchAll('Papir',
+                "SELECT id, external_id, phone, created_at
+                 FROM cp_messages
+                 WHERE counterparty_id = {$counterpartyId}
+                   AND channel = 'viber' AND direction = 'out'
+                   AND external_id LIKE 'ms_out_%'
+                   AND created_at >= NOW() - INTERVAL 48 HOUR
+                 ORDER BY id DESC LIMIT 20");
+            // Strip 'ms_out_' prefix so external_id matches Alpha SMS msg_id
+            if ($r['ok'] && !empty($r['rows'])) {
+                foreach ($r['rows'] as &$row) {
+                    $row['external_id'] = str_replace('ms_out_', '', $row['external_id']);
+                }
+                unset($row);
+            }
+        }
+    }
+}
+
 if (!$r['ok'] || empty($r['rows'])) {
     echo json_encode(array('ok' => true, 'new' => 0));
     exit;
@@ -121,26 +180,40 @@ foreach ($r['rows'] as $sent) {
 
             if (!$body && !$mediaUrl) continue;
 
-            // Deduplication: skip if already stored by external_id
+            // Dedup 1: by polling external_id
+            $pollExtId = $msgId . '_reply_' . $replTs;
             $exists = Database::exists('Papir', 'cp_messages', array(
                 'channel'     => 'viber',
                 'direction'   => 'in',
-                'external_id' => $msgId . '_reply_' . $replTs,
+                'external_id' => $pollExtId,
             ));
             if ($exists['ok'] && $exists['exists']) continue;
 
-            // Also skip if webhook already saved same body+phone within last 10 min
-            if ($body) {
-                $bodyEsc  = Database::escape('Papir', $body);
-                $phoneEsc = Database::escape('Papir', $sent['phone']);
-                $dupCheck = Database::fetchRow('Papir',
-                    "SELECT id FROM cp_messages
-                     WHERE channel = 'viber' AND direction = 'in'
-                       AND phone = '{$phoneEsc}'
-                       AND body  = '{$bodyEsc}'
-                       AND created_at >= NOW() - INTERVAL 10 MINUTE
+            // Dedup 2: by webhook external_id (vh_{last9}_{YmdHi})
+            // Matches messages already saved by viber_in.php webhook.
+            // If webhook saved a media placeholder (no media_url) and we now have a real URL — update it.
+            $replPhone9  = AlphaSmsService::phoneLast9($sent['phone']);
+            $replDtTs    = $replDt ? @strtotime($replDt) : null;
+            if ($replDtTs) {
+                $webhookExtId = 'vh_' . $replPhone9 . '_' . date('YmdHi', $replDtTs);
+                $whExtIdEsc   = Database::escape('Papir', $webhookExtId);
+                $whRow = Database::fetchRow('Papir',
+                    "SELECT id, media_url FROM cp_messages
+                     WHERE channel='viber' AND direction='in' AND external_id='{$whExtIdEsc}'
                      LIMIT 1");
-                if ($dupCheck['ok'] && $dupCheck['row']) continue;
+                if ($whRow['ok'] && !empty($whRow['row'])) {
+                    // Message exists from webhook. If it has no media_url but we now have one — update.
+                    if ($mediaUrl && empty($whRow['row']['media_url'])) {
+                        $mediaUrlEsc = Database::escape('Papir', $mediaUrl);
+                        $bodyEscUpd  = Database::escape('Papir', $body ? $body : '[медіа]');
+                        Database::query('Papir',
+                            "UPDATE cp_messages SET media_url='{$mediaUrlEsc}', body='{$bodyEscUpd}',
+                             external_id='{$whExtIdEsc}'
+                             WHERE id=" . (int)$whRow['row']['id']);
+                        $newCount++;
+                    }
+                    continue;
+                }
             }
 
             // Resolve phone from the sent message
