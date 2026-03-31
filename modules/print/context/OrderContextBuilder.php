@@ -1,13 +1,19 @@
 <?php
+require_once __DIR__ . '/../../shared/MoneyWords.php';
+
 /**
  * Builds Mustache context for customerorder entity.
  * Variables available in templates:
  *   {{invoice.number}}, {{invoice.date}}
  *   {{seller.name}}, {{seller.okpo}}, {{seller.iban}}, {{seller.bank_name}}, {{seller.mfo}},
- *   {{seller.address}}, {{seller.phone}}, {{seller.director_name}}, {{seller.director_title}}
+ *   {{seller.address}}, {{seller.phone}}, {{seller.director_name}}, {{seller.director_title}},
+ *   {{seller.signatory_name}}
  *   {{buyer.name}}, {{buyer.okpo}}, {{buyer.iban}}, {{buyer.bank}}, {{buyer.mfo}}, {{buyer.address}}, {{buyer.phone}}
  *   {{#lines}} {{num}} {{description}} {{sku}} {{unit}} {{qty}} {{price}} {{total}} {{vat_rate}} {{vat_amount}} {{/lines}}
- *   {{total}}, {{vat_rate}}, {{vat_amount}}, {{total_with_vat}}, {{total_text}}
+ *   {{total}}, {{vat_rate}}, {{vat_amount}}, {{total_with_vat}}, {{sum_total}}
+ *   {{total_text}} — сума прописом (з ПДВ)
+ *   {{vat_text}}   — ПДВ прописом
+ *   {{items_count}}, {{total_qty}}
  *   {{doc.number}}, {{doc.date}}, {{doc.currency}}
  */
 class OrderContextBuilder
@@ -28,7 +34,7 @@ class OrderContextBuilder
                     cc.mfo   AS cp_mfo,
                     cc.legal_address   AS cp_legal_address,
                     cc.actual_address  AS cp_actual_address,
-                    cc.phone AS cp_phone,
+                    COALESCE(NULLIF(cc.phone,''), NULLIF(cp.phone,''), NULLIF(cp.phone_alt,'')) AS cp_phone,
                     oba.iban      AS order_iban,
                     oba.bank_name AS order_bank_name,
                     oba.mfo       AS order_mfo,
@@ -37,6 +43,7 @@ class OrderContextBuilder
              FROM customerorder co
              LEFT JOIN counterparty c ON c.id = co.counterparty_id
              LEFT JOIN counterparty_company cc ON cc.counterparty_id = c.id
+             LEFT JOIN counterparty_person cp ON cp.counterparty_id = c.id
              LEFT JOIN organization_bank_account oba ON oba.id = co.organization_bank_account_id
              LEFT JOIN employee e ON e.id = co.manager_employee_id
              WHERE co.id = {$orderId} AND co.deleted_at IS NULL
@@ -114,10 +121,11 @@ class OrderContextBuilder
         );
         $rawItems = ($rItems['ok'] && !empty($rItems['rows'])) ? $rItems['rows'] : array();
 
-        $lines   = array();
-        $sumNet  = 0.0;  // total without VAT
-        $sumVat  = 0.0;
+        $lines    = array();
+        $sumNet   = 0.0;  // total without VAT
+        $sumVat   = 0.0;
         $sumGross = 0.0; // total with VAT
+        $totalQty = 0.0;
 
         foreach ($rawItems as $i => $it) {
             $lineTotal = (float)$it['sum_row'];
@@ -126,6 +134,7 @@ class OrderContextBuilder
             $sumNet   += $lineNet;
             $sumVat   += $lineVat;
             $sumGross += $lineTotal;
+            $totalQty += (float)$it['quantity'];
 
             $lines[] = array(
                 'num'          => $i + 1,
@@ -185,6 +194,7 @@ class OrderContextBuilder
                 'email'          => isset($org['email'])          ? $org['email']          : '',
                 'director_name'  => isset($org['director_name'])  ? $org['director_name']  : '',
                 'director_title' => isset($org['director_title']) ? $org['director_title'] : 'Директор',
+                'signatory_name' => isset($org['director_name'])  ? $org['director_name']  : '',
                 'logo_path'      => isset($org['logo_path'])      ? '/' . ltrim($org['logo_path'], '/')      : '',
                 'stamp_path'     => isset($org['stamp_path'])     ? '/' . ltrim($org['stamp_path'], '/')     : '',
                 'signature_path' => isset($org['signature_path']) ? '/' . ltrim($org['signature_path'], '/') : '',
@@ -203,13 +213,16 @@ class OrderContextBuilder
                 'phone' => !empty($o['manager_phone'])     ? $o['manager_phone']     : '',
             ),
             'lines'          => $lines,
+            'items_count'    => count($lines),
+            'total_qty'      => self::fmtQty($totalQty),
             'total'          => self::fmtMoney($sumNet),
             'sum_net'        => self::fmtMoney($sumNet),
             'vat_rate'       => $vatRate,
             'vat_amount'     => self::fmtMoney($sumVat),
             'total_with_vat' => self::fmtMoney($sumGross),
             'sum_total'      => self::fmtMoney($sumGross),
-            'total_text'     => self::amountToWords($sumGross),
+            'total_text'     => MoneyWords::format($sumGross),
+            'vat_text'       => MoneyWords::format($sumVat),
         );
     }
 
@@ -228,91 +241,4 @@ class OrderContextBuilder
         return number_format((float)$val, 2, '.', ' ');
     }
 
-    // ── Amount to words (Ukrainian) ────────────────────────────────────────────
-
-    private static function amountToWords($amount)
-    {
-        $amount = (float)$amount;
-        $int    = (int)floor(abs($amount));
-        $kop    = (int)round((abs($amount) - $int) * 100);
-
-        $hrWord  = self::pluralize($int, 'гривня', 'гривні', 'гривень');
-        $kopWord = self::pluralize($kop, 'копійка', 'копійки', 'копійок');
-
-        return ucfirst(self::numToWords($int, true)) . ' ' . $hrWord
-            . ' ' . sprintf('%02d', $kop) . ' ' . $kopWord;
-    }
-
-    /**
-     * @param int  $n
-     * @param bool $feminine  true for гривня/тисяча
-     * @return string
-     */
-    private static function numToWords($n, $feminine = false)
-    {
-        $n = (int)$n;
-        if ($n === 0) {
-            return 'нуль';
-        }
-
-        $onesM = array('', 'один', 'два', 'три', 'чотири', 'п\'ять', 'шість', 'сім', 'вісім', 'дев\'ять',
-                       'десять', 'одинадцять', 'дванадцять', 'тринадцять', 'чотирнадцять', 'п\'ятнадцять',
-                       'шістнадцять', 'сімнадцять', 'вісімнадцять', 'дев\'ятнадцять');
-        $onesF = array('', 'одна', 'дві', 'три', 'чотири', 'п\'ять', 'шість', 'сім', 'вісім', 'дев\'ять',
-                       'десять', 'одинадцять', 'дванадцять', 'тринадцять', 'чотирнадцять', 'п\'ятнадцять',
-                       'шістнадцять', 'сімнадцять', 'вісімнадцять', 'дев\'ятнадцять');
-        $tens  = array('', '', 'двадцять', 'тридцять', 'сорок', 'п\'ятдесят',
-                       'шістдесят', 'сімдесят', 'вісімдесят', 'дев\'яносто');
-        $hunds = array('', 'сто', 'двісті', 'триста', 'чотириста', 'п\'ятсот',
-                       'шістсот', 'сімсот', 'вісімсот', 'дев\'ятсот');
-
-        $parts = array();
-
-        if ($n >= 1000000000) {
-            $b = (int)($n / 1000000000);
-            $parts[] = self::numToWords($b, false) . ' ' . self::pluralize($b, 'мільярд', 'мільярди', 'мільярдів');
-            $n %= 1000000000;
-        }
-        if ($n >= 1000000) {
-            $m = (int)($n / 1000000);
-            $parts[] = self::numToWords($m, false) . ' ' . self::pluralize($m, 'мільйон', 'мільйони', 'мільйонів');
-            $n %= 1000000;
-        }
-        if ($n >= 1000) {
-            $t = (int)($n / 1000);
-            // тисяча — feminine
-            $parts[] = self::numToWords($t, true) . ' ' . self::pluralize($t, 'тисяча', 'тисячі', 'тисяч');
-            $n %= 1000;
-        }
-        if ($n >= 100) {
-            $parts[] = $hunds[(int)($n / 100)];
-            $n %= 100;
-        }
-        if ($n >= 20) {
-            $parts[] = $tens[(int)($n / 10)];
-            $n %= 10;
-        }
-        if ($n > 0) {
-            $ones = $feminine ? $onesF : $onesM;
-            $parts[] = $ones[$n];
-        }
-
-        return implode(' ', array_filter($parts));
-    }
-
-    private static function pluralize($n, $one, $few, $many)
-    {
-        $n  = abs((int)$n) % 100;
-        $n1 = $n % 10;
-        if ($n >= 11 && $n <= 19) {
-            return $many;
-        }
-        if ($n1 === 1) {
-            return $one;
-        }
-        if ($n1 >= 2 && $n1 <= 4) {
-            return $few;
-        }
-        return $many;
-    }
 }
