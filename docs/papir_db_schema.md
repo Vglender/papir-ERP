@@ -280,7 +280,17 @@ $allowedNext = Database::fetchAll('Papir',
 
 ---
 
-### 10. Служебные
+### 10. Финансы (модуль finance)
+
+| Таблица | Назначение |
+|---------|-----------|
+| `finance_bank` | Банковские платежи (прихід/витрати/переводи). Поля: direction, moment, doc_number, sum, cp_id, expense_category_id, payment_purpose, description, is_moving, source, expense_item_ms |
+| `finance_cash` | Кассовые операции. Поля: direction, moment, doc_number, sum, agent_ms, expense_category_id, payment_purpose, description, is_moving, source |
+| `finance_expense_category` | Статьи расходов: id, name, sort_order, status. Используется в finance_bank.expense_category_id (только для direction='out') |
+
+---
+
+### 11. Служебные
 
 | Таблица | Назначение |
 |---------|-----------|
@@ -290,7 +300,7 @@ $allowedNext = Database::fetchAll('Papir',
 
 ---
 
-### 10. Модули доставки — не удалять
+### 12. Модули доставки — не удалять
 
 Используются действующими модулями. Удалить после создания новых модулей доставки.
 
@@ -315,7 +325,7 @@ $allowedNext = Database::fetchAll('Papir',
 
 ---
 
-### 11. Требуют внимания
+### 13. Требуют внимания
 
 | Таблица | Проблема |
 |---------|---------|

@@ -24,6 +24,10 @@ $total   = $repo->getTotal($params);
 $summary = $repo->getSummary($params);
 $pages   = $total > 0 ? (int)ceil($total / $perPage) : 1;
 
+$expCatRows = Database::fetchAll('Papir',
+    "SELECT id, name FROM finance_expense_category WHERE status=1 ORDER BY sort_order, name");
+$expenseCategories = ($expCatRows['ok']) ? $expCatRows['rows'] : array();
+
 $title     = 'Каса';
 $activeNav = 'finance';
 $subNav    = 'cash';

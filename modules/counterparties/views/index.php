@@ -216,6 +216,12 @@ require_once __DIR__ . '/../../shared/layout.php';
 .cpp-chat-input textarea:focus { border-color:var(--blue-light); outline:none; }
 
 /* ── Chat channel tabs ───────────────────────────────────────────────────── */
+/* ── Contact switcher (above channel tabs in Chat) ───────────────────────── */
+.cpp-contact-switcher { display:flex; flex-wrap:wrap; gap:4px; padding:6px 10px 5px; border-bottom:1px solid var(--border); background:var(--bg-card); flex-shrink:0; }
+.cpp-cs-btn { padding:3px 9px; font-size:11px; font-weight:600; background:var(--bg-hover); border:1px solid var(--border); border-radius:10px; cursor:pointer; white-space:nowrap; color:var(--text-muted); transition:background .12s,border-color .12s,color .12s; max-width:130px; overflow:hidden; text-overflow:ellipsis; }
+.cpp-cs-btn:hover { color:var(--text); border-color:#c0c8d0; }
+.cpp-cs-btn.active { background:var(--blue-bg); border-color:var(--blue-light); color:var(--blue); }
+
 .cpp-ch-tabs { display:flex; gap:0; border-bottom:1px solid var(--border); padding:0 16px; background:var(--bg-header); flex-shrink:0; }
 .cpp-ch-tab { padding:7px 11px; font-size:12px; font-weight:600; color:var(--text-muted); background:none; border:none; border-bottom:2px solid transparent; margin-bottom:-1px; cursor:pointer; transition:color .1s,border-color .1s; }
 .cpp-ch-tab:hover { color:var(--text); }

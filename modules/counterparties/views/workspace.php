@@ -238,6 +238,20 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 .ws-tab-pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
 /* ── Chat tab ───────────────────────────────────────────────────────────────── */
+.ws-contact-switcher {
+    display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 10px 5px;
+    border-bottom: 1px solid #f0f0f0; background: #fff; flex-shrink: 0;
+}
+.ws-cs-btn {
+    padding: 3px 9px; font-size: 11px; font-weight: 600;
+    background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px;
+    cursor: pointer; white-space: nowrap; color: #6b7280;
+    transition: background .12s, border-color .12s, color .12s;
+    max-width: 140px; overflow: hidden; text-overflow: ellipsis;
+    font-family: inherit;
+}
+.ws-cs-btn:hover { color: #374151; border-color: #c0c8d0; }
+.ws-cs-btn.active { background: #eff6ff; border-color: #93c5fd; color: #2563eb; }
 .ws-ch-tabs {
     display: flex; padding: 0 14px; border-bottom: 1px solid #f0f0f0;
     background: #fafafa; flex-shrink: 0; overflow-x: auto;
@@ -246,8 +260,10 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
     padding: 6px 10px; font-size: 11px; font-weight: 500; color: #9ca3af;
     border-bottom: 2px solid transparent; border-top: none; border-left: none;
     border-right: none; background: none; cursor: pointer; font-family: inherit;
-    white-space: nowrap;
+    white-space: nowrap; transition: opacity .15s;
 }
+.ws-ch-tab.ch-unavailable { opacity: 0.35; cursor: default; }
+.ws-ch-tab.ch-unavailable:hover { color: #9ca3af; }
 .ws-ch-tab.active { color: #7c3aed; border-bottom-color: #7c3aed; }
 .ws-ch-tab { position: relative; }
 .ws-ch-tab .ch-unread-dot {
@@ -652,6 +668,8 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 
         <!-- Chat pane -->
         <div class="ws-tab-pane" id="wsPaneChat">
+          <!-- Contact switcher (shown only when company has linked persons) -->
+          <div class="ws-contact-switcher" id="wsContactSwitcher" style="display:none"></div>
           <div class="ws-ch-tabs" id="wsChTabs">
             <button class="ws-ch-tab active" data-ch="viber">Viber<span class="ch-unread-dot"></span></button>
             <button class="ws-ch-tab" data-ch="sms">SMS<span class="ch-unread-dot"></span></button>
@@ -871,19 +889,20 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 var WS = {
 
   // ── State ──────────────────────────────────────────────────────────────────
-  mode:       'chat',
-  kind:       null,    // 'counterparty' | 'lead'
-  itemId:     null,
-  activeTab:  'chat',
-  activeCh:   'viber',
-  aiMode:     {},      // {key: bool}  key = 'cp_5' or 'lead_3'
-  inboxData:  null,    // raw {leads, counterparties}
-  cpPage:     1,       // current inbox page
-  CP_PER_PAGE: 40,
-  pollTimer:   null,
-  inboxTimer:  null,
-  currentCp:   null,
-  currentLead: null,
+  mode:           'chat',
+  kind:           null,    // 'counterparty' | 'lead'
+  itemId:         null,
+  activeChatCpId: null,    // switches when contact switcher is clicked
+  activeTab:      'chat',
+  activeCh:       'viber',
+  aiMode:         {},      // {key: bool}  key = 'cp_5' or 'lead_3'
+  inboxData:      null,    // raw {leads, counterparties}
+  cpPage:         1,       // current inbox page
+  CP_PER_PAGE:    40,
+  pollTimer:      null,
+  inboxTimer:     null,
+  currentCp:      null,
+  currentLead:    null,
 
   // ── Init ───────────────────────────────────────────────────────────────────
   init: function() {
@@ -1199,9 +1218,12 @@ var WS = {
           this._autoSelectPromise = null;
           p.then(function(d) {
             if (!d.ok) return;
-            self.currentCp   = d;
-            self.currentLead = null;
+            self.currentCp      = d;
+            self.currentLead    = null;
+            self.activeChatCpId = self.itemId;
             self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats, d.cp.id);
+            self.renderContactSwitcher(d.cp.id, d.contacts || []);
+            self.updateChannelTabs(d.cp.available_channels || ['note']);
             self.renderCpCtx(d);
             self.applyAiMode();
             self.updateChannelDots(d.unread_by_channel || {});
@@ -1326,15 +1348,78 @@ var WS = {
       .then(function(r){ return r.json(); })
       .then(function(d) {
         if (!d.ok) return;
-        self.currentCp   = d;
-        self.currentLead = null;
+        self.currentCp      = d;
+        self.currentLead    = null;
+        self.activeChatCpId = self.itemId; // reset to company on new selection
         self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats, d.cp.id);
+        self.renderContactSwitcher(d.cp.id, d.contacts || []);
+        self.updateChannelTabs(d.cp.available_channels || ['note']);
         self.renderCpCtx(d);
         self.applyAiMode();
         self.updateChannelDots(d.unread_by_channel || {});
         self.loadMessages();
         self.startPolling();
       });
+  },
+
+  // ── Channel tab availability ───────────────────────────────────────────────
+  updateChannelTabs: function(availableChannels) {
+    var avail = availableChannels || ['note'];
+    document.querySelectorAll('.ws-ch-tab').forEach(function(btn) {
+      var ch = btn.dataset.ch;
+      if (avail.indexOf(ch) !== -1) {
+        btn.classList.remove('ch-unavailable');
+        btn.removeAttribute('title');
+      } else {
+        btn.classList.add('ch-unavailable');
+        btn.setAttribute('title', 'Немає контактних даних');
+      }
+    });
+  },
+
+  // ── Contact switcher ──────────────────────────────────────────────────────
+  renderContactSwitcher: function(cpId, contacts) {
+    var self = this;
+    var el = document.getElementById('wsContactSwitcher');
+    if (!el) return;
+    if (!contacts || contacts.length === 0) {
+      el.style.display = 'none';
+      el.innerHTML = '';
+      return;
+    }
+    var cpName = (this.currentCp && this.currentCp.cp) ? this.currentCp.cp.name : '';
+    var cpChannels = (this.currentCp && this.currentCp.cp && this.currentCp.cp.available_channels)
+      ? this.currentCp.cp.available_channels : ['note'];
+
+    var html = '<button class="ws-cs-btn active" data-cs-id="' + cpId + '">'
+      + '🏢 ' + this.esc(cpName.length > 22 ? cpName.substring(0, 22) + '…' : cpName)
+      + '</button>';
+    contacts.forEach(function(ct) {
+      var n = ct.name.length > 18 ? ct.name.substring(0, 18) + '…' : ct.name;
+      html += '<button class="ws-cs-btn" data-cs-id="' + ct.id + '" title="' + self.esc(ct.name) + '">'
+        + '👤 ' + self.esc(n) + '</button>';
+    });
+    el.innerHTML = html;
+    el.style.display = 'flex';
+
+    // Store channels per contact for quick access on switch
+    var channelMap = {};
+    channelMap[cpId] = cpChannels;
+    contacts.forEach(function(ct) {
+      channelMap[ct.id] = ct.available_channels || ['note'];
+    });
+
+    el.querySelectorAll('.ws-cs-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var newId = parseInt(this.dataset.csId, 10);
+        if (newId === self.activeChatCpId) return;
+        self.activeChatCpId = newId;
+        el.querySelectorAll('.ws-cs-btn').forEach(function(b){ b.classList.remove('active'); });
+        this.classList.add('active');
+        self.updateChannelTabs(channelMap[newId] || ['note']);
+        self.loadMessages();
+      });
+    });
   },
 
   // ── Load lead ──────────────────────────────────────────────────────────────
@@ -1344,8 +1429,12 @@ var WS = {
       .then(function(r){ return r.json(); })
       .then(function(d) {
         if (!d.ok) return;
-        self.currentLead = d;
-        self.currentCp   = null;
+        self.currentLead    = d;
+        self.currentCp      = null;
+        self.activeChatCpId = null;
+        var switcher = document.getElementById('wsContactSwitcher');
+        if (switcher) { switcher.style.display = 'none'; switcher.innerHTML = ''; }
+        self.updateChannelTabs(['viber','sms','email','telegram','note']);
         var lead = d.lead;
         self.renderHubHeader(lead.initials, lead.name, 'lead', lead.source_label);
         self.renderLeadCtx(d);
@@ -2105,21 +2194,10 @@ var WS = {
     var sumVat      = parseFloat(order.sum_vat)      || 0;
     var sumTotal    = parseFloat(order.sum_total)    || 0;
 
-    var dmOpts = '<option value="0">— Спосіб доставки —</option>';
-    var _DMS = [{id:1,code:'pickup',name:'Самовивіз'},{id:2,code:'courier',name:'Кур\'єр'},{id:3,code:'novaposhta',name:'Нова Пошта'},{id:4,code:'ukrposhta',name:'Укрпошта'}];
-    _DMS.forEach(function(dm) {
-      var sel = (order.delivery_method_id && parseInt(order.delivery_method_id) === dm.id) ? ' selected' : '';
-      dmOpts += '<option value="' + dm.id + '"' + sel + '>' + dm.name + '</option>';
-    });
-
     var footHtml = '<div class="ws-of-foot">'
-      + '<div class="ws-of-foot-meta">'
-      + '<span class="ws-of-foot-meta-lbl">Доставка</span>'
-      + '<select class="ws-of-dm-sel" id="wsOfDmSel">' + dmOpts + '</select>'
-      + '</div>'
-      + '<div class="ws-of-foot-row">'
+      + '<div class="ws-of-foot-bottom">'
       +   '<div class="ws-of-foot-comment">'
-      +     '<textarea id="wsOfComment" placeholder="Коментар до замовлення…">' + self.esc(order.description || '') + '</textarea>'
+      +     '<textarea id="wsOfComment" placeholder="Коментар до замовлення…" readonly>' + self.esc(order.description || '') + '</textarea>'
       +   '</div>'
       +   '<div class="ws-of-foot-totals" id="wsOfTotals">'
       +     self._footTotalsHtml(sumDiscount, sumVat, sumTotal)
@@ -2243,11 +2321,13 @@ var WS = {
     var searchInp  = el.querySelector('#wsItemSearch');
     var editZone   = el.querySelector('#wsOfEditZone');
 
+    var commentEl2 = el.querySelector('#wsOfComment');
     function enterEditMode() {
       if (editZone) editZone.classList.add('ws-of-editing');
       if (editBtn)   editBtn.style.display   = 'none';
       if (saveBtn)   saveBtn.style.display   = '';
       if (searchInp) { searchInp.disabled = false; searchInp.placeholder = '+ Додати товар…'; }
+      if (commentEl2) commentEl2.readOnly = false;
       var firstInp = el.querySelector('tr.ws-of-items-body .ws-cell-input');
       if (firstInp) { firstInp.focus(); firstInp.select(); }
     }
@@ -2256,6 +2336,7 @@ var WS = {
       if (editBtn)   { editBtn.style.display = ''; }
       if (saveBtn)   { saveBtn.style.display = 'none'; saveBtn.classList.remove('ws-of-save-btn-dirty'); }
       if (searchInp) { searchInp.disabled = true; searchInp.placeholder = '+ Додати товар… (увімкніть режим ✏)'; searchInp.value = ''; }
+      if (commentEl2) commentEl2.readOnly = true;
     }
 
     var cancelBtn = el.querySelector('#wsOfEditCancel');
@@ -2294,17 +2375,10 @@ var WS = {
       if (lastRow) lastRow.scrollIntoView({ block: 'nearest' });
     }
 
-    // Comment save on blur
-    var commentEl = el.querySelector('#wsOfComment');
-    if (commentEl) {
-      commentEl.addEventListener('blur', function() {
-        var orderId = el.dataset.orderId;
-        if (!orderId) return;
-        fetch('/counterparties/api/save_order_status', {
-          method: 'POST',
-          headers: {'Content-Type':'application/x-www-form-urlencoded'},
-          body: 'order_id=' + orderId + '&description=' + encodeURIComponent(commentEl.value)
-        }).catch(function(){});
+    // Comment dirty flag (saved with 💾, not on blur)
+    if (commentEl2) {
+      commentEl2.addEventListener('input', function() {
+        if (saveBtn) { saveBtn.style.display = ''; saveBtn.classList.add('ws-of-save-btn-dirty'); }
       });
     }
 
@@ -3121,7 +3195,8 @@ var WS = {
     if (this.kind === 'lead') {
       url = '/counterparties/api/get_messages?lead_id=' + this.itemId + '&channel=' + this.activeCh;
     } else {
-      url = '/counterparties/api/get_messages?id=' + this.itemId + '&channel=' + this.activeCh;
+      var chatId = this.activeChatCpId || this.itemId;
+      url = '/counterparties/api/get_messages?id=' + chatId + '&channel=' + this.activeCh;
     }
     // For Viber: poll Alpha SMS for replies (including images) before loading messages
     if (this.activeCh === 'viber' && this.itemId) {
@@ -3129,7 +3204,7 @@ var WS = {
       if (this.kind === 'lead') {
         pollUrl = '/counterparties/api/poll_viber_replies?lead_id=' + this.itemId;
       } else {
-        pollUrl = '/counterparties/api/poll_viber_replies?id=' + this.itemId;
+        pollUrl = '/counterparties/api/poll_viber_replies?id=' + (this.activeChatCpId || this.itemId);
       }
       fetch(pollUrl)
         .then(function(r){ return r.json(); })
@@ -3175,32 +3250,52 @@ var WS = {
           origAttachName = m.body.replace(/^📎\s*/u, '').trim();
         }
         if (m.media_url) {
-          // body-текст відображається окремо лише якщо він НЕ є "📎 filename" (щоб не дублювати)
-          var hasCaption = m.body && m.body !== '[файл]' && m.body !== '[фото]' && !origAttachName;
+          // AlphaSMS stores real filename in body (e.g. "УКРАЇНА.pdf") for client-sent files.
+          // S3 URLs for non-images have no extension (or trailing dot). Detect type from body first.
+          var bodyIsFilename = m.body && /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|txt|ogg|oga|mp3|m4a|wav|opus)$/i.test(m.body.trim());
+          var isImgFromUrl   = self.isImageUrl(m.media_url);
+          var isImgFromBody  = bodyIsFilename && /\.(jpg|jpeg|png|gif|webp)$/i.test(m.body.trim());
+          var isAudio        = /\.(ogg|oga|mp3|m4a|wav|opus)(\?|$)/i.test(m.media_url)
+                             || (bodyIsFilename && /\.(ogg|oga|mp3|m4a|wav|opus)$/i.test(m.body.trim()));
+          // body is a "caption" only if it's not a raw filename and not a send placeholder
+          var hasCaption = m.body && !bodyIsFilename && !origAttachName
+                        && m.body !== '[файл]' && m.body !== '[фото]' && m.body !== '[медіа]';
           var mbottom = hasCaption ? '6' : '0';
-          if (self.isImageUrl(m.media_url)) {
+          if (isImgFromUrl || isImgFromBody) {
             mediaHtml = '<a href="' + self.esc(m.media_url) + '" target="_blank" rel="noopener">'
                       + '<img src="' + self.esc(m.media_url) + '" style="max-width:220px;max-height:180px;border-radius:6px;display:block;margin-bottom:' + mbottom + 'px">'
                       + '</a>';
-          } else if (/\.(ogg|oga|mp3|m4a|wav|opus)(\?|$)/i.test(m.media_url)) {
+          } else if (isAudio) {
             mediaHtml = '<audio controls style="max-width:220px;display:block;margin-bottom:' + mbottom + 'px">'
                       + '<source src="' + self.esc(m.media_url) + '">'
                       + '</audio>';
           } else {
             var parts   = m.media_url.split('/');
-            var storedName = parts[parts.length - 1] || 'файл';
-            // Показуємо оригінальну назву файлу (з body), а не згенеровану
-            var fname   = origAttachName || storedName;
-            var extM    = storedName.split('.').pop().toLowerCase();
-            var icons   = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', txt: '📃' };
+            var storedName = parts[parts.length - 1].replace(/\.$/, '') || 'файл';
+            // Prefer real filename from body; fall back to origAttachName (📎 prefix) or URL hash
+            var fname   = (bodyIsFilename ? m.body.trim() : null) || origAttachName || storedName;
+            var extM    = fname.split('.').pop().toLowerCase();
+            var icons   = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', txt: '📃', ogg: '🎵', oga: '🎵', mp3: '🎵', m4a: '🎵', wav: '🎵' };
             var ic      = icons[extM] || '📎';
-            mediaHtml = '<a href="' + self.esc(m.media_url) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:inherit;background:rgba(0,0,0,.08);border-radius:6px;padding:5px 8px;font-size:12px;margin-bottom:' + mbottom + 'px">'
+            var dlUrl   = '/counterparties/api/download_media?url=' + encodeURIComponent(m.media_url) + '&name=' + encodeURIComponent(fname);
+            var officeExts = ['doc','docx','xls','xlsx'];
+            var viewUrl = (officeExts.indexOf(extM) !== -1)
+                ? 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(m.media_url)
+                : dlUrl;
+            mediaHtml = '<span style="display:inline-flex;align-items:center;gap:4px;margin-bottom:' + mbottom + 'px">'
+                      + '<a href="' + self.esc(viewUrl) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:inherit;background:rgba(0,0,0,.08);border-radius:6px;padding:5px 8px;font-size:12px">'
                       + '<span>' + ic + '</span><span>' + self.esc(fname) + '</span>'
                       + '</a>';
+            if (officeExts.indexOf(extM) !== -1) {
+                mediaHtml += '<a href="' + self.esc(dlUrl) + '" target="_blank" rel="noopener" title="Завантажити" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;text-decoration:none;background:rgba(0,0,0,.08);border-radius:6px;font-size:13px">⬇</a>';
+            }
+            mediaHtml += '</span>';
           }
         }
-        // Ховаємо body якщо він є "📎 filename" — файл вже відображено як посилання вище
-        var bodyText  = (m.body && m.body !== '[файл]' && m.body !== '[фото]' && !origAttachName) ? '<div>' + self.linkify(self.esc(m.body).replace(/\\n/g,'<br>').replace(/\n/g,'<br>')) + '</div>' : '';
+        // Show body as caption only if it's not a filename (already used as link label) and not a placeholder
+        var bodyText  = (hasCaption || (!m.media_url && m.body && m.body !== '[файл]' && m.body !== '[фото]' && m.body !== '[медіа]' && !origAttachName))
+                      ? '<div>' + self.linkify(self.esc(m.body).replace(/\\n/g,'<br>').replace(/\n/g,'<br>')) + '</div>'
+                      : '';
         var mediaOnly = (m.media_url && !bodyText) ? ' media-only' : '';
         var statusIcon = '';
         if (isOut) {
@@ -3253,7 +3348,7 @@ var WS = {
     if (this.kind === 'lead') {
       fd.append('lead_id', this.itemId);
     } else {
-      fd.append('id', this.itemId);
+      fd.append('id', this.activeChatCpId || this.itemId);
     }
 
     document.getElementById('wsSendBtn').disabled = true;
@@ -4987,20 +5082,24 @@ a.ws-of-sku:hover { color: #7c3aed; text-decoration: underline; }
 .ws-item-search-opt-art { font-size: 9px; color: #9ca3af; margin-right: 4px; }
 .ws-of-empty { font-size: 11px; color: #9ca3af; padding: 12px; text-align: center; }
 
-/* Footer: comment (left) + totals (right) */
 .ws-of-foot {
-    display: flex; align-items: flex-start; gap: 10px;
     padding: 7px 10px; flex-shrink: 0; border-bottom: 1px solid #f3f4f6;
 }
+.ws-of-foot-bottom { display: flex; align-items: flex-end; gap: 10px; }
 .ws-of-foot-comment { flex: 1; min-width: 0; }
 .ws-of-foot-comment textarea {
     width: 100%; font-size: 10px; font-family: inherit;
-    border: 1px solid #f3f4f6; border-radius: 5px; padding: 4px 6px;
-    background: #f9fafb; color: #6b7280; resize: vertical; outline: none;
+    border: 1px solid transparent; border-radius: 5px; padding: 4px 6px;
+    background: transparent; color: #374151; resize: none; outline: none;
     min-height: 64px; height: 64px; max-height: 200px;
-    transition: border-color .1s;
+    transition: border-color .1s, background .1s;
+    cursor: default;
 }
-.ws-of-foot-comment textarea:focus { border-color: #c4b5fd; background: #fff; }
+.ws-of-editing .ws-of-foot-comment textarea {
+    border-color: #f3f4f6; background: #f9fafb; color: #374151;
+    resize: vertical; cursor: text;
+}
+.ws-of-editing .ws-of-foot-comment textarea:focus { border-color: #c4b5fd; background: #fff; }
 .ws-of-foot-totals { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
 .ws-of-foot-line { display: flex; align-items: baseline; gap: 6px; }
 .ws-of-foot-lbl { font-size: 10px; color: #9ca3af; white-space: nowrap; }

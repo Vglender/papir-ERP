@@ -65,7 +65,8 @@ class FinanceBankRepository
     {
         return "FROM finance_bank fb
                 LEFT JOIN counterparty cp_d ON cp_d.id = fb.cp_id
-                LEFT JOIN counterparty cp_m ON cp_m.id_ms = fb.agent_ms AND fb.cp_id IS NULL";
+                LEFT JOIN counterparty cp_m ON cp_m.id_ms = fb.agent_ms AND fb.cp_id IS NULL
+                LEFT JOIN finance_expense_category fec ON fec.id = fb.expense_category_id";
     }
 
     public function getList($params)
@@ -80,6 +81,8 @@ class FinanceBankRepository
                     fb.sum, fb.description, fb.payment_purpose,
                     fb.is_posted, fb.is_moving, fb.agent_ms, fb.source,
                     fb.expense_item_ms, fb.operations, fb.external_code,
+                    fb.expense_category_id,
+                    fec.name AS expense_category_name,
                     COALESCE(cp_d.id, cp_m.id)     AS cp_id,
                     COALESCE(cp_d.name, cp_m.name) AS cp_name,
                     COALESCE(cp_d.type, cp_m.type) AS cp_type

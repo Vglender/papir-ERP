@@ -3,6 +3,22 @@
 $_chatRepo2 = new ChatRepository();
 $_chatUnread = $_chatRepo2->getUnreadCount($id);
 ?>
+<style>
+.cpp-contact-switcher{display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px 5px;border-bottom:1px solid var(--border);background:var(--bg-card);flex-shrink:0}
+.cpp-cs-btn{padding:3px 9px;font-size:11px;font-weight:600;background:var(--bg-hover);border:1px solid var(--border);border-radius:10px;cursor:pointer;white-space:nowrap;color:var(--text-muted);transition:background .12s,border-color .12s,color .12s;max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.cpp-cs-btn:hover{color:var(--text);border-color:#c0c8d0}
+.cpp-cs-btn.active{background:var(--blue-bg);border-color:var(--blue-light);color:var(--blue)}
+/* Attachment preview */
+.cpp-attach-preview{display:none;align-items:center;gap:8px;padding:5px 8px;background:var(--blue-bg);border:1px solid var(--blue-light);border-radius:var(--radius-sm);margin-bottom:4px}
+.cpp-attach-preview.visible{display:flex}
+.cpp-attach-thumb{width:38px;height:38px;border-radius:4px;object-fit:cover;flex-shrink:0}
+.cpp-attach-icon{width:38px;height:38px;border-radius:4px;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;border:1px solid #e5e7eb}
+.cpp-attach-info{flex:1;min-width:0}
+.cpp-attach-nm{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
+.cpp-attach-sz{font-size:10px;color:var(--text-muted)}
+.cpp-attach-rm{border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0 3px;border-radius:4px;line-height:1;flex-shrink:0}
+.cpp-attach-rm:hover{background:#fee2e2;color:#dc2626}
+</style>
 <div class="cpp-wrap" data-id="<?php echo $id; ?>">
 
 <!-- ── Panel header ──────────────────────────────────────────────────────── -->
@@ -290,6 +306,29 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
 <!-- ── Tab: Чат ───────────────────────────────────────────────────────────── -->
 <div class="cpp-panel hidden cpp-chat-wrap" id="cpp-chat" style="padding:0">
 
+<?php
+// Build list of linked persons that have at least one contact channel
+$_chatContacts = array();
+foreach ($contacts as $_ct) {
+    if ($_ct['phone'] || $_ct['viber'] || $_ct['telegram'] || $_ct['email']) {
+        $_chatContacts[] = $_ct;
+    }
+}
+?>
+<?php if (!empty($_chatContacts)): ?>
+    <!-- Contact switcher -->
+    <div class="cpp-contact-switcher" id="cppContactSwitcher">
+        <button class="cpp-cs-btn active" data-cs-id="<?php echo $id; ?>">
+            🏢 <?php echo htmlspecialchars(mb_strimwidth($cp['name'], 0, 22, '…', 'UTF-8')); ?>
+        </button>
+        <?php foreach ($_chatContacts as $_ct): ?>
+        <button class="cpp-cs-btn" data-cs-id="<?php echo (int)$_ct['id']; ?>" title="<?php echo htmlspecialchars($_ct['name']); ?>">
+            👤 <?php echo htmlspecialchars(mb_strimwidth($_ct['name'], 0, 18, '…', 'UTF-8')); ?>
+        </button>
+        <?php endforeach; ?>
+    </div>
+<?php endif; ?>
+
     <!-- Channel tabs -->
     <div class="cpp-ch-tabs">
         <button class="cpp-ch-tab active" data-ch="viber">Viber</button>
@@ -310,16 +349,28 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
     <div class="cpp-tpl-row" id="cppTplRow"></div>
 
     <!-- Input area -->
+    <input type="file" id="cppFileInput" style="display:none"
+           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
     <div class="cpp-chat-input cpp-chat-input-ch" id="cppInputArea">
         <div style="flex:1; display:flex; flex-direction:column; gap:5px; position:relative;">
             <input type="text" id="cppMsgSubject" placeholder="Тема листа…"
                    style="display:none; padding:5px 9px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-size:12px; font-family:var(--font); outline:none;">
+            <!-- Attachment preview -->
+            <div class="cpp-attach-preview" id="cppAttachPreview">
+                <div id="cppAttachThumb"></div>
+                <div class="cpp-attach-info">
+                    <div class="cpp-attach-nm" id="cppAttachName"></div>
+                    <div class="cpp-attach-sz" id="cppAttachSize"></div>
+                </div>
+                <button class="cpp-attach-rm" id="cppAttachRm" title="Видалити">×</button>
+            </div>
             <textarea id="cppMsgText" placeholder="Написати повідомлення…" rows="2"></textarea>
             <!-- Emoji picker popup -->
             <div id="cppEmojiPicker" class="cpp-emoji-picker" style="display:none"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">
             <button class="btn btn-ghost btn-sm cpp-icon-btn" id="cppEmojiBtn" title="Смайлики" style="height:28px;padding:0 7px;font-size:15px">😊</button>
+            <button class="btn btn-ghost btn-sm cpp-icon-btn" id="cppFileBtn" title="Прикріпити файл або фото" style="height:28px;padding:0 7px;font-size:14px">📎</button>
             <button class="btn btn-ghost btn-sm cpp-icon-btn" id="cppAiBtn" title="AI підказка" style="height:28px;padding:0 7px;font-size:13px">✨</button>
             <button class="btn btn-ghost btn-sm cpp-icon-btn" id="cppTplMgrBtn" title="Шаблони" style="height:28px;padding:0 7px;font-size:13px">📋</button>
             <button class="btn btn-primary btn-sm" id="cppMsgSend" style="height:28px;padding:0 9px;flex-shrink:0">↑</button>
@@ -576,9 +627,11 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
 
     // ── Chat (Viber/SMS/Нотатка) ─────────────────────────────────────────────
     var activeChannel  = 'viber';
+    var activeChatCpId = cpId;   // switches when contact switcher is clicked
     var chatLoaded     = false;
     var tplCache       = {};
     var pollTimer      = null;
+    var attachedFile   = null;   // {url, name, is_image, uploading}
     var msgList        = wrap.querySelector('#cppMsgsList');
     var tplRow         = wrap.querySelector('#cppTplRow');
     var msgText        = wrap.querySelector('#cppMsgText');
@@ -586,6 +639,31 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
     var msgSendBtn     = wrap.querySelector('#cppMsgSend');
     var unreadBadge    = document.getElementById('cppUnreadBadge');
     var tgChatId       = <?php echo json_encode($cp['telegram_chat_id'] ? (string)$cp['telegram_chat_id'] : ''); ?>;
+
+    // Contact switcher
+    var contactSwitcher = wrap.querySelector('#cppContactSwitcher');
+    if (contactSwitcher) {
+        contactSwitcher.querySelectorAll('.cpp-cs-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var newId = parseInt(this.dataset.csId, 10);
+                if (newId === activeChatCpId) return;
+                activeChatCpId = newId;
+                contactSwitcher.querySelectorAll('.cpp-cs-btn').forEach(function(b){ b.classList.remove('active'); });
+                this.classList.add('active');
+                // Update placeholder to show who you're writing to
+                var name = this.title || this.textContent.replace(/^[🏢👤]\s*/, '').trim();
+                if (msgText) {
+                    msgText.placeholder = activeChatCpId === cpId
+                        ? 'Написати повідомлення…'
+                        : 'Написати ' + name + '…';
+                }
+                tgChatId = ''; // reset telegram state for new contact (will reload from messages)
+                tgHasDialog = false;
+                loadChatMessages();
+                if (activeChannel !== 'note') updateInputState();
+            });
+        });
+    }
 
     function esc(s) {
         return String(s)
@@ -703,9 +781,35 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
             }
             if (m.media_url) {
                 html += '<div class="cpp-msg-bubble cpp-msg-bubble-media">';
-                html += '<a href="' + esc(m.media_url) + '" target="_blank"><img src="' + esc(m.media_url) + '" alt="' + esc(m.body) + '" style="max-width:220px;max-height:220px;border-radius:6px;display:block;cursor:pointer"></a>';
-                if (m.body && m.body !== '[медіа]' && m.body !== '[📷 Медіа-повідомлення]') {
-                    html += '<div style="margin-top:4px;font-size:12px;color:#666">' + linkifyHtml(esc(m.body)) + '</div>';
+                // AlphaSMS stores real filename in body (e.g. "УКРАЇНА.pdf"), but S3 URLs
+                // for non-images have no extension (or trailing dot). Detect type from body first.
+                var bodyIsFilename = m.body && /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|txt|ogg|oga|mp3|wav)$/i.test(m.body.trim());
+                var imgFromUrl  = /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(m.media_url);
+                var imgFromBody = bodyIsFilename && /\.(jpg|jpeg|png|gif|webp)$/i.test(m.body.trim());
+                if (imgFromUrl || imgFromBody) {
+                    html += '<a href="' + esc(m.media_url) + '" target="_blank"><img src="' + esc(m.media_url) + '" alt="" style="max-width:220px;max-height:220px;border-radius:6px;display:block;cursor:pointer"></a>';
+                } else {
+                    var displayName = bodyIsFilename ? m.body.trim() : m.media_url.split('/').pop().replace(/\.$/, '') || 'файл';
+                    var fext = displayName.split('.').pop().toLowerCase();
+                    var ficons = {pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',txt:'📃',ogg:'🎵',oga:'🎵',mp3:'🎵',wav:'🎵'};
+                    var fic = ficons[fext] || '📎';
+                    var dlUrl = '/counterparties/api/download_media?url=' + encodeURIComponent(m.media_url) + '&name=' + encodeURIComponent(displayName);
+                    var officeExts = ['doc','docx','xls','xlsx'];
+                    var viewUrl = (officeExts.indexOf(fext) !== -1)
+                        ? 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(m.media_url)
+                        : dlUrl;
+                    html += '<span style="display:inline-flex;align-items:center;gap:4px">'
+                          + '<a href="' + esc(viewUrl) + '" target="_blank" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:inherit;background:rgba(0,0,0,.08);border-radius:6px;padding:5px 8px;font-size:12px">'
+                          + fic + ' ' + esc(displayName) + '</a>';
+                    if (officeExts.indexOf(fext) !== -1) {
+                        html += '<a href="' + esc(dlUrl) + '" target="_blank" title="Завантажити" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;text-decoration:none;background:rgba(0,0,0,.08);border-radius:6px;font-size:13px">⬇</a>';
+                    }
+                    html += '</span>';
+                }
+                // Show body as caption only if it's not a filename (already used as link label)
+                var bodyCaption = (!bodyIsFilename && m.body && m.body !== '[медіа]' && m.body !== '[📷 Медіа-повідомлення]' && m.body !== '[файл]') ? m.body : '';
+                if (bodyCaption) {
+                    html += '<div style="margin-top:4px;font-size:12px;color:#666">' + linkifyHtml(esc(bodyCaption)) + '</div>';
                 }
                 html += '</div>';
             } else {
@@ -729,7 +833,7 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
     function loadChatMessages(silent) {
         if (!msgList) return;
         if (!silent) msgList.innerHTML = '<div class="cpp-msgs-loading">Завантаження…</div>';
-        fetch('/counterparties/api/get_messages?id=' + cpId + '&channel=' + activeChannel + '&limit=60')
+        fetch('/counterparties/api/get_messages?id=' + activeChatCpId + '&channel=' + activeChannel + '&limit=60')
             .then(function(r){ return r.json(); })
             .then(function(d) {
                 if (d.ok) {
@@ -828,13 +932,20 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
     if (msgSendBtn && msgText) {
         msgSendBtn.addEventListener('click', function() {
             var body = msgText.value.trim();
-            if (!body) { msgText.focus(); return; }
+            if (!body && !attachedFile) { msgText.focus(); return; }
+            if (attachedFile && attachedFile.uploading) {
+                if (typeof showToast === 'function') showToast('Зачекайте, файл ще завантажується…');
+                return;
+            }
             msgSendBtn.disabled = true;
 
             var fd = new FormData();
-            fd.append('id',      cpId);
+            fd.append('id',      activeChatCpId);
             fd.append('channel', activeChannel);
-            fd.append('body',    body);
+            fd.append('body',    body || (attachedFile ? '[файл]' : ''));
+            if (attachedFile && attachedFile.url) {
+                fd.append('media_url', attachedFile.url);
+            }
             if (activeChannel === 'email' && msgSubject) {
                 var subj = msgSubject.value.trim();
                 if (subj) fd.append('subject', subj);
@@ -847,6 +958,7 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
                     if (d.ok) {
                         msgText.value = '';
                         if (msgSubject) msgSubject.value = '';
+                        removeAttach();
                         loadChatMessages(true); // reload from DB to show sent message
                     } else {
                         if (typeof showToast === 'function') showToast(d.error || 'Помилка відправки');
@@ -861,6 +973,74 @@ usort($feedItems, function($a, $b){ return strcmp($b['date'], $a['date']); });
         msgText.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { msgSendBtn.click(); }
         });
+    }
+
+    // ── File attachment ───────────────────────────────────────────────────────
+    var fileInput     = wrap.querySelector('#cppFileInput');
+    var fileBtn       = wrap.querySelector('#cppFileBtn');
+    var attachPreview = wrap.querySelector('#cppAttachPreview');
+    var attachThumb   = wrap.querySelector('#cppAttachThumb');
+    var attachName    = wrap.querySelector('#cppAttachName');
+    var attachSize    = wrap.querySelector('#cppAttachSize');
+    var attachRm      = wrap.querySelector('#cppAttachRm');
+
+    function renderAttachPreview() {
+        var af = attachedFile;
+        attachName.textContent = af.name;
+        if (af.uploading) {
+            attachSize.innerHTML = '<span style="color:#7c3aed;font-size:10px">Завантаження…</span>';
+            attachThumb.innerHTML = '<div class="cpp-attach-icon">📎</div>';
+        } else {
+            attachSize.textContent = af.is_image ? 'Зображення готове' : 'Файл готовий';
+            if (af.is_image) {
+                attachThumb.innerHTML = '<img class="cpp-attach-thumb" src="' + esc(af.url) + '" alt="">';
+            } else {
+                var ext = af.name.split('.').pop().toUpperCase();
+                var icons = {PDF:'📄',DOC:'📝',DOCX:'📝',XLS:'📊',XLSX:'📊',TXT:'📋'};
+                attachThumb.innerHTML = '<div class="cpp-attach-icon">' + (icons[ext] || '📎') + '</div>';
+            }
+        }
+        attachPreview.classList.add('visible');
+    }
+
+    function removeAttach() {
+        attachedFile = null;
+        if (attachPreview) attachPreview.classList.remove('visible');
+        if (attachThumb)   attachThumb.innerHTML = '';
+        if (fileInput)     fileInput.value = '';
+    }
+
+    if (fileBtn && fileInput) {
+        fileBtn.addEventListener('click', function() {
+            fileInput.value = '';
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', function() {
+            if (!this.files || !this.files[0]) return;
+            var file = this.files[0];
+            attachedFile = { url: null, name: file.name, is_image: false, uploading: true };
+            renderAttachPreview();
+            var fd = new FormData();
+            fd.append('file', file);
+            fetch('/counterparties/api/upload_message_file', { method: 'POST', body: fd })
+                .then(function(r){ return r.json(); })
+                .then(function(d) {
+                    if (d.ok) {
+                        attachedFile = { url: d.url, name: d.name, is_image: d.is_image, uploading: false };
+                        renderAttachPreview();
+                    } else {
+                        if (typeof showToast === 'function') showToast('Помилка: ' + (d.error || ''));
+                        removeAttach();
+                    }
+                }).catch(function() {
+                    if (typeof showToast === 'function') showToast('Помилка завантаження файлу');
+                    removeAttach();
+                });
+        });
+    }
+
+    if (attachRm) {
+        attachRm.addEventListener('click', removeAttach);
     }
 
     // ── Emoji picker ─────────────────────────────────────────────────────────

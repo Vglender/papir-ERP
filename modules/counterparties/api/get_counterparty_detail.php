@@ -21,6 +21,15 @@ if (!$cp) {
 
 $stats        = $repo->getOrderStats($id);
 $recentOrders = $repo->getRecentOrders($id, 5);
+$allContacts  = $repo->getContacts($id);
+
+function cpAvailableChannels($phone, $email, $telegramChatId) {
+    $ch = array('note');
+    if ($phone)          { $ch[] = 'viber'; $ch[] = 'sms'; }
+    if ($email)          { $ch[] = 'email'; }
+    if ($telegramChatId) { $ch[] = 'telegram'; }
+    return $ch;
+}
 
 $phone = $cp['company_phone'] ? $cp['company_phone'] : $cp['person_phone'];
 $email = $cp['company_email'] ? $cp['company_email'] : $cp['person_email'];
@@ -90,7 +99,8 @@ echo json_encode(array(
         'group_name'   => $cp['group_name'],
         'group_is_head'=> (bool)$cp['group_is_head'],
         'status'   => (int)$cp['status'],
-        'telegram_chat_id' => $cp['telegram_chat_id'],
+        'telegram_chat_id'   => $cp['telegram_chat_id'],
+        'available_channels' => cpAvailableChannels($phone, $email, $cp['telegram_chat_id']),
     ),
     'stats' => array(
         'order_count' => (int)$stats['order_count'],
@@ -108,4 +118,12 @@ echo json_encode(array(
     ) : null,
     'order_status_labels' => $orderStatusLabels,
     'unread_by_channel'   => $unreadByChannel,
+    'contacts'            => array_values(array_filter(array_map(function($ct) {
+        if (!$ct['phone'] && !$ct['viber'] && !$ct['telegram'] && !$ct['email']) return null;
+        return array(
+            'id'                 => (int)$ct['id'],
+            'name'               => $ct['name'],
+            'available_channels' => cpAvailableChannels($ct['phone'], $ct['email'], null),
+        );
+    }, $allContacts))),
 ));

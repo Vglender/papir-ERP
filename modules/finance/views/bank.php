@@ -280,18 +280,19 @@
                             $isMoving   = !empty($row['is_moving']);
 
                             $panelData = json_encode(array(
-                                'id'       => (int)$row['id'],
-                                'dir'      => $row['direction'],
-                                'moment'   => $row['moment'],
-                                'doc'      => $row['doc_number'],
-                                'sum'      => $row['sum'],
-                                'cp_id'    => $row['cp_id'],
-                                'cp_name'  => $cpName,
-                                'desc'     => $row['description'],
-                                'purpose'  => $row['payment_purpose'],
-                                'moving'   => $isMoving,
-                                'ext_code' => $row['external_code'],
-                                'source'   => $row['source'],
+                                'id'          => (int)$row['id'],
+                                'dir'         => $row['direction'],
+                                'moment'      => $row['moment'],
+                                'doc'         => $row['doc_number'],
+                                'sum'         => $row['sum'],
+                                'cp_id'       => $row['cp_id'],
+                                'cp_name'     => $cpName,
+                                'desc'        => $row['description'],
+                                'purpose'     => $row['payment_purpose'],
+                                'moving'      => $isMoving,
+                                'ext_code'    => $row['external_code'],
+                                'source'      => $row['source'],
+                                'exp_cat_id'  => $row['expense_category_id'] ? (int)$row['expense_category_id'] : null,
                             ));
                         ?>
                         <tr class="fin-row<?php echo $isMoving ? ' moving' : ''; ?>"
@@ -444,6 +445,16 @@
                             <input type="text" id="panelDesc" name="description" placeholder="—">
                         </div>
 
+                        <div class="fin-pf" id="panelExpCatWrap" style="display:none">
+                            <label>Стаття витрат</label>
+                            <select id="panelExpCat" name="expense_category_id">
+                                <option value="">— не вказано —</option>
+                                <?php foreach ($expenseCategories as $cat): ?>
+                                <option value="<?php echo (int)$cat['id']; ?>"><?php echo ViewHelper::h($cat['name']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
                         <label class="fin-moving-label">
                             <input type="checkbox" id="panelIsMoving" name="is_moving" value="1">
                             <span>Внутрішній переказ між рахунками</span>
@@ -576,14 +587,17 @@ document.getElementById('bulkCopySums').addEventListener('click', function() {
 });
 
 // ── Direction toggle ──────────────────────────────────────────────────────
-var dirBtnIn  = document.getElementById('dirBtnIn');
-var dirBtnOut = document.getElementById('dirBtnOut');
-var panelDir  = document.getElementById('panelDir');
+var dirBtnIn     = document.getElementById('dirBtnIn');
+var dirBtnOut    = document.getElementById('dirBtnOut');
+var panelDir     = document.getElementById('panelDir');
+var panelExpCat  = document.getElementById('panelExpCat');
+var panelExpWrap = document.getElementById('panelExpCatWrap');
 
 function setDir(dir) {
     panelDir.value = dir;
     dirBtnIn.className  = 'fin-dir-btn' + (dir === 'in'  ? ' active-in'  : '');
     dirBtnOut.className = 'fin-dir-btn' + (dir === 'out' ? ' active-out' : '');
+    panelExpWrap.style.display = (dir === 'out') ? '' : 'none';
 }
 dirBtnIn.addEventListener('click',  function() { setDir('in'); });
 dirBtnOut.addEventListener('click', function() { setDir('out'); });
@@ -688,6 +702,7 @@ function openPanel(row) {
     panelIsMove.checked     = !!d.moving;
     cpNameInput.value       = d.cp_name || '';
     cpIdInput.value         = d.cp_id   || '';
+    panelExpCat.value       = d.exp_cat_id ? String(d.exp_cat_id) : '';
     panelErr.textContent    = '';
 
     setDir(d.dir || 'in');
@@ -711,6 +726,7 @@ function openNewPanel() {
     panelIsMove.checked         = false;
     cpNameInput.value           = '';
     cpIdInput.value             = '';
+    panelExpCat.value           = '';
     panelErr.textContent        = '';
     panelSrcBadge.style.display = 'none';
     cpLink.style.display        = 'none';
@@ -754,7 +770,8 @@ document.getElementById('finPanelForm').addEventListener('submit', function(e) {
     body.append('doc_number',      panelDoc.value);
     body.append('cp_id',           cpIdInput.value);
     body.append('payment_purpose', panelPurp.value);
-    body.append('description',     panelDesc.value);
+    body.append('description',         panelDesc.value);
+    body.append('expense_category_id', panelExpCat.value);
     if (panelIsMove.checked) body.append('is_moving', '1');
 
     fetch('/finance/api/save_bank', { method:'POST', body: body, credentials:'same-origin' })
@@ -778,13 +795,14 @@ document.getElementById('finPanelForm').addEventListener('submit', function(e) {
             if (activeRow) {
                 var d;
                 try { d = JSON.parse(activeRow.getAttribute('data-panel')); } catch(ex) { d = {}; }
-                d.dir     = dir;   d.sum  = sum;
-                d.doc     = panelDoc.value;
-                d.purpose = panelPurp.value;
-                d.desc    = panelDesc.value;
-                d.moving  = panelIsMove.checked;
-                d.cp_name = (data.cp_name !== undefined) ? data.cp_name : cpNameInput.value;
-                d.cp_id   = cpIdInput.value || '';
+                d.dir       = dir;   d.sum  = sum;
+                d.doc       = panelDoc.value;
+                d.purpose   = panelPurp.value;
+                d.desc      = panelDesc.value;
+                d.moving    = panelIsMove.checked;
+                d.cp_name   = (data.cp_name !== undefined) ? data.cp_name : cpNameInput.value;
+                d.cp_id     = cpIdInput.value || '';
+                d.exp_cat_id = panelExpCat.value ? parseInt(panelExpCat.value) : null;
                 activeRow.setAttribute('data-panel', JSON.stringify(d));
 
                 var badge = activeRow.querySelector('.fin-badge-in,.fin-badge-out,.fin-badge-mov');

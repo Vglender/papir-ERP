@@ -8,7 +8,18 @@ class AlphaSmsService
 
     public static function sendViber($phone, $text)
     {
-        $phone   = self::normalizePhone($phone);
+        $phone = self::normalizePhone($phone);
+
+        // SMS can't display 4-byte emoji (U+10000..U+10FFFF).
+        // AlphaSMS returns "Please enter SMS text" and drops the message
+        // if sms_message consists solely of such characters.
+        // Strip them for the SMS fallback; use a placeholder if nothing remains.
+        $smsText = preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $text);
+        $smsText = trim(preg_replace('/\s+/u', ' ', $smsText));
+        if ($smsText === '') {
+            $smsText = 'Повідомлення від ' . self::ALPHA_NAME;
+        }
+
         $payload = array(
             'auth' => self::API_KEY,
             'data' => array(array(
@@ -18,7 +29,7 @@ class AlphaSmsService
                 'viber_type'      => 'text',
                 'viber_message'   => $text,
                 'sms_signature'   => self::ALPHA_NAME,
-                'sms_message'     => $text,
+                'sms_message'     => $smsText,
             ))
         );
         $resp = self::post($payload);

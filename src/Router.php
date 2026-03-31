@@ -156,6 +156,7 @@ class Router
 		'/counterparties/api/upload_file'            => '/modules/counterparties/api/upload_file.php',
 		'/counterparties/api/delete_file'            => '/modules/counterparties/api/delete_file.php',
 		'/counterparties/api/download_file'          => '/modules/counterparties/api/download_file.php',
+		'/counterparties/api/download_media'         => '/modules/counterparties/api/download_media.php',
 		'/counterparties/webhook/gmail_push'         => '/modules/counterparties/webhook/gmail_push.php',
 		'/counterparties/webhook/viber_in'           => '/modules/counterparties/webhook/viber_in.php',
 		'/counterparties/webhook/telegram_in'        => '/modules/counterparties/webhook/telegram_in.php',

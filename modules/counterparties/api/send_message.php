@@ -70,10 +70,18 @@ if ($channel === 'viber' || $channel === 'sms') {
     }
 
     if ($channel === 'viber') {
-        // If there's an image, send via Viber image message; text goes as caption
         if ($mediaUrl && preg_match('/\.(jpg|jpeg|png|gif|webp)(\?|$)/i', $mediaUrl)) {
+            // Image — send as Viber image with optional caption
             $caption = ($body && $body !== '[файл]') ? $body : '';
             $result  = AlphaSmsService::sendViberImage($phone, $mediaUrl, $caption);
+        } elseif ($mediaUrl) {
+            // Non-image file — Viber doesn't support file attachments natively,
+            // so send a direct download link as text message
+            $fname   = basename(parse_url($mediaUrl, PHP_URL_PATH));
+            $msgText = ($body && $body !== '[файл]')
+                ? $body . "\n📎 " . $mediaUrl
+                : '📎 ' . $fname . "\n" . $mediaUrl;
+            $result  = AlphaSmsService::sendViber($phone, $msgText);
         } else {
             $result = AlphaSmsService::sendViber($phone, $body);
         }

@@ -15,7 +15,8 @@ $sum       = isset($_POST['sum'])       ? (float)str_replace(',', '.', $_POST['s
 $cpId      = isset($_POST['cp_id'])     ? (int)$_POST['cp_id']                                  : 0;
 $purpose   = isset($_POST['payment_purpose']) ? trim($_POST['payment_purpose'])                  : '';
 $desc      = isset($_POST['description'])     ? trim($_POST['description'])                      : '';
-$isMoving  = !empty($_POST['is_moving']) ? 1 : 0;
+$isMoving      = !empty($_POST['is_moving']) ? 1 : 0;
+$expCategoryId = isset($_POST['expense_category_id']) ? (int)$_POST['expense_category_id'] : 0;
 
 if (!in_array($direction, array('in', 'out'))) {
     echo json_encode(array('ok' => false, 'error' => 'Вкажіть напрям'));
@@ -57,7 +58,8 @@ $data = array(
     'agent_ms'        => $agentMs,
     'payment_purpose' => $purpose !== '' ? $purpose : null,
     'description'     => $desc !== '' ? $desc : null,
-    'is_moving'       => $isMoving,
+    'is_moving'           => $isMoving,
+    'expense_category_id' => ($direction === 'out' && $expCategoryId > 0) ? $expCategoryId : null,
 );
 
 if ($id > 0) {

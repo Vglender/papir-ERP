@@ -57,7 +57,8 @@ class FinanceCashRepository
     private function baseFrom()
     {
         return "FROM finance_cash fc
-                LEFT JOIN counterparty cp ON cp.id_ms = fc.agent_ms";
+                LEFT JOIN counterparty cp ON cp.id_ms = fc.agent_ms
+                LEFT JOIN finance_expense_category fec ON fec.id = fc.expense_category_id";
     }
 
     public function getList($params)
@@ -71,6 +72,8 @@ class FinanceCashRepository
             "SELECT fc.id, fc.id_ms, fc.direction, fc.moment, fc.doc_number,
                     fc.sum, fc.description, fc.payment_purpose, fc.is_posted, fc.is_moving,
                     fc.agent_ms, fc.expense_item_ms, fc.operations, fc.source,
+                    fc.expense_category_id,
+                    fec.name AS expense_category_name,
                     cp.id   AS cp_id,
                     cp.name AS cp_name,
                     cp.type AS cp_type
