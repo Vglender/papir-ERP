@@ -1481,6 +1481,7 @@ var WS = {
   renderCpCtx: function(d) {
     var self = this;
     var cp   = d.cp;
+    self._activeCp = cp || null;
     var ord  = d.active_order;
 
     // Contacts one-liner
@@ -1580,6 +1581,7 @@ var WS = {
     (d.order_deliveries || []).forEach(function(x) { others.push({ type:'delivery', data:x, moment:x.created_at||'' }); });
     (d.payments         || []).forEach(function(x) { others.push({ type:'payment',  data:x, moment:x.moment||'' }); });
     (d.returns          || []).forEach(function(x) { others.push({ type:'return',   data:x, moment:x.moment||'' }); });
+    (d.return_logistics || []).forEach(function(x) { others.push({ type:'ret_log',  data:x, moment:x.created_at||'' }); });
 
     others.sort(function(a, b) {
       if (!a.moment) return 1;
@@ -1615,6 +1617,7 @@ var WS = {
       delivery: { cls:'wf-delivery', icon:'🚴', label:'Доставка' },
       payment:  { cls:'wf-payment',  icon:'💰', label:'Оплата' },
       return:   { cls:'wf-return',   icon:'↩️', label:'Повернення' },
+      ret_log:  { cls:'wf-ret-log',  icon:'↩',  label:'Повернення' },
       done:     { cls:'wf-done',     icon:'✓',  label:'Отримано' },
     };
 
@@ -1668,6 +1671,12 @@ var WS = {
         } else if (item.type === 'return') {
           id2 = (dt.number ? '#' + dt.number : '') + (dt.moment ? ' від ' + dt.moment.substr(0,10) : '');
           amt = dt.sum_total ? '₴' + self.formatNum(dt.sum_total) : '';
+        } else if (item.type === 'ret_log') {
+          var RL_TYPE   = { novaposhta_ttn:'НП ТТН', ukrposhta_ttn:'УП ТТН', manual:'Інший спосіб', left_with_client:'У клієнта', auto_ttn:'Авто ТТН' };
+          var RL_STATUS = { expected:'очікується', in_transit:'в дорозі', received:'отримано', cancelled:'скасовано' };
+          id2 = RL_TYPE[dt.return_type] || dt.return_type;
+          if (dt.return_ttn_number) id2 += ' #' + dt.return_ttn_number;
+          amt = RL_STATUS[dt.status] || dt.status;
         }
       } else if (item.type !== 'done') {
         if (item.type === 'delivery') {
@@ -2080,6 +2089,71 @@ var WS = {
     var autoFlags = (d.status_auto_flags) ? d.status_auto_flags : {};
     var pipelineBlockHtml = '<div id="wsPipelineBar" class="ws-pl-block">' + self._buildPipelineBarInner(curStatus, order.id, autoFlags) + '</div>';
 
+    // ── Action bar (Повернення / Скасувати) ───────────────────────────────────
+    var isCancelled = (curStatus === 'cancelled');
+    var isEarly     = (curStatus === 'draft' || curStatus === 'new');
+    var cpPhone     = self._activeCp && self._activeCp.phone ? self._activeCp.phone : '';
+    var svgPrint = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+      + '<rect x="3" y="1" width="10" height="6" rx="1"/><rect x="3" y="9" width="10" height="6" rx="1"/>'
+      + '<path d="M3 9.5H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v1.5a1 1 0 01-1 1h-1"/>'
+      + '<circle cx="12.5" cy="7.5" r="0.7" fill="currentColor" stroke="none"/>'
+      + '</svg>';
+    var svgPhone = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M3 2h3l1 3-2 1a9 9 0 004 4l1-2 3 1v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/>'
+      + '</svg>';
+    var svgReturn = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+      + '<path d="M3 7V4a1 1 0 011-1h8"/><path d="M9 1l3 2-3 2"/>'
+      + '<path d="M13 9v3a1 1 0 01-1 1H4"/><path d="M7 15l-3-2 3-2"/>'
+      + '</svg>';
+    var svgCancel = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
+      + '<circle cx="8" cy="8" r="6"/>'
+      + '<line x1="5.5" y1="5.5" x2="10.5" y2="10.5"/><line x1="10.5" y1="5.5" x2="5.5" y2="10.5"/>'
+      + '</svg>';
+
+    var svgSend = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">'
+      + '<path d="M1 7 L13.5 1 L9.5 13 L6.5 7.5 Z" fill="currentColor" stroke="none"/>'
+      + '<line x1="6.5" y1="7.5" x2="13.5" y2="1"/>'
+      + '</svg>';
+    var svgPrint2 = '<svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round">'
+      + '<rect x="3.5" y="0.8" width="8" height="3.5" rx="0.5"/>'
+      + '<rect x="0.8" y="4.3" width="13.4" height="5.8" rx="1.2"/>'
+      + '<rect x="3.5" y="9.2" width="8" height="4" rx="0.5"/>'
+      + '<line x1="5.2" y1="11" x2="9.8" y2="11" stroke-width="1.1"/>'
+      + '<line x1="5.2" y1="12.5" x2="8.3" y2="12.5" stroke-width="1.1"/>'
+      + '<circle cx="11.8" cy="7" r="0.9" fill="currentColor" stroke="none"/>'
+      + '</svg>';
+    var actionBarHtml = '<div class="ws-order-actions" id="wsOrderActions">'
+      + '<button type="button" class="ws-oa-btn ws-of-btn-send" id="wsOaSendBtn" title="Надіслати клієнту / команди">' + svgSend + '</button>'
+      + '<button type="button" class="ws-oa-btn ws-of-btn-print" id="wsOaPrintBtn" onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">' + svgPrint2 + '</button>'
+      + (cpPhone ? '<a href="tel:' + self.esc(cpPhone) + '" class="ws-oa-btn" title="Подзвонити ' + self.esc(cpPhone) + '">' + svgPhone + '</a>' : '')
+      + '<span class="ws-oa-sep"></span>'
+      + (!isCancelled && !isEarly ? '<button type="button" class="ws-oa-btn" id="wsOaRetBtn" title="Оформити повернення">' + svgReturn + '</button>' : '')
+      + (!isCancelled             ? '<button type="button" class="ws-oa-btn"   id="wsOaCancelBtn" title="Скасувати замовлення">' + svgCancel + '</button>' : '')
+      + '</div>';
+
+    // ── Return panel (inline, collapsible) ────────────────────────────────────
+    var retPanelHtml = (!isCancelled && !isEarly)
+      ? '<div class="ws-ret-panel" id="wsRetPanel">'
+          + '<div class="ws-ret-head">'
+          +   '<span>↩ Оформити повернення</span>'
+          +   '<button type="button" id="wsRetClose">×</button>'
+          + '</div>'
+          + '<div class="ws-ret-body">'
+          +   '<div class="ws-ret-note">Оберіть спосіб — після збереження документ з\'явиться у ланцюжку вгорі.</div>'
+          +   '<div class="ws-ret-opts">'
+          +     '<div class="ws-ret-opt" data-ret="novaposhta_ttn"><span class="ws-ret-opt-icon">🚚</span><span class="ws-ret-opt-lbl">Нова Пошта</span><span class="ws-ret-opt-sub">Ввести номер ТТН</span></div>'
+          +     '<div class="ws-ret-opt" data-ret="ukrposhta_ttn"><span class="ws-ret-opt-icon">📬</span><span class="ws-ret-opt-lbl">Укрпошта</span><span class="ws-ret-opt-sub">Ввести номер ТТН</span></div>'
+          +     '<div class="ws-ret-opt" data-ret="manual"><span class="ws-ret-opt-icon">📦</span><span class="ws-ret-opt-lbl">Інший спосіб</span><span class="ws-ret-opt-sub">Кур\'єр, особисто тощо</span></div>'
+          +     '<div class="ws-ret-opt" data-ret="left_with_client"><span class="ws-ret-opt-icon">🎁</span><span class="ws-ret-opt-lbl">Залишили клієнту</span><span class="ws-ret-opt-sub">Брак, жест доброї волі</span></div>'
+          +   '</div>'
+          +   '<div class="ws-ret-input-row" id="wsRetInputRow" style="display:none">'
+          +     '<input type="text" class="ws-ret-input" id="wsRetInput" placeholder="">'
+          +     '<button type="button" class="ws-ret-save-btn" id="wsRetSave">Зберегти</button>'
+          +   '</div>'
+          + '</div>'
+        + '</div>'
+      : '';
+
     // ── Header (outside edit zone: number, badges, action buttons) ──────────
     var headHtml = '<div class="ws-of-head">'
       + '<span class="ws-of-head-num">#' + self.esc(order.number || '—') + '</span>'
@@ -2095,22 +2169,6 @@ var WS = {
       +   '<line x1="1.5" y1="3.3" x2="9.5" y2="3.3" stroke-width="1.1"/>'
       +   '</svg></button>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-save-btn" id="wsOfSaveBtn" title="Зберегти зміни" style="display:none">💾</button>'
-      + '<span class="ws-of-btns-sep"></span>'
-      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-btn-print" id="wsOfPrintBtn"'
-      +   ' onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">'
-      +   '<svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">'
-      +   '<rect x="3.5" y="0.8" width="8" height="3.5" rx="0.5"/>'
-      +   '<rect x="0.8" y="4.3" width="13.4" height="5.8" rx="1.2"/>'
-      +   '<rect x="3.5" y="9.2" width="8" height="4" rx="0.5"/>'
-      +   '<line x1="5.2" y1="11" x2="9.8" y2="11" stroke-width="1.1"/>'
-      +   '<line x1="5.2" y1="12.5" x2="8.3" y2="12.5" stroke-width="1.1"/>'
-      +   '<circle cx="11.8" cy="7" r="0.9" fill="currentColor" stroke="none"/>'
-      +   '</svg></button>'
-      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-btn-send" id="wsOfSendBtn" title="Надіслати клієнту / команди (або / в чаті)">'
-      +   '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">'
-      +   '<path d="M1 7 L13.5 1 L9.5 13 L6.5 7.5 Z" fill="currentColor" stroke="none"/>'
-      +   '<line x1="6.5" y1="7.5" x2="13.5" y2="1"/>'
-      +   '</svg></button>'
       + '</div>'
       + '</div>';
 
@@ -2264,12 +2322,14 @@ var WS = {
         }).join('')
       : '<div style="font-size:11px;color:#d1d5db;padding:8px 0">Повернень немає</div>';
 
-    el.innerHTML = pipelineBlockHtml + headHtml
+    el.innerHTML = pipelineBlockHtml + actionBarHtml + retPanelHtml + headHtml
       + '<div class="ws-of-edit-zone" id="wsOfEditZone">'
       +   editBarHtml + metaRowHtml + itemsHtml + addProductHtml + footHtml
       + '</div>';
 
     el.dataset.orderId = order.id;
+
+    self._bindOrderActions(el, d, order);
 
     // ── Bind events ───────────────────────────────────────────────────────────
 
@@ -2300,19 +2360,6 @@ var WS = {
 
     // Product search
     self._bindProductSearch(el, d, order);
-
-    // Print dropdown toggle
-    var printBtn = el.querySelector('#wsOfPrintBtn');
-    var printDd  = el.querySelector('#wsOfPrintDd');
-    if (printBtn && printDd) {
-      printBtn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        printDd.style.display = printDd.style.display === 'none' ? 'block' : 'none';
-      });
-      document.addEventListener('click', function hidePrint() {
-        if (printDd) printDd.style.display = 'none';
-      }, { once: true });
-    }
 
     // Edit mode helpers
     var editBtn    = el.querySelector('#wsOfEditBtn');
@@ -2357,12 +2404,12 @@ var WS = {
       });
     });
 
-    // Send → command menu (💬)
-    var sendBtn = el.querySelector('#wsOfSendBtn');
-    if (sendBtn) {
-      sendBtn.addEventListener('click', function(e) {
+    // Action bar: Send → command menu, Print already handled via onclick
+    var oaSendBtn = el.querySelector('#wsOaSendBtn');
+    if (oaSendBtn) {
+      oaSendBtn.addEventListener('click', function(e) {
         e.stopPropagation();
-        self._showCmdMenu(sendBtn, d);
+        self._showCmdMenu(oaSendBtn, d);
       });
     }
 
@@ -2925,6 +2972,133 @@ var WS = {
   },
 
   // ── Lead context panel ─────────────────────────────────────────────────────
+  // ── Order action bar: Повернення / Скасувати ──────────────────────────────
+  _bindOrderActions: function(el, d, order) {
+    var self    = this;
+    var orderId = order.id;
+
+    // Return panel
+    var retBtn   = el.querySelector('#wsOaRetBtn');
+    var retPanel = el.querySelector('#wsRetPanel');
+    var retClose = el.querySelector('#wsRetClose');
+
+    if (retBtn && retPanel) {
+      retBtn.addEventListener('click', function() {
+        var opening = !retPanel.classList.contains('open');
+        retPanel.classList.toggle('open');
+        retBtn.classList.toggle('ws-oa-active', opening);
+        if (opening) {
+          retPanel.querySelectorAll('.ws-ret-opt').forEach(function(o) { o.classList.remove('selected'); });
+          var ir = retPanel.querySelector('#wsRetInputRow');
+          if (ir) ir.style.display = 'none';
+          var inp = retPanel.querySelector('#wsRetInput');
+          if (inp) inp.value = '';
+        }
+      });
+    }
+    if (retClose && retPanel) {
+      retClose.addEventListener('click', function() {
+        retPanel.classList.remove('open');
+        if (retBtn) retBtn.classList.remove('ws-oa-active');
+      });
+    }
+    if (retPanel) {
+      retPanel.querySelectorAll('.ws-ret-opt').forEach(function(opt) {
+        opt.addEventListener('click', function() {
+          retPanel.querySelectorAll('.ws-ret-opt').forEach(function(o) { o.classList.remove('selected'); });
+          opt.classList.add('selected');
+          var type = opt.dataset.ret;
+          var ir   = retPanel.querySelector('#wsRetInputRow');
+          var inp  = retPanel.querySelector('#wsRetInput');
+          if (ir) ir.style.display = 'flex';
+          if (inp) {
+            var ph = { novaposhta_ttn: 'Номер зворотної ТТН (Нова Пошта)…',
+                       ukrposhta_ttn:  'Номер зворотної ТТН (Укрпошта)…',
+                       manual:         'Коментар (необов\u2019язково)…' };
+            inp.placeholder = ph[type] || 'Причина (необов\u2019язково)…';
+            inp.focus();
+          }
+        });
+      });
+      var retSave = retPanel.querySelector('#wsRetSave');
+      if (retSave) {
+        retSave.addEventListener('click', function() {
+          var sel = retPanel.querySelector('.ws-ret-opt.selected');
+          if (!sel) { showToast('Оберіть спосіб повернення', true); return; }
+          var retType  = sel.dataset.ret;
+          var inputVal = (retPanel.querySelector('#wsRetInput').value || '').trim();
+          if ((retType === 'novaposhta_ttn' || retType === 'ukrposhta_ttn') && !inputVal) {
+            showToast('Введіть номер ТТН', true); return;
+          }
+          var body = 'order_id=' + orderId + '&return_type=' + encodeURIComponent(retType);
+          body += (retType === 'novaposhta_ttn' || retType === 'ukrposhta_ttn')
+            ? '&ttn_number='   + encodeURIComponent(inputVal)
+            : '&description='  + encodeURIComponent(inputVal);
+          retSave.disabled = true;
+          fetch('/counterparties/api/save_return_logistics', {
+            method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'}, body: body
+          }).then(function(r){ return r.json(); }).then(function(res) {
+            retSave.disabled = false;
+            if (!res.ok) { showToast('Помилка: ' + (res.error || ''), true); return; }
+            retPanel.classList.remove('open');
+            if (retBtn) retBtn.classList.remove('ws-oa-active');
+            showToast('Повернення оформлено');
+            self.loadOrderFlow(orderId, '');
+          }).catch(function() { retSave.disabled = false; showToast('Помилка мережі', true); });
+        });
+      }
+    }
+
+    // Cancel button
+    var cancelBtn = el.querySelector('#wsOaCancelBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function() {
+        var fd      = self._flowData || {};
+        var demands = (fd.demands || []).filter(function(dem) {
+          return dem.status && ['cancelled','returned'].indexOf(dem.status) === -1;
+        });
+        var paySum = parseFloat(fd.sum_payments || 0);
+        var descEl = document.getElementById('wsOrderCancelDesc');
+        var cascEl = document.getElementById('wsOrderCancelCascade');
+        if (descEl) descEl.textContent = 'Замовлення #' + (order.number || orderId) + ' буде скасовано.';
+        if (cascEl) {
+          var lines = [];
+          if (demands.length > 0) lines.push('📋 ' + demands.length + ' відвантаження будуть анульовані');
+          if (paySum > 0)         lines.push('💳 Необхідне повернення коштів: \u20b4' + self.formatNum(paySum));
+          if (!lines.length)      lines.push('Пов\u2019язаних документів немає.');
+          cascEl.innerHTML = lines.map(function(l) {
+            return '<div>' + l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+          }).join('');
+        }
+        var modal = document.getElementById('wsOrderCancelModal');
+        if (modal) modal.style.display = 'flex';
+        // Rebind confirm (clone removes stale listeners)
+        var oldC = document.getElementById('wsOrderCancelConfirm');
+        if (oldC) {
+          var newC = oldC.cloneNode(true);
+          oldC.parentNode.replaceChild(newC, oldC);
+          newC.addEventListener('click', function() {
+            newC.disabled = true;
+            fetch('/counterparties/api/cancel_order', {
+              method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+              body: 'order_id=' + orderId
+            }).then(function(r){ return r.json(); }).then(function(res) {
+              newC.disabled = false;
+              var m = document.getElementById('wsOrderCancelModal');
+              if (m) m.style.display = 'none';
+              if (!res.ok) { showToast('Помилка: ' + (res.error || ''), true); return; }
+              var msg = 'Замовлення скасовано';
+              if (res.n_demands > 0) msg += ', ' + res.n_demands + ' відвантажень анульовано';
+              if (res.refund_needed) msg += '. Потрібне повернення \u20b4' + self.formatNum(res.refund_sum);
+              showToast(msg);
+              self.loadOrderFlow(orderId, '');
+            }).catch(function() { newC.disabled = false; showToast('Помилка мережі', true); });
+          });
+        }
+      });
+    }
+  },
+
   renderLeadCtx: function(d) {
     var lead    = d.lead;
     var matches = d.matches || [];
@@ -5110,6 +5284,75 @@ a.ws-of-sku:hover { color: #7c3aed; text-decoration: underline; }
 .ws-of-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
 .ws-of-lbl { font-size: 11px; color: #9ca3af; flex-shrink: 0; width: 80px; }
 .ws-of-val { flex: 1; min-width: 0; }
+
+/* ── Order action bar ─────────────────────────────────────────────────────── */
+.ws-order-actions {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 10px; border-bottom: 1px solid #e5e7eb;
+    background: #fafafa; flex-shrink: 0;
+}
+.ws-oa-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 28px; padding: 0 8px; border-radius: 6px;
+    border: 1px solid #e5e7eb; background: #fff;
+    font-size: 11px; font-weight: 500; color: #374151;
+    cursor: pointer; transition: background .12s, border-color .12s;
+    text-decoration: none; font-family: inherit; flex-shrink: 0;
+}
+.ws-oa-btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+.ws-oa-btn.ws-oa-active { background: #fff7ed; border-color: #fbbf24; }
+.ws-oa-amber { border-color: #fbbf24; color: #92400e; }
+.ws-oa-amber:hover { background: #fff7ed; border-color: #f59e0b; }
+.ws-oa-amber.ws-oa-active { background: #fff7ed; border-color: #f59e0b; }
+.ws-oa-red { border-color: #fca5a5; color: #991b1b; }
+.ws-oa-red:hover { background: #fff1f2; border-color: #f87171; }
+.ws-oa-sep { flex: 1; }
+
+/* ── Return panel ─────────────────────────────────────────────────────────── */
+.ws-ret-panel { display: none; border-bottom: 1px solid #fde68a; background: #fff; flex-shrink: 0; }
+.ws-ret-panel.open { display: block; }
+.ws-ret-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 12px; background: #fff7ed;
+    font-size: 12px; font-weight: 600; color: #92400e;
+    border-bottom: 1px solid #fde68a;
+}
+.ws-ret-head button {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; color: #b45309; padding: 0 2px; line-height: 1;
+}
+.ws-ret-body { padding: 10px 12px; }
+.ws-ret-note { font-size: 11px; color: #6b7280; margin-bottom: 8px; }
+.ws-ret-opts { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px; }
+.ws-ret-opt {
+    flex: 1; min-width: 100px; padding: 7px 9px; border-radius: 8px;
+    border: 1.5px solid #e5e7eb; background: #f9fafb;
+    cursor: pointer; display: flex; flex-direction: column; gap: 2px;
+    transition: border-color .12s, background .12s;
+}
+.ws-ret-opt:hover   { border-color: #fbbf24; background: #fff7ed; }
+.ws-ret-opt.selected { border-color: #f59e0b; background: #fff7ed; }
+.ws-ret-opt-icon { font-size: 13px; }
+.ws-ret-opt-lbl  { font-size: 11px; font-weight: 600; color: #374151; }
+.ws-ret-opt-sub  { font-size: 10px; color: #9ca3af; }
+.ws-ret-input-row { display: flex; gap: 6px; align-items: center; }
+.ws-ret-input {
+    flex: 1; height: 30px; padding: 0 8px; border-radius: 6px;
+    border: 1px solid #d1d5db; font-size: 12px; font-family: inherit; outline: none;
+}
+.ws-ret-input:focus { border-color: #f59e0b; }
+.ws-ret-save-btn {
+    height: 30px; padding: 0 14px; border-radius: 6px; border: none;
+    background: #f59e0b; color: #fff; font-size: 11px; font-weight: 600;
+    cursor: pointer; font-family: inherit; flex-shrink: 0;
+}
+.ws-ret-save-btn:hover { background: #d97706; }
+.ws-ret-save-btn:disabled { opacity: .6; cursor: default; }
+
+/* ── ret_log flow node ───────────────────────────────────────────────────── */
+.wf-ret-log { border-color: #fbbf24; }
+.wf-ret-log .wf-node-lbl { color: #92400e; }
+.wf-ret-log .wf-node-id  { color: #92400e; }
 </style>
 
 <script>
@@ -5190,6 +5433,36 @@ a.ws-of-sku:hover { color: #7c3aed; text-decoration: underline; }
 </script>
 
 <div id="wsToast" class="toast"></div>
+
+<!-- ══ CANCEL ORDER MODAL ════════════════════════════════════════════════════ -->
+<div id="wsOrderCancelModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:360px">
+    <div class="modal-head">
+      <span>Скасувати замовлення?</span>
+      <button class="modal-close" id="wsOrderCancelClose">&#x2715;</button>
+    </div>
+    <div class="modal-body" style="padding:16px 20px">
+      <p id="wsOrderCancelDesc" style="font-size:13px;color:var(--text-muted);margin:0 0 12px;line-height:1.6"></p>
+      <div id="wsOrderCancelCascade" style="font-size:12px;color:#374151;line-height:2"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" id="wsOrderCancelBack">Назад</button>
+      <button class="btn btn-danger btn-sm" id="wsOrderCancelConfirm">Так, скасувати</button>
+    </div>
+  </div>
+</div>
+<script>
+(function() {
+  function closeCancel() { document.getElementById('wsOrderCancelModal').style.display = 'none'; }
+  document.getElementById('wsOrderCancelClose').addEventListener('click', closeCancel);
+  document.getElementById('wsOrderCancelBack').addEventListener('click', closeCancel);
+  document.getElementById('wsOrderCancelModal').addEventListener('click', function(e) {
+    if (e.target === this) closeCancel();
+  });
+  // Expose helper so _bindOrderActions can open it
+  WS._openCancelModal = function() { document.getElementById('wsOrderCancelModal').style.display = 'flex'; };
+}());
+</script>
 
 <!-- ══ SPAM MODAL ════════════════════════════════════════════════════════════ -->
 <div id="wsSpamModal" class="modal-overlay" style="display:none">

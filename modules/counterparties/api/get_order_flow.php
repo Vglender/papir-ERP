@@ -176,6 +176,16 @@ $rOdl = \Database::fetchAll('Papir',
      ORDER BY od.created_at ASC");
 $orderDeliveries = ($rOdl['ok']) ? $rOdl['rows'] : array();
 
+// ── Return logistics (manually registered returns) ────────────────────────────
+$rRetLog = \Database::fetchAll('Papir',
+    "SELECT id, return_type, return_ttn_number, manual_description,
+            status, received_at, comment, created_at
+     FROM return_logistics
+     WHERE customerorder_id = {$orderId}
+       AND status != 'cancelled'
+     ORDER BY created_at ASC");
+$returnLogistics = ($rRetLog['ok']) ? $rRetLog['rows'] : array();
+
 // ── Aggregates ────────────────────────────────────────────────────────────────
 $sumPaid = 0;
 foreach ($demands as $d) { $sumPaid += (float)$d['sum_paid']; }
@@ -190,9 +200,10 @@ echo json_encode(array(
     'demands'      => $demands,
     'ttns_np'      => $ttnsNp,
     'ttns_up'      => $ttnsUp,
-    'order_deliveries' => $orderDeliveries,
-    'payments'     => $payments,
-    'returns'      => $returns,
+    'order_deliveries'  => $orderDeliveries,
+    'payments'          => $payments,
+    'returns'           => $returns,
+    'return_logistics'  => $returnLogistics,
     'sum_paid'          => $sumPaid,
     'sum_payments'      => $sumPayments,
     'status_auto_flags' => $statusAutoFlags,
