@@ -2083,13 +2083,7 @@ var WS = {
       waiting_payment:'Очікує оплату', paid:'Оплачено', partially_shipped:'Частково відвант.',
       shipped:'Відвантажено', completed:'Завершено', cancelled:'Скасовано'
     };
-    var curStatus = order.status || 'draft';
-
-    // ── Pipeline block (above header) ─────────────────────────────────────────
-    var autoFlags = (d.status_auto_flags) ? d.status_auto_flags : {};
-    var pipelineBlockHtml = '<div id="wsPipelineBar" class="ws-pl-block">' + self._buildPipelineBarInner(curStatus, order.id, autoFlags) + '</div>';
-
-    // ── Action bar (Повернення / Скасувати) ───────────────────────────────────
+    var curStatus   = order.status || 'draft';
     var isCancelled = (curStatus === 'cancelled');
     var isEarly     = (curStatus === 'draft' || curStatus === 'new');
     var cpPhone     = self._activeCp && self._activeCp.phone ? self._activeCp.phone : '';
@@ -2098,7 +2092,7 @@ var WS = {
       + '<path d="M3 9.5H2a1 1 0 01-1-1V7a1 1 0 011-1h12a1 1 0 011 1v1.5a1 1 0 01-1 1h-1"/>'
       + '<circle cx="12.5" cy="7.5" r="0.7" fill="currentColor" stroke="none"/>'
       + '</svg>';
-    var svgPhone = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#059669" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+    var svgPhone = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
       + '<path d="M3 2h3l1 3-2 1a9 9 0 004 4l1-2 3 1v3a1 1 0 01-1 1A13 13 0 012 3a1 1 0 011-1z"/>'
       + '</svg>';
     var svgReturn = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">'
@@ -2122,14 +2116,9 @@ var WS = {
       + '<line x1="5.2" y1="12.5" x2="8.3" y2="12.5" stroke-width="1.1"/>'
       + '<circle cx="11.8" cy="7" r="0.9" fill="currentColor" stroke="none"/>'
       + '</svg>';
-    var actionBarHtml = '<div class="ws-order-actions" id="wsOrderActions">'
-      + '<button type="button" class="ws-oa-btn ws-of-btn-send" id="wsOaSendBtn" title="Надіслати клієнту / команди">' + svgSend + '</button>'
-      + '<button type="button" class="ws-oa-btn ws-of-btn-print" id="wsOaPrintBtn" onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">' + svgPrint2 + '</button>'
-      + (cpPhone ? '<a href="tel:' + self.esc(cpPhone) + '" class="ws-oa-btn" title="Подзвонити ' + self.esc(cpPhone) + '">' + svgPhone + '</a>' : '')
-      + '<span class="ws-oa-sep"></span>'
-      + (!isCancelled && !isEarly ? '<button type="button" class="ws-oa-btn" id="wsOaRetBtn" title="Оформити повернення">' + svgReturn + '</button>' : '')
-      + (!isCancelled             ? '<button type="button" class="ws-oa-btn"   id="wsOaCancelBtn" title="Скасувати замовлення">' + svgCancel + '</button>' : '')
-      + '</div>';
+    // ── Pipeline block (above header) ─────────────────────────────────────────
+    var autoFlags = (d.status_auto_flags) ? d.status_auto_flags : {};
+    var pipelineBlockHtml = '<div id="wsPipelineBar" class="ws-pl-block">' + self._buildPipelineBarInner(curStatus, order.id, autoFlags) + '</div>';
 
     // ── Return panel (inline, collapsible) ────────────────────────────────────
     var retPanelHtml = (!isCancelled && !isEarly)
@@ -2162,6 +2151,10 @@ var WS = {
       + self.shipStatusBadge(order.shipment_status)
       + '<span class="ws-of-head-sep"></span>'
       + '<div class="ws-of-head-btns">'
+      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOaSendBtn" title="Надіслати клієнту / команди">' + svgSend + '</button>'
+      + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOaPrintBtn" onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">' + svgPrint2 + '</button>'
+      + (cpPhone ? '<a href="tel:' + self.esc(cpPhone) + '" class="ws-of-head-btn ws-of-icon-btn" title="Подзвонити ' + self.esc(cpPhone) + '">' + svgPhone + '</a>' : '')
+      + '<span class="ws-of-btns-sep"></span>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn ws-of-btn-edit" id="wsOfEditBtn" title="Редагувати позиції">'
       +   '<svg width="11" height="14" viewBox="0 0 11 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">'
       +   '<rect x="1.5" y="0.8" width="8" height="9" rx="1"/>'
@@ -2322,10 +2315,21 @@ var WS = {
         }).join('')
       : '<div style="font-size:11px;color:#d1d5db;padding:8px 0">Повернень немає</div>';
 
-    el.innerHTML = pipelineBlockHtml + actionBarHtml + retPanelHtml + headHtml
+    el.innerHTML = pipelineBlockHtml + retPanelHtml + headHtml
       + '<div class="ws-of-edit-zone" id="wsOfEditZone">'
       +   editBarHtml + metaRowHtml + itemsHtml + addProductHtml + footHtml
       + '</div>';
+
+    var retStatuses  = ['partially_shipped', 'shipped', 'completed'];
+    var hasRetStatus = retStatuses.indexOf(curStatus) !== -1;
+    var hasDemand    = demands.filter(function(dem) {
+      return dem.status && ['cancelled', 'returned'].indexOf(dem.status) === -1;
+    }).length > 0;
+    var hasDelivery  = (d.order_deliveries || []).length > 0
+                    || (d.ttns_np || []).length > 0
+                    || (d.ttns_up || []).length > 0;
+    var retAllowed   = hasRetStatus && hasDemand && hasDelivery;
+    self._syncCreateBarActions(isCancelled, isEarly, retAllowed);
 
     el.dataset.orderId = order.id;
 
@@ -2821,7 +2825,7 @@ var WS = {
     'shipped':           { label: 'Завершити →',     status: 'completed' },
   },
 
-  _buildPipelineBarInner: function(status, orderId, autoFlags) {
+  _buildPipelineBarInner: function(status, orderId, autoFlags, rightHtml) {
     var self  = this;
     autoFlags = autoFlags || {};
     var steps = self._PIPELINE_STEPS;
@@ -2865,8 +2869,42 @@ var WS = {
 
     return '<div class="ws-pl-head-row">'
       + '<span class="ws-pl-title">ПРОГРЕС ЗАМОВЛЕННЯ</span>'
+      + (rightHtml || '')
       + '</div>'
       + '<div class="ws-pl-steps">' + stepsHtml + '</div>';
+  },
+
+  // Sync Return/Cancel buttons into the create-bar (called after each renderOrderForm)
+  _syncCreateBarActions: function(isCancelled, isEarly, retAllowed) {
+    var createBar = document.getElementById('wsCreateBar');
+    if (!createBar) return;
+    // Remove previously injected action buttons
+    var old = createBar.querySelectorAll('.ws-create-btn-action');
+    old.forEach(function(b) { b.parentNode.removeChild(b); });
+    // Return button — visible when not cancelled and not early; disabled if conditions not met
+    if (!isCancelled && !isEarly) {
+      var retBtn = document.createElement('button');
+      retBtn.type = 'button';
+      retBtn.id = 'wsOaRetBtn';
+      retBtn.className = 'ws-create-btn ws-create-btn-action ws-create-btn-right' + (retAllowed ? '' : ' ws-create-btn-disabled');
+      retBtn.disabled = !retAllowed;
+      retBtn.title = retAllowed
+        ? 'Оформити повернення'
+        : 'Потрібне відвантаження, доставка та статус "Відправлено" або "Виконано"';
+      retBtn.innerHTML = '<span class="ws-create-icon">↩</span>Повернення';
+      createBar.appendChild(retBtn);
+    }
+    // Cancel button — only when order is not already cancelled
+    if (!isCancelled) {
+      var cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.id = 'wsOaCancelBtn';
+      var cancelFirst = isCancelled || isEarly; // no retBtn rendered before it
+      cancelBtn.className = 'ws-create-btn ws-create-btn-action ws-create-btn-danger' + (cancelFirst ? ' ws-create-btn-right' : '');
+      cancelBtn.title = 'Скасувати замовлення';
+      cancelBtn.innerHTML = '<span class="ws-create-icon">✕</span>Скасувати';
+      createBar.appendChild(cancelBtn);
+    }
   },
 
   // Pipeline step order for direction detection (must match server-side getStepOrder).
@@ -2978,7 +3016,7 @@ var WS = {
     var orderId = order.id;
 
     // Return panel
-    var retBtn   = el.querySelector('#wsOaRetBtn');
+    var retBtn   = document.getElementById('wsOaRetBtn');
     var retPanel = el.querySelector('#wsRetPanel');
     var retClose = el.querySelector('#wsRetClose');
 
@@ -3050,7 +3088,7 @@ var WS = {
     }
 
     // Cancel button
-    var cancelBtn = el.querySelector('#wsOaCancelBtn');
+    var cancelBtn = document.getElementById('wsOaCancelBtn');
     if (cancelBtn) {
       cancelBtn.addEventListener('click', function() {
         var fd      = self._flowData || {};
@@ -5024,9 +5062,6 @@ function showToast(msg, isError) {
 }
 .ws-of-head-btn:hover { background: #ede9fe; border-color: #c4b5fd; color: #7c3aed; }
 .ws-of-icon-btn { padding: 4px 8px !important; font-size: 12px !important; }
-/* Colored action buttons */
-.ws-of-btn-edit  { background: #f59e0b !important; border-color: #d97706 !important; color: #fff !important; }
-.ws-of-btn-edit:hover  { background: #d97706 !important; border-color: #b45309 !important; color: #fff !important; }
 .ws-of-editing .ws-of-btn-edit { display: none !important; }
 .ws-of-btn-print { background: #7c3aed !important; border-color: #6d28d9 !important; color: #fff !important; }
 .ws-of-btn-print:hover { background: #6d28d9 !important; border-color: #5b21b6 !important; color: #fff !important; }
@@ -5259,7 +5294,7 @@ a.ws-of-sku:hover { color: #7c3aed; text-decoration: underline; }
 .ws-of-foot {
     padding: 7px 10px; flex-shrink: 0; border-bottom: 1px solid #f3f4f6;
 }
-.ws-of-foot-bottom { display: flex; align-items: flex-end; gap: 10px; }
+.ws-of-foot-bottom { display: flex; align-items: flex-start; gap: 10px; }
 .ws-of-foot-comment { flex: 1; min-width: 0; }
 .ws-of-foot-comment textarea {
     width: 100%; font-size: 10px; font-family: inherit;
@@ -5353,6 +5388,19 @@ a.ws-of-sku:hover { color: #7c3aed; text-decoration: underline; }
 .wf-ret-log { border-color: #fbbf24; }
 .wf-ret-log .wf-node-lbl { color: #92400e; }
 .wf-ret-log .wf-node-id  { color: #92400e; }
+.ws-create-btn-right { margin-left: auto; }
+.ws-create-btn-right + .ws-create-btn-action { margin-left: 0; }
+.ws-create-btn-disabled { opacity: .45; cursor: not-allowed !important; pointer-events: none; }
+.ws-create-btn-danger { color: #9a3412; border-color: #fca5a5; }
+.ws-create-btn-danger:hover { background: #fff1f2 !important; border-color: #f87171 !important; color: #7f1d1d !important; }
+/* All icon buttons in header — muted neutral style */
+.ws-of-head-btns .ws-of-icon-btn:not(.ws-of-save-btn) {
+    color: #9ca3af; border-color: #e5e7eb; background: #fafafa;
+}
+.ws-of-head-btns .ws-of-icon-btn:not(.ws-of-save-btn):hover {
+    color: #6b7280; background: #f3f4f6; border-color: #d1d5db;
+}
+#wsOaSendBtn.ws-oa-active { color: #047857 !important; background: #ecfdf5 !important; border-color: #6ee7b7 !important; }
 </style>
 
 <script>
