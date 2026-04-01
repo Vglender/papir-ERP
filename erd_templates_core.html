@@ -1,0 +1,113 @@
+
+<style>
+#erd1 svg { width: 100%; }
+#erd1 svg.erDiagram .divider path { stroke-opacity: 0.5; }
+#erd1 svg.erDiagram .row-rect-odd path,
+#erd1 svg.erDiagram .row-rect-odd rect,
+#erd1 svg.erDiagram .row-rect-even path,
+#erd1 svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+<div id="erd1"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+    primaryColor: dark ? '#3C3489' : '#EEEDFE',
+    primaryTextColor: dark ? '#CECBF6' : '#26215C',
+    primaryBorderColor: dark ? '#534AB7' : '#534AB7',
+    secondaryColor: dark ? '#085041' : '#E1F5EE',
+    tertiaryColor: dark ? '#444441' : '#F1EFE8',
+  },
+});
+const diagram = `erDiagram
+  template_types {
+    uuid id PK
+    string code
+    string name
+    string category
+    boolean active
+  }
+  templates {
+    uuid id PK
+    uuid type_id FK
+    uuid parent_id FK
+    string name
+    int version
+    string status
+    text html_body
+    json variables_schema
+    json page_settings
+    uuid created_by FK
+    timestamp created_at
+  }
+  template_blocks {
+    uuid id PK
+    uuid template_id FK
+    string block_type
+    int sort_order
+    text content
+    json settings
+  }
+  template_assets {
+    uuid id PK
+    uuid template_id FK
+    string asset_type
+    string file_path
+    string mime_type
+  }
+  organizations {
+    uuid id PK
+    string name
+    json requisites
+    string logo_path
+  }
+  org_templates {
+    uuid id PK
+    uuid org_id FK
+    uuid template_id FK
+    boolean is_default
+    json overrides
+  }
+
+  template_types ||--o{ templates : "тип"
+  templates ||--o| templates : "версия от"
+  templates ||--o{ template_blocks : "блоки"
+  templates ||--o{ template_assets : "ресурсы"
+  organizations ||--o{ org_templates : "использует"
+  templates ||--o{ org_templates : "назначен"
+`;
+const { svg } = await mermaid.render('erd1-svg', diagram);
+document.getElementById('erd1').innerHTML = svg;
+document.querySelectorAll('#erd1 svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+document.querySelectorAll('#erd1 svg.erDiagram .row-rect-odd path, #erd1 svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>

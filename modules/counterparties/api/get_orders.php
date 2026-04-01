@@ -37,6 +37,37 @@ $orders = array();
 if ($r['ok']) {
     foreach ($r['rows'] as $o) {
         $status = $o['status'];
+
+        // Визначення джерела трафіку з oc_remarketing_orders
+        $trafficSource = null;
+        $num = $o['number'];
+        if (preg_match('/^(\d+)(OFF|MFF)$/i', $num, $m)) {
+            $ocOrderId = (int)$m[1];
+            $dbAlias   = strtolower($m[2]) === 'off' ? 'off' : 'mff';
+            $rm = Database::fetchRow($dbAlias,
+                "SELECT gclid, fbclid, utm_source, utm_medium, utm_campaign
+                 FROM oc_remarketing_orders WHERE order_id = {$ocOrderId} LIMIT 1");
+            if ($rm['ok'] && !empty($rm['row'])) {
+                $row = $rm['row'];
+                if (!empty($row['gclid'])) {
+                    $trafficSource = array('label' => 'Google Ads', 'color' => '#1a73e8', 'campaign' => $row['utm_campaign']);
+                } elseif (!empty($row['fbclid'])) {
+                    $trafficSource = array('label' => 'Facebook Ads', 'color' => '#1877f2', 'campaign' => $row['utm_campaign']);
+                } elseif (!empty($row['utm_source'])) {
+                    $src = strtolower($row['utm_source']);
+                    if (strpos($src, 'google') !== false) {
+                        $trafficSource = array('label' => 'Google', 'color' => '#34a853', 'campaign' => $row['utm_campaign']);
+                    } elseif (strpos($src, 'facebook') !== false || strpos($src, 'fb') !== false) {
+                        $trafficSource = array('label' => 'Facebook', 'color' => '#1877f2', 'campaign' => $row['utm_campaign']);
+                    } else {
+                        $label = $row['utm_source'];
+                        if (!empty($row['utm_medium'])) $label .= ' / ' . $row['utm_medium'];
+                        $trafficSource = array('label' => $label, 'color' => '#6b7280', 'campaign' => $row['utm_campaign']);
+                    }
+                }
+            }
+        }
+
         $orders[] = array(
             'id'              => (int)$o['id'],
             'number'          => $o['number'],
@@ -46,6 +77,7 @@ if ($r['ok']) {
             'status_label'    => isset($statusLabels[$status]) ? $statusLabels[$status] : $status,
             'payment_status'  => $o['payment_status'],
             'shipment_status' => $o['shipment_status'],
+            'traffic_source'  => $trafficSource,
         );
     }
 }

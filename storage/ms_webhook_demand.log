@@ -1,0 +1,60 @@
+2026-04-02 00:15:32 Incoming: {
+    "events": [{
+      "meta": {
+        "type": "demand",
+        "href": "https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"
+      },
+      "action": "UPDATE"
+    }]
+  }
+2026-04-02 00:15:32 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:15:32 Done: processed=1 errors=0
+2026-04-02 00:16:02 Incoming: {
+    "events": [{
+      "meta": {
+        "type": "demand",
+        "href": "https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"
+      },
+      "action": "UPDATE"
+    }]
+  }
+2026-04-02 00:16:03 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:16:03 Done: processed=1 errors=0
+2026-04-02 00:17:36 Incoming: {
+    "events": [{
+      "meta": {
+        "type": "demand",
+        "href": "https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"
+      },
+      "action": "UPDATE"
+    }]
+  }
+2026-04-02 00:17:37 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:17:37 Done: processed=1 errors=0
+2026-04-02 00:19:04 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/69100f98-2e10-11f1-0a80-01ac00019bcf"},"uid":"vglender@papierinvest","moment":"2026-04-02 00:19:04"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:19:04 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:19:04 Done: processed=1 errors=0
+2026-04-02 00:19:16 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7029831c-2e10-11f1-0a80-1c70000155cd"},"uid":"vglender@papierinvest","moment":"2026-04-02 00:19:16"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:19:16 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:19:16 Done: processed=1 errors=0
+2026-04-02 00:19:38 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7d80daf4-2e10-11f1-0a80-1088000183f0"},"uid":"vglender@papierinvest","moment":"2026-04-02 00:19:38"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:19:39 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:19:39 Done: processed=1 errors=0
+2026-04-02 00:25:45 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/57c343fd-2e11-11f1-0a80-09e100049f91"},"uid":"admin@papierinvest","moment":"2026-04-02 00:25:44"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:25:45 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=shipped
+2026-04-02 00:25:45 Done: processed=1 errors=0
+2026-04-02 00:25:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5f73e94b-2e11-11f1-0a80-1352000162d4"},"uid":"vglender@papierinvest","moment":"2026-04-02 00:25:57"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/b4ad9ff5-2e07-11f1-0a80-1d4d0003e244"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:25:58 Updated demand id=161993 ms=b4ad9ff5-2e07-11f1-0a80-1d4d0003e244 status=robot
+2026-04-02 00:25:58 Done: processed=1 errors=0
+2026-04-02 00:27:56 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a61dee0b-2e11-11f1-0a80-05580004ac81"},"uid":"admin@papierinvest","moment":"2026-04-02 00:27:56"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/a5ed6441-2e11-11f1-0a80-05580004ac61"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:27:56 Inserted demand id=161994 ms=a5ed6441-2e11-11f1-0a80-05580004ac61 status=robot
+2026-04-02 00:27:56 Done: processed=1 errors=0
+2026-04-02 00:27:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a6a83a73-2e11-11f1-0a80-195b0004a566"},"uid":"admin@papierinvest","moment":"2026-04-02 00:27:57"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/a5ed6441-2e11-11f1-0a80-05580004ac61"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:27:57 Updated demand id=161994 ms=a5ed6441-2e11-11f1-0a80-05580004ac61 status=robot
+2026-04-02 00:27:57 Done: processed=1 errors=0
+2026-04-02 00:31:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1aa0e4b8-2e12-11f1-0a80-1d4d0004db50"},"uid":"admin@papierinvest","moment":"2026-04-02 00:31:11"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/1a79733b-2e12-11f1-0a80-1d4d0004db34"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:31:12 Inserted demand id=161995 ms=1a79733b-2e12-11f1-0a80-1d4d0004db34 status=robot
+2026-04-02 00:31:12 Done: processed=1 errors=0
+2026-04-02 00:31:12 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1b27888a-2e12-11f1-0a80-13530004c7a3"},"uid":"admin@papierinvest","moment":"2026-04-02 00:31:12"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/1a79733b-2e12-11f1-0a80-1d4d0004db34"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 00:31:13 Updated demand id=161995 ms=1a79733b-2e12-11f1-0a80-1d4d0004db34 status=robot
+2026-04-02 00:31:13 Done: processed=1 errors=0

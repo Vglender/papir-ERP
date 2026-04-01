@@ -69,6 +69,30 @@ $knownCrons = array(
         'log_file'    => '/var/log/papir/image_audit.log',
         'max_silence' => 11520,
     ),
+    array(
+        'name'        => 'Трекінг ТТН НП',
+        'script'      => '/var/www/papir/cron/track_ttn.php',
+        'schedule'    => '0 * * * *',
+        'label'       => 'Щогодини',
+        'log_file'    => '/tmp/track_ttn.log',
+        'max_silence' => 120,
+    ),
+    array(
+        'name'        => 'НП: синхронізація відділень',
+        'script'      => '/var/www/papir/scripts/np_sync_warehouses.php',
+        'schedule'    => '0 3 1 * *',
+        'label'       => '1-го числа о 03:00',
+        'log_file'    => '/tmp/np_sync_warehouses.log',
+        'max_silence' => 44640, // 31 день
+    ),
+    array(
+        'name'        => 'НП: синхронізація вулиць',
+        'script'      => '/var/www/papir/scripts/np_sync_streets.php',
+        'schedule'    => '0 6 1 * *',
+        'label'       => '1-го числа о 06:00',
+        'log_file'    => '/tmp/np_sync_streets.log',
+        'max_silence' => 44640, // 31 день
+    ),
 );
 
 // ── Визначити активність по часу останнього запуску ───────────────────────────

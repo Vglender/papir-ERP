@@ -2,52 +2,48 @@
 
 class PaymentDuplicateChecker
 {
-    protected $dbName;
-    protected $ms;
+    /**
+     * Перевіряє дублі по Papir.finance_bank.external_code
+     * (замість ms.paymentin / ms.paymentout — зеркало більше не потрібне)
+     */
 
-    public function __construct($dbName, MoySkladApi $ms = null)
+    /**
+     * Одиночна перевірка дубля
+     */
+    public function exists($type, $externalCode)
     {
-        $this->dbName = $dbName;
-        $this->ms = $ms;
+        $direction = ($type === 'out') ? 'out' : 'in';
+
+        $sql = "SELECT id FROM finance_bank
+                WHERE external_code = '" . Database::escape('Papir', $externalCode) . "'
+                  AND direction = '{$direction}'
+                LIMIT 1";
+
+        $row = Database::fetchRow('Papir', $sql);
+
+        if (!$row['ok']) {
+            throw new RuntimeException(
+                'DB duplicate exists() failed: '
+                . (isset($row['error']) ? $row['error'] : 'unknown error')
+            );
+        }
+
+        return !empty($row['row']);
     }
 
     /**
-     * Одиночная проверка дубля в локальной БД
-     */
-	public function exists($type, $externalCode)
-	{
-		$table = ($type === 'out') ? 'paymentout' : 'paymentin';
-
-		$sql = "SELECT id
-				FROM `{$table}`
-				WHERE externalCode = '" . addslashes($externalCode) . "'
-				LIMIT 1";
-
-		$row = Database::fetchRow($this->dbName, $sql);
-
-		if (!$row['ok']) {
-			throw new RuntimeException(
-				'DB duplicate exists() failed for table ' . $table . ': '
-				. (isset($row['error']) ? $row['error'] : 'unknown error')
-			);
-		}
-
-		return !empty($row['row']);
-	}
-
-    /**
-     * Получить id существующего документа в локальной БД
+     * Отримати id існуючого запису
      */
     public function findId($type, $externalCode)
     {
-        $table = ($type === 'out') ? 'paymentout' : 'paymentin';
+        $direction = ($type === 'out') ? 'out' : 'in';
 
-        $sql = "SELECT id
-                FROM `{$table}`
-                WHERE externalCode = '" . addslashes($externalCode) . "'
+        $sql = "SELECT id FROM finance_bank
+                WHERE external_code = '" . Database::escape('Papir', $externalCode) . "'
+                  AND direction = '{$direction}'
                 LIMIT 1";
 
-        $row = Database::fetchRow($this->dbName, $sql);
+        $row = Database::fetchRow('Papir', $sql);
 
         if ($row['ok'] && !empty($row['row']['id'])) {
             return $row['row']['id'];
@@ -57,94 +53,68 @@ class PaymentDuplicateChecker
     }
 
     /**
-     * Пакетно получить уже существующие externalCode из локальной БД
+     * Пакетно отримати вже існуючі externalCode з Papir.finance_bank
      */
-	public function getExistingExternalCodes($type, array $externalCodes)
-	{
-		if (empty($externalCodes)) {
-			return [];
-		}
-
-		$table = ($type === 'out') ? 'paymentout' : 'paymentin';
-
-		$escaped = [];
-		foreach ($externalCodes as $code) {
-			if ($code === null || $code === '') {
-				continue;
-			}
-			$escaped[] = "'" . addslashes($code) . "'";
-		}
-
-		if (empty($escaped)) {
-			return [];
-		}
-
-		$sql = "SELECT externalCode
-				FROM `{$table}`
-				WHERE externalCode IN (" . implode(',', $escaped) . ")";
-
-		$rows = Database::fetchAll($this->dbName, $sql);
-
-		if (!$rows['ok']) {
-			throw new RuntimeException(
-				'DB duplicate check failed for table ' . $table . ': '
-				. (isset($rows['error']) ? $rows['error'] : 'unknown error')
-			);
-		}
-
-		if (empty($rows['rows'])) {
-			return [];
-		}
-
-		$result = [];
-		foreach ($rows['rows'] as $row) {
-			if (isset($row['externalCode'])) {
-				$result[] = $row['externalCode'];
-			}
-		}
-
-		return $result;
-	}
-
-    /**
-     * Одиночная проверка дубля в МойСклад
-     * Вторая линия защиты
-     */
-    public function existsInMs($type, $externalCode)
+    public function getExistingExternalCodes($type, array $externalCodes)
     {
-        if (!$this->ms || !$externalCode) {
-            return false;
+        if (empty($externalCodes)) {
+            return array();
         }
 
-        $entity = ($type === 'out') ? 'paymentout' : 'paymentin';
-        $link = $this->ms->getEntityBaseUrl()
-            . $entity
-            . '?filter=' . urlencode('externalCode=' . $externalCode);
+        $direction = ($type === 'out') ? 'out' : 'in';
 
-        $response = $this->ms->query($link);
-        $response = json_decode(json_encode($response), true);
+        $escaped = array();
+        foreach ($externalCodes as $code) {
+            if ($code === null || $code === '') {
+                continue;
+            }
+            $escaped[] = "'" . Database::escape('Papir', $code) . "'";
+        }
 
-        return !empty($response['rows']);
+        if (empty($escaped)) {
+            return array();
+        }
+
+        $sql = "SELECT external_code FROM finance_bank
+                WHERE external_code IN (" . implode(',', $escaped) . ")
+                  AND direction = '{$direction}'";
+
+        $rows = Database::fetchAll('Papir', $sql);
+
+        if (!$rows['ok']) {
+            throw new RuntimeException(
+                'DB duplicate check failed: '
+                . (isset($rows['error']) ? $rows['error'] : 'unknown error')
+            );
+        }
+
+        if (empty($rows['rows'])) {
+            return array();
+        }
+
+        $result = array();
+        foreach ($rows['rows'] as $row) {
+            if (isset($row['external_code'])) {
+                $result[] = $row['external_code'];
+            }
+        }
+
+        return $result;
     }
 
     /**
-     * Пакетный отсев дублей по локальной БД
-     * Возвращает:
-     * [
-     *   'new' => [...],
-     *   'duplicates' => [...]
-     * ]
+     * Пакетний відсів дублів по Papir.finance_bank
      */
     public function filterNotExistingInDb($type, array $payments)
     {
         if (empty($payments)) {
-            return [
-                'new' => [],
-                'duplicates' => [],
-            ];
+            return array(
+                'new'        => array(),
+                'duplicates' => array(),
+            );
         }
 
-        $codes = [];
+        $codes = array();
         foreach ($payments as $payment) {
             if (!empty($payment['id_paid'])) {
                 $codes[] = $payment['id_paid'];
@@ -152,10 +122,10 @@ class PaymentDuplicateChecker
         }
 
         $existingCodes = $this->getExistingExternalCodes($type, $codes);
-        $existingMap = array_flip($existingCodes);
+        $existingMap   = array_flip($existingCodes);
 
-        $new = [];
-        $duplicates = [];
+        $new        = array();
+        $duplicates = array();
 
         foreach ($payments as $payment) {
             $code = isset($payment['id_paid']) ? $payment['id_paid'] : null;
@@ -167,41 +137,49 @@ class PaymentDuplicateChecker
             }
         }
 
-        return [
-            'new' => $new,
+        return array(
+            'new'        => $new,
             'duplicates' => $duplicates,
-        ];
+        );
     }
 
     /**
-     * Дополнительный отсев дублей по МойСклад
-     * Сейчас точечный, потому что API МС не очень удобно пакетно фильтровать по externalCode
+     * Додаткова перевірка дублів безпосередньо в МойСклад API
+     * (залишаємо як другу лінію захисту, але за замовчуванням вимкнена)
      */
-    public function filterNotExistingInMs($type, array $payments)
+    public function filterNotExistingInMs($type, array $payments, MoySkladApi $ms = null)
     {
-        if (!$this->ms || empty($payments)) {
-            return [
-                'new' => $payments,
-                'duplicates' => [],
-            ];
+        if (!$ms || empty($payments)) {
+            return array(
+                'new'        => $payments,
+                'duplicates' => array(),
+            );
         }
 
-        $new = [];
-        $duplicates = [];
+        $entity = ($type === 'out') ? 'paymentout' : 'paymentin';
+        $new        = array();
+        $duplicates = array();
 
         foreach ($payments as $payment) {
             $code = isset($payment['id_paid']) ? $payment['id_paid'] : null;
 
-            if ($code && $this->existsInMs($type, $code)) {
-                $duplicates[] = $payment;
-            } else {
-                $new[] = $payment;
+            if ($code) {
+                $link     = $ms->getEntityBaseUrl() . $entity . '?filter=' . urlencode('externalCode=' . $code);
+                $response = $ms->query($link);
+                $response = json_decode(json_encode($response), true);
+
+                if (!empty($response['rows'])) {
+                    $duplicates[] = $payment;
+                    continue;
+                }
             }
+
+            $new[] = $payment;
         }
 
-        return [
-            'new' => $new,
+        return array(
+            'new'        => $new,
             'duplicates' => $duplicates,
-        ];
+        );
     }
 }

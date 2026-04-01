@@ -59,16 +59,18 @@ class PaymentMatcher
             return $payment;
         }
 
-        $sql = "SELECT id_agent FROM acc WHERE acc = '" . addslashes($payment['acc_klient']) . "' LIMIT 1";
-        $row = Database::fetchRow($this->config['db_name'], $sql);
+        // Перевіряємо по Papir.our_bank_accounts (замість ms.acc — зеркало більше не потрібне)
+        $iban = addslashes($payment['acc_klient']);
+        $sql  = "SELECT organization_ms FROM our_bank_accounts WHERE iban = '{$iban}' LIMIT 1";
+        $row  = Database::fetchRow('Papir', $sql);
 
         if (!$row['ok']) {
             throw new RuntimeException('resolveInternalByAccount failed: ' . $row['error']);
         }
 
-        if (!empty($row['row']['id_agent'])) {
-            $payment['id_agent'] = $row['row']['id_agent'];
-            $payment['inner'] = true;
+        if (!empty($row['row']['organization_ms'])) {
+            $payment['id_agent'] = $row['row']['organization_ms'];
+            $payment['inner']    = true;
         }
 
         return $payment;

@@ -227,6 +227,14 @@ $bankAccounts = isset($o['bank_accounts']) ? $o['bank_accounts'] : array();
 
     <div class="org-panel-foot">
         <button class="btn btn-primary" type="button" id="orgSaveBtn">Зберегти</button>
+        <?php if (!$isNew && $o['status']): ?>
+            <?php if ($o['is_default']): ?>
+                <span class="badge badge-green" style="font-size:11px">дефолтна організація</span>
+            <?php else: ?>
+                <button class="btn btn-ghost btn-sm" type="button" id="orgSetDefaultBtn"
+                        data-id="<?php echo (int)$o['id']; ?>">Зробити за замовчуванням</button>
+            <?php endif; ?>
+        <?php endif; ?>
         <?php if (!$isNew): ?>
         <span id="orgSaveStatus" class="text-muted" style="font-size:12px"></span>
         <?php endif; ?>
@@ -335,6 +343,27 @@ window.orgPanelInit = function () {
             });
         });
     });
+
+    // ── Set default organization ──────────────────────────────────────────
+    var orgSetDefaultBtn = document.getElementById('orgSetDefaultBtn');
+    if (orgSetDefaultBtn) {
+        orgSetDefaultBtn.addEventListener('click', function () {
+            var orgId = orgSetDefaultBtn.dataset.id;
+            orgSetDefaultBtn.disabled = true;
+            fetch('/print/api/set_default_organization', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'org_id=' + encodeURIComponent(orgId)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d.ok) { showToast('Помилка: ' + (d.error || ''), true); orgSetDefaultBtn.disabled = false; return; }
+                showToast('Встановлено за замовчуванням');
+                window.location.href = '/system/organizations?selected=' + orgId;
+            })
+            .catch(function () { orgSetDefaultBtn.disabled = false; showToast('Помилка мережі', true); });
+        });
+    }
 
     // ── Asset upload ──────────────────────────────────────────────────────
     document.querySelectorAll('.asset-input').forEach(function (input) {

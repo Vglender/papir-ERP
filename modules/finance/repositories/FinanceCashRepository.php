@@ -6,6 +6,11 @@ class FinanceCashRepository
     {
         $where = array('1=1');
 
+        $showDrafts = !empty($params['show_drafts']);
+        if (!$showDrafts) {
+            $where[] = "fc.is_posted = 1";
+        }
+
         $direction = isset($params['direction']) ? trim($params['direction']) : '';
         if ($direction === 'in' || $direction === 'out') {
             $d = Database::escape('Papir', $direction);
@@ -97,8 +102,10 @@ class FinanceCashRepository
 
     public function getSummary($params)
     {
-        $args  = array();
-        $where = $this->buildWhere($params, $args);
+        $args          = array();
+        $summaryParams = $params;
+        $summaryParams['show_drafts'] = false; // чернетки не влияют на сводку
+        $where = $this->buildWhere($summaryParams, $args);
         $r = Database::fetchAll('Papir',
             "SELECT fc.direction, SUM(fc.sum) AS total
              " . $this->baseFrom() . "

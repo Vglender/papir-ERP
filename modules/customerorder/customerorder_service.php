@@ -119,8 +119,7 @@ class CustomerOrderService
 
             Database::commit('Papir');
 
-            // DEBUG CUSTOMERORDER: создание заказа
-            // echo 'Created customerorder #' . $orderId . PHP_EOL;
+            $this->pushToMs($orderId);
 
             return array(
                 'ok' => true,
@@ -179,6 +178,8 @@ class CustomerOrderService
             }
 
             Database::commit('Papir');
+
+            $this->pushToMs($id);
 
             return array(
                 'ok' => true,
@@ -266,6 +267,8 @@ class CustomerOrderService
 
 			Database::commit('Papir');
 
+			$this->pushToMs($orderId);
+
 			return array(
 				'ok' => true,
 				'item_id' => $insert['insert_id'],
@@ -330,6 +333,8 @@ class CustomerOrderService
 
             Database::commit('Papir');
 
+            $this->pushToMs($orderId);
+
             return array(
                 'ok' => true,
                 'order_id' => $orderId,
@@ -389,6 +394,8 @@ class CustomerOrderService
             }
 
             Database::commit('Papir');
+
+            $this->pushToMs($orderId);
 
             return array(
                 'ok' => true,
@@ -493,6 +500,8 @@ class CustomerOrderService
 
             Database::commit('Papir');
 
+            $this->pushToMs($orderId);
+
             return array('ok' => true);
         } catch (Exception $e) {
             Database::rollback('Papir');
@@ -502,7 +511,7 @@ class CustomerOrderService
             );
         }
     }
-	
+
 	protected function generateDocumentNumber($documentType, $prefix)
 {
     $dbName = 'Papir';
@@ -819,6 +828,8 @@ protected function prepareHeaderData($data, $isCreate)
 
 			order_log("Items updated successfully for order #{$orderId}");
 
+			$this->pushToMs($orderId);
+
 			return array(
 				'ok' => true,
 				'message' => 'Строки успешно обновлены'
@@ -833,4 +844,21 @@ protected function prepareHeaderData($data, $isCreate)
 			);
 		}
 	}
+
+    /**
+     * Push заказа в МойСклад после успешного сохранения в Papir.
+     * Ошибки не бросаем — только логируем, чтобы не прерывать основной поток.
+     */
+    private function pushToMs($orderId)
+    {
+        try {
+            $sync = new CustomerOrderMsSync();
+            $result = $sync->push((int)$orderId);
+            if (!$result['ok']) {
+                order_log('MS push failed for order #' . $orderId . ': ' . $result['error']);
+            }
+        } catch (Exception $e) {
+            order_log('MS push exception for order #' . $orderId . ': ' . $e->getMessage());
+        }
+    }
 }

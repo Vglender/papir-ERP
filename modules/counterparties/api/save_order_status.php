@@ -6,6 +6,8 @@
  */
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../counterparties_bootstrap.php';
+require_once __DIR__ . '/../../moysklad/moysklad_api.php';
+require_once __DIR__ . '/../../customerorder/services/CustomerOrderMsSync.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(array('ok' => false, 'error' => 'POST required'));
@@ -90,6 +92,15 @@ if ($status !== null) {
     \Papir\Crm\AuthService::log('status_change', 'customerorder', $orderId, $status);
 }
 echo json_encode(array('ok' => true));
+
+// Push to MoySklad (after response sent)
+if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); }
+try {
+    $msSync = new CustomerOrderMsSync();
+    $msSync->push($orderId);
+} catch (Exception $e) {
+    // silent — main operation succeeded
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 // Business rule validation for status transitions

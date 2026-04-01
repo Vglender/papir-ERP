@@ -33,6 +33,9 @@ $whitelist = array(
     'cron_sync_quantity' => array('label' => 'run: sync_quantity', 'exec' => 'nohup php /var/www/papir/cron/sync_quantity.php > /tmp/sync_quantity.log 2>&1 & echo "Started PID $!"'),
     'cron_sync_prices'   => array('label' => 'run: sync_prices',   'exec' => 'nohup php /var/www/papir/cron/sync_prices.php > /tmp/sync_prices.log 2>&1 & echo "Started PID $!"'),
     'cron_sync_action'   => array('label' => 'run: sync_action',   'exec' => 'nohup php /var/www/papir/cron/sync_action.php > /tmp/sync_action.log 2>&1 & echo "Started PID $!"'),
+    'cron_track_ttn'          => array('label' => 'run: track_ttn',          'exec' => 'nohup php /var/www/papir/cron/track_ttn.php > /tmp/track_ttn.log 2>&1 & echo "Started PID $!"'),
+    'cron_sync_warehouses'    => array('label' => 'run: np_sync_warehouses', 'exec' => 'nohup php /var/www/papir/scripts/np_sync_warehouses.php > /tmp/np_sync_warehouses.log 2>&1 & echo "Started PID $!"'),
+    'cron_sync_streets'       => array('label' => 'run: np_sync_streets',    'exec' => 'nohup php /var/www/papir/scripts/np_sync_streets.php > /tmp/np_sync_streets.log 2>&1 & echo "Started PID $!"'),
 );
 
 if (!array_key_exists($cmd, $whitelist)) {

@@ -18,6 +18,12 @@ class FinanceBankRepository
             $where[] = "fb.is_moving = 0";
         }
 
+        // show_drafts: якщо false (за замовч.) — показувати тільки проведені (is_posted=1)
+        $showDrafts = !empty($params['show_drafts']);
+        if (!$showDrafts) {
+            $where[] = "fb.is_posted = 1";
+        }
+
         $dateFrom = isset($params['date_from']) ? trim($params['date_from']) : '';
         $dateTo   = isset($params['date_to'])   ? trim($params['date_to'])   : '';
         if ($dateFrom !== '') {
@@ -106,9 +112,10 @@ class FinanceBankRepository
 
     public function getSummary($params)
     {
-        // Підсумки завжди тільки реальних операцій (is_moving=0)
+        // Підсумки завжди тільки реальних операцій (is_moving=0, is_posted=1)
         $realParams = $params;
         $realParams['hide_moving'] = true;
+        $realParams['show_drafts'] = false;
         $args  = array();
         $where = $this->buildWhere($realParams, $args);
 

@@ -39,6 +39,36 @@ if (!$rOrder['ok'] || empty($rOrder['row'])) {
 }
 $order = $rOrder['row'];
 
+// ── Traffic source з oc_remarketing_orders ────────────────────────────────────
+$trafficSource = null;
+$_num = $order['number'];
+if (preg_match('/^(\d+)(OFF|MFF)$/i', $_num, $_m)) {
+    $_ocId  = (int)$_m[1];
+    $_alias = strtolower($_m[2]) === 'off' ? 'off' : 'mff';
+    $_rm = \Database::fetchRow($_alias,
+        "SELECT gclid, fbclid, utm_source, utm_medium, utm_campaign
+         FROM oc_remarketing_orders WHERE order_id = {$_ocId} LIMIT 1");
+    if ($_rm['ok'] && !empty($_rm['row'])) {
+        $_r = $_rm['row'];
+        if (!empty($_r['gclid'])) {
+            $trafficSource = array('label' => 'Google Ads', 'color' => '#1a73e8', 'campaign' => $_r['utm_campaign']);
+        } elseif (!empty($_r['fbclid'])) {
+            $trafficSource = array('label' => 'Facebook Ads', 'color' => '#1877f2', 'campaign' => $_r['utm_campaign']);
+        } elseif (!empty($_r['utm_source'])) {
+            $_src = strtolower($_r['utm_source']);
+            if (strpos($_src, 'google') !== false) {
+                $trafficSource = array('label' => 'Google', 'color' => '#34a853', 'campaign' => $_r['utm_campaign']);
+            } elseif (strpos($_src, 'facebook') !== false || strpos($_src, 'fb') !== false) {
+                $trafficSource = array('label' => 'Facebook', 'color' => '#1877f2', 'campaign' => $_r['utm_campaign']);
+            } else {
+                $_lbl = $_r['utm_source'];
+                if (!empty($_r['utm_medium'])) $_lbl .= ' / ' . $_r['utm_medium'];
+                $trafficSource = array('label' => $_lbl, 'color' => '#6b7280', 'campaign' => $_r['utm_campaign']);
+            }
+        }
+    }
+}
+
 // ── Status auto flags ─────────────────────────────────────────────────────────
 $rAutoFlags = \Database::fetchAll('Papir',
     "SELECT DISTINCT new_value FROM customerorder_history
@@ -47,6 +77,19 @@ $statusAutoFlags = array();
 if ($rAutoFlags['ok']) {
     foreach ($rAutoFlags['rows'] as $afRow) {
         if ($afRow['new_value']) $statusAutoFlags[$afRow['new_value']] = true;
+    }
+}
+
+// ── Status before cancellation ────────────────────────────────────────────────
+$cancelledFromStatus = null;
+if ($order['status'] === 'cancelled') {
+    $rCancelFrom = \Database::fetchRow('Papir',
+        "SELECT old_value FROM customerorder_history
+         WHERE customerorder_id = {$orderId} AND event_type = 'status_change'
+           AND new_value = 'cancelled'
+         ORDER BY created_at DESC LIMIT 1");
+    if ($rCancelFrom['ok'] && !empty($rCancelFrom['row']['old_value'])) {
+        $cancelledFromStatus = $rCancelFrom['row']['old_value'];
     }
 }
 
@@ -206,5 +249,7 @@ echo json_encode(array(
     'return_logistics'  => $returnLogistics,
     'sum_paid'          => $sumPaid,
     'sum_payments'      => $sumPayments,
-    'status_auto_flags' => $statusAutoFlags,
+    'status_auto_flags'    => $statusAutoFlags,
+    'cancelled_from_status' => $cancelledFromStatus,
+    'traffic_source'        => $trafficSource,
 ));

@@ -59,9 +59,10 @@
 .fin-moment-date { font-size:12px; font-weight:600; white-space:nowrap; }
 .fin-moment-time { font-size:11px; color:var(--text-muted); }
 .fin-doc { font-size:12px; font-family:monospace; color:var(--text-muted); white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis; display:block; }
-.fin-badge-in  { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#dcfce7; color:#166534; white-space:nowrap; }
-.fin-badge-out { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#fee2e2; color:#991b1b; white-space:nowrap; }
-.fin-badge-mov { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#e5e7eb; color:#6b7280; white-space:nowrap; }
+.fin-badge-in    { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#dcfce7; color:#166534; white-space:nowrap; }
+.fin-badge-out   { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#fee2e2; color:#991b1b; white-space:nowrap; }
+.fin-badge-mov   { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#e5e7eb; color:#6b7280; white-space:nowrap; }
+.fin-badge-draft { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:600; background:#f3f4f6; color:#9ca3af; border:1px dashed #d1d5db; white-space:nowrap; margin-left:4px; }
 .fin-cp a { font-weight:600; font-size:13px; color:var(--text); text-decoration:none; }
 .fin-cp a:hover { color:var(--blue); }
 .fin-cp-none { color:var(--text-muted); font-size:12px; }
@@ -199,6 +200,11 @@
                            class="js-filter-instant" <?php echo $hideMoving ? 'checked' : ''; ?>>
                     Приховати переводи
                 </label>
+                <label class="filter-pill<?php echo $showDrafts ? ' active' : ''; ?>">
+                    <input type="checkbox" name="show_drafts" value="1"
+                           class="js-filter-instant" <?php echo $showDrafts ? 'checked' : ''; ?>>
+                    Показати чернетки
+                </label>
             </div>
             <div class="filter-bar-sep"></div>
             <div class="filter-bar-group">
@@ -319,6 +325,9 @@
                                     <span class="fin-badge-in">↓</span>
                                 <?php else: ?>
                                     <span class="fin-badge-out">↑</span>
+                                <?php endif; ?>
+                                <?php if (empty($row['is_posted'])): ?>
+                                    <span class="fin-badge-draft">чернетка</span>
                                 <?php endif; ?>
                             </td>
                             <td class="fin-cp">

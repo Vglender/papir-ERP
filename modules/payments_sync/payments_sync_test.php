@@ -223,7 +223,7 @@ if (!function_exists('request_ukrsib_sync')) {
 
 $ms = new MoySkladApi();
 $collector = new BankPaymentCollector($config, $accountsMap);
-$duplicateChecker = new PaymentDuplicateChecker(isset($config['db_name']) ? $config['db_name'] : 'ms', $ms);
+$duplicateChecker = new PaymentDuplicateChecker();
 $matcher = new PaymentMatcher($config, $ms);
 $mapper = new PaymentMsMapper($config, $ms);
 $syncService = new PaymentsSyncService();

@@ -71,5 +71,59 @@ if (!isset($organizationBankAccounts)) {
     $organizationBankAccounts = array();
 }
 
+
+// ── Traffic source (Google Analytics / remarketing) ──────────────────────
+$trafficSource = null;
+if ($id > 0 && !empty($result['order']['number'])) {
+    $num = $result['order']['number'];
+    if (preg_match('/^(\d+)(OFF|MFF)$/i', $num, $m)) {
+        $ocOrderId = (int)$m[1];
+        $dbAlias   = strtolower($m[2]) === 'off' ? 'off' : 'mff';
+        $tr = Database::fetchRow($dbAlias,
+            "SELECT utm_source, utm_medium, utm_campaign, gclid, fbclid, ga4_uuid
+             FROM oc_remarketing_orders WHERE order_id = {$ocOrderId} LIMIT 1");
+        if ($tr['ok'] && !empty($tr['row'])) {
+            $row = $tr['row'];
+            // Визначаємо канал
+            if (!empty($row['gclid'])) {
+                $channel = 'google_ads';
+                $label   = 'Google Ads';
+                $color   = '#4285f4';
+                $bg      = '#e8f0fe';
+            } elseif (!empty($row['fbclid'])) {
+                $channel = 'facebook';
+                $label   = 'Facebook Ads';
+                $color   = '#1877f2';
+                $bg      = '#e7f0ff';
+            } elseif (!empty($row['utm_source'])) {
+                $src     = $row['utm_source'];
+                $med     = $row['utm_medium'];
+                if (stripos($src, 'google') !== false && stripos($med, 'organic') !== false) {
+                    $channel = 'organic_google'; $label = 'Google Organic'; $color = '#16a34a'; $bg = '#f0fdf4';
+                } elseif (stripos($src, 'facebook') !== false || stripos($src, 'instagram') !== false) {
+                    $channel = 'social'; $label = ucfirst($src); $color = '#9333ea'; $bg = '#faf5ff';
+                } else {
+                    $channel = 'utm'; $label = $src . ($med ? '/' . $med : ''); $color = '#ea580c'; $bg = '#fff7ed';
+                }
+            } elseif (!empty($row['ga4_uuid'])) {
+                $channel = 'direct'; $label = 'Прямий'; $color = '#6b7280'; $bg = '#f3f4f6';
+            }
+            if (isset($channel)) {
+                $trafficSource = array(
+                    'channel'  => $channel,
+                    'label'    => $label,
+                    'color'    => $color,
+                    'bg'       => $bg,
+                    'utm_source'   => $row['utm_source'],
+                    'utm_medium'   => $row['utm_medium'],
+                    'utm_campaign' => $row['utm_campaign'],
+                    'gclid'    => $row['gclid'],
+                    'ga4_uuid' => $row['ga4_uuid'],
+                );
+            }
+        }
+    }
+}
+
 // Подключаем шаблон
 require __DIR__ . '/views/edit.php';

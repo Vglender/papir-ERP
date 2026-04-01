@@ -53,6 +53,7 @@
 | Каталог | `catalog` | Товари `/catalog`, Категорії `/categories`, Виробники `/manufacturers`, Атрибути `/attributes`, Маппінг категорій `/category-mapping` |
 | Ціни | `prices` | Прайси `/prices`, Постачальники `/prices/suppliers`, Акції `/action` |
 | Продажі | `sales` | Замовлення `/customerorder` |
+| Логістика | `logistics` | НП · ТТН `/novaposhta/ttns`, НП · Реєстри `/novaposhta/scansheets` |
 | Фінанси | `finance` | Платежі `/payments` |
 | Інтеграції | `integr` | МойСклад `#`, Google Merchant `#`, AI `/ai` |
 | Інструменти | `tools` | МС атрибути `/docum/attr`, Фото аудит `/image-audit` |
@@ -242,6 +243,7 @@ Database::escape($db, $value)
 | `action`         | Акционные скидки, публикация в Merchant. **При discount=0 и super_discont=0 — запись удаляется из action_products, action_prices и oc_product_special.** |
 | `counterparties` | CRM: контрагенти (юрлиця, ФОП, фізособи), групи компаній, зв'язки, договори |
 | `customerorder`  | Управление заказами клиентов                       |
+| `novaposhta`     | Інтеграція з Новою Поштою: ТТН (CRUD, трекінг), реєстри, повернення. Без залежності від МойСклад. |
 | `payments_sync`  | Сверка банковских платежей с заказами              |
 | `bank_monobank`  | API Monobank                                       |
 | `bank_privat`    | API PrivatBank (выписки, балансы)                  |
@@ -271,6 +273,11 @@ Database::escape($db, $value)
 | `product_image_site`         | Привязка фото к сайтам: image_id, site_id=1(off)/2(mff), sort_order |
 | `organization`               | Наши юрлица-продавцы: id, id_ms (UUID МойСклад), name, inn, okpo, iban, bank_name, mfo, director_name, logo_path, stamp_path, signature_path |
 | `organization_bank_account`  | Счета организаций: organization_id, iban, bank_name, mfo, is_default |
+| `ttn_novaposhta`             | ТТН Нової пошти: Ref, Number, sender_ref, state_id/state_name/state_define, recipient, phone, city, address, weight, cost, estimated_delivery, deletion_mark |
+| `np_sender`                  | Відправники НП: Ref (NP UUID), Description, api_key, organization_id→organization, is_default |
+| `np_sender_address`          | Адреси відправників НП: sender_ref→np_sender.Ref, Ref (NP address UUID), CityRef, is_default |
+| `np_scan_sheets`             | Реєстри НП: Ref, Number, DateTime, Count, sender_ref, status ('open'/'closed') |
+| `Counterparties_np`          | Кеш одержувачів НП: Ref, Description, phone, sender_ref, counterparty_id→counterparty.id |
 
 **Организации (id → name → id_ms):**
 - `1` → ТОВ "Папір Інвест" → `188cd89b-d2ab-11ea-0a80-017f000f84f7`
@@ -449,6 +456,7 @@ Database::update('Papir', 'product_papir',
 ### Кронзадачи
 - `cron/sync_stock.php` — каждый час :00 (7-22): полный цикл обновления остатков
 - `cron/sync_quantity.php` — каждый час :05 (7-22): выгрузка quantity на сайты
+- `cron/track_ttn.php` — каждый час: обновление статусов ТТН из НП API (батч до 100, группировка по api_key). Пример: `0 * * * * php /var/www/papir/cron/track_ttn.php >> /tmp/track_ttn.log 2>&1`
 
 ### Цикл sync_stock.php
 ```
@@ -485,7 +493,7 @@ Database::update('Papir', 'product_papir',
 
 5. **PHP-FPM кэширует Router.php** — после изменений маршрутов нужен `systemctl reload php-fpm`.
 
-5a. **PHP-FPM работает от пользователя `apache`** — при создании файлов/папок через CLI (mkdir, touch и т.д.) они создаются от `root` и PHP не сможет в них писать. После создания директорий для хранения файлов всегда выполнять `chown apache:apache <dir>`. Путь для хранения файлов CRM: `/var/www/papir/storage/` (владелец `apache`).
+5a. **PHP-FPM работает от пользователя `apache`** — на всех директориях `/var/www/papir` установлен **setgid-бит**, поэтому новые файлы созданные от `root` автоматически получают группу `apache` и читаются PHP-FPM. Дополнительный `chown` обычно не нужен. Если что-то всё равно не читается — запустить `chown -R apache:apache /var/www/papir`. Путь для хранения файлов CRM: `/var/www/papir/storage/` (владелец `apache`).
 
 6. **Цены в МойСклад в копейках** — `(int)round($price * 100)`.
 
@@ -557,6 +565,61 @@ modules/counterparties/
 **Webhook URL для Alpha SMS:** `https://papir.officetorg.com.ua/counterparties/webhook/viber_in`
 
 **search.php** — використовується в picker-ах інших модулів (замість прямих SELECT у customerorder/edit.php).
+
+---
+
+### `novaposhta` — Інтеграція з Новою Поштою
+
+```
+modules/novaposhta/
+├── novaposhta_bootstrap.php     # Підключає всі класи модуля
+├── NovaPoshta.php               # JSON-RPC клієнт (конструктор приймає apiKey)
+├── index.php                    # Контролер /novaposhta/ttns
+├── scansheets.php               # Контролер /novaposhta/scansheets
+├── repositories/
+│   ├── TtnRepository.php        # getList, getByOrder, save, updateStatus, getForTracking, markDeleted
+│   ├── SenderRepository.php     # getAll, getDefault, getByOrganization, getAddresses, upsertAddress
+│   ├── NpReferenceRepository.php # searchCities, searchWarehouses, searchStreets + upsert (local-first)
+│   ├── ScanSheetRepository.php  # getList, save, delete
+│   └── NpCounterpartyRepository.php # findByCounterparty, upsert, getNpRefForCounterparty
+├── services/
+│   ├── TtnService.php           # create (ensureRecipient→API→cache), update, delete, getFormPrefill
+│   ├── TrackingService.php      # trackBatch (групує по api_key, батч 100), trackOne
+│   ├── ScanSheetService.php     # addDocuments, syncList, getDetail, delete
+│   └── ReturnService.php        # checkPossibility, create, getReasons
+├── api/                         # POST/GET → JSON
+│   ├── get_ttn_form.php         # GET ?order_id= → prefill з замовлення
+│   ├── get_senders.php          # GET → відправники + адреси (NP API fallback)
+│   ├── create_ttn.php           # POST → TtnService::create
+│   ├── delete_ttn.php           # POST ttn_id → TtnService::delete
+│   ├── track_ttn.php            # POST ttn_id → TrackingService::trackOne
+│   ├── get_ttn_list.php         # GET → TtnRepository::getList
+│   ├── search_city.php          # GET ?q=&sender_ref= → local-first, NP API fallback
+│   ├── search_warehouse.php     # GET ?city_ref=&q= → local-first, NP API fallback
+│   ├── search_street.php        # GET ?city_ref=&q= → local-first, NP API fallback
+│   ├── create_scansheet.php     # POST sender_ref+ttn_refs → ScanSheetService::addDocuments
+│   ├── get_scansheats.php       # GET → ScanSheetRepository::getList
+│   ├── sync_scansheats.php      # POST sender_ref → ScanSheetService::syncList
+│   ├── delete_scansheet.php     # POST sender_ref+scan_sheet_ref → ScanSheetService::delete
+│   ├── check_return.php         # GET ?ttn_id= → ReturnService::checkPossibility
+│   └── create_return.php        # POST ttn_id+params → ReturnService::create
+└── views/
+    ├── index.php                # Список ТТН: toolbar+chip-search, filter-bar, crm-table
+    └── scansheets.php           # Реєстри: toolbar, filter-bar, crm-table, create/delete modal
+```
+
+**NovaPoshta.php** — JSON-RPC клієнт `https://api.novaposhta.ua/v2.0/json/`:
+- `__construct($apiKey)` — кожен відправник має свій API-ключ
+- `call($modelName, $calledMethod, $methodProperties)` → `['ok'=>bool, 'data'=>array, 'error'=>string]`
+- `callAllPages()` — пагінований обхід (PageSize=500)
+
+**Local-first довідники** (`np_warehouses`, `areas_np`, `street_np`): спочатку шукаємо локально; якщо порожньо — запит до NP API → upsert у локальну таблицю → повертаємо результат.
+
+**Прив'язки ТТН:** через `document_link` (from_type='ttn_np', to_type='customerorder', link_type='shipment').
+
+**Фінальні статуси трекінгу** (більше не відстежуємо): `state_define` IN (9=доставлено, 10=повернено, 106=скасовано).
+
+**Форма створення ТТН** відкривається в `wsDetailZone` workspace.php під замовленням. Префіл: парсимо номер замовлення (напр. "98267OFF") → oc_order.order_id=98267 (site=off) → беремо telephone/shipping_firstname/shipping_lastname з oc_order.
 
 ---
 

@@ -114,8 +114,11 @@ $selOrg = $org;
                             <?php if ($o['alias']): ?>
                                 <span class="org-alias"><?php echo ViewHelper::h($o['alias']); ?></span>
                             <?php endif; ?>
+                            <?php if ($o['is_default']): ?>
+                                <span class="badge badge-green" style="margin-left:4px;font-size:10px">default</span>
+                            <?php endif; ?>
                             <?php if (!$o['status']): ?>
-                                <span class="badge badge-gray" style="margin-left:4px">неактивна</span>
+                                <span class="badge badge-gray" style="margin-left:4px">архів</span>
                             <?php endif; ?>
                         </div>
                         <?php if ($o['director_name']): ?>

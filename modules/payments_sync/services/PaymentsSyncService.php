@@ -23,7 +23,7 @@ class PaymentsSyncService
 		$this->ms = new MoySkladApi();
 
 		$this->collector = new BankPaymentCollector($this->config, $this->accountsMap);
-		$this->duplicateChecker = new PaymentDuplicateChecker($this->config['db_name'], $this->ms);
+		$this->duplicateChecker = new PaymentDuplicateChecker();
 		$this->matcher = new PaymentMatcher($this->config, $this->ms, $this->matchRules);
 		$this->mapper = new PaymentMsMapper($this->config, $this->ms);
 	}
@@ -109,8 +109,8 @@ class PaymentsSyncService
          * или документ попал в МС другим путем.
          */
         if (!empty($this->config['checks']['duplicates_ms'])) {
-            $filteredInMs = $this->duplicateChecker->filterNotExistingInMs('in', $paymentsIn);
-            $filteredOutMs = $this->duplicateChecker->filterNotExistingInMs('out', $paymentsOut);
+            $filteredInMs = $this->duplicateChecker->filterNotExistingInMs('in', $paymentsIn, $this->ms);
+            $filteredOutMs = $this->duplicateChecker->filterNotExistingInMs('out', $paymentsOut, $this->ms);
 
             $result['duplicates_ms_in'] = count($filteredInMs['duplicates']);
             $result['duplicates_ms_out'] = count($filteredOutMs['duplicates']);
@@ -129,22 +129,26 @@ class PaymentsSyncService
             + $result['duplicates_ms_out'];
 
         /**
-         * 3. Матчинг и подготовка payload
+         * 3. Збагачення + збереження локально (Papir першим)
+         * finance_bank записується ДО відправки в МС.
+         * Це робить Papir джерелом правди — МС є приймачем даних.
          */
-        $payloadIn = [];
+        $payloadIn  = [];
         $payloadOut = [];
-        $prepared = [];
+        $prepared   = [];
+        $localIds   = []; // extCode → finance_bank.id
 
         foreach ($paymentsIn as $payment) {
             try {
                 $payment = $this->matcher->enrich($payment);
                 $prepared[$payment['id_paid']] = $payment;
+                $localIds[$payment['id_paid']] = $this->savePaymentLocally($payment);
                 $payloadIn[] = $this->mapper->map($payment);
             } catch (Exception $e) {
                 $result['errors'][] = [
-                    'stage' => 'prepare_in',
+                    'stage'        => 'prepare_in',
                     'externalCode' => isset($payment['id_paid']) ? $payment['id_paid'] : null,
-                    'message' => $e->getMessage(),
+                    'message'      => $e->getMessage(),
                 ];
             }
         }
@@ -153,68 +157,78 @@ class PaymentsSyncService
             try {
                 $payment = $this->matcher->enrich($payment);
                 $prepared[$payment['id_paid']] = $payment;
+                $localIds[$payment['id_paid']] = $this->savePaymentLocally($payment);
                 $payloadOut[] = $this->mapper->map($payment);
             } catch (Exception $e) {
                 $result['errors'][] = [
-                    'stage' => 'prepare_out',
+                    'stage'        => 'prepare_out',
                     'externalCode' => isset($payment['id_paid']) ? $payment['id_paid'] : null,
-                    'message' => $e->getMessage(),
+                    'message'      => $e->getMessage(),
                 ];
             }
         }
 
-        $result['prepared_in'] = count($payloadIn);
-        $result['prepared_out'] = count($payloadOut);
+        $result['prepared_in']      = count($payloadIn);
+        $result['prepared_out']     = count($payloadOut);
         $result['payload_in_count'] = count($payloadIn);
         $result['payload_out_count'] = count($payloadOut);
 
         /**
-         * 4. Отправка приходов
+         * 4. Відправка приходів у МС → оновити id_ms в finance_bank
          */
-		if (!empty($payloadIn)) {
-			$responseIn = $this->sendBatch('paymentin', $payloadIn);
-			$normalizedIn = $this->normalizeBatchResponse($responseIn);
+        if (!empty($payloadIn)) {
+            $responseIn   = $this->sendBatch('paymentin', $payloadIn);
+            $normalizedIn = $this->normalizeBatchResponse($responseIn);
 
-			if (!empty($normalizedIn['rows'])) {
-				foreach ($normalizedIn['rows'] as $row) {
-					if (!empty($row['externalCode']) && isset($prepared[$row['externalCode']])) {
-						$result['created_in']++;
-					}
-				}
-			}
+            if (!empty($normalizedIn['rows'])) {
+                foreach ($normalizedIn['rows'] as $row) {
+                    $extCode = isset($row['externalCode']) ? $row['externalCode'] : null;
+                    if ($extCode && isset($prepared[$extCode])) {
+                        $result['created_in']++;
+                        // Оновити id_ms після підтвердження від МС
+                        if (!empty($localIds[$extCode]) && !empty($row['id'])) {
+                            $this->updatePaymentMsId($localIds[$extCode], $row, 'in');
+                        }
+                    }
+                }
+            }
 
-		if (!empty($normalizedIn['errors'])) {
-			$result['errors'][] = [
-				'stage' => 'send_paymentin',
-				'message' => 'Batch contains element-level errors',
-				'details' => $this->flattenBatchErrors('paymentin', $normalizedIn['errors'], $payloadIn),
-			];
-		}
-		}
+            if (!empty($normalizedIn['errors'])) {
+                $result['errors'][] = [
+                    'stage'   => 'send_paymentin',
+                    'message' => 'Batch contains element-level errors',
+                    'details' => $this->flattenBatchErrors('paymentin', $normalizedIn['errors'], $payloadIn),
+                ];
+            }
+        }
 
         /**
-         * 5. Отправка расходов
+         * 5. Відправка витрат у МС → оновити id_ms в finance_bank
          */
-		if (!empty($payloadOut)) {
-			$responseOut = $this->sendBatch('paymentout', $payloadOut);
-			$normalizedOut = $this->normalizeBatchResponse($responseOut);
+        if (!empty($payloadOut)) {
+            $responseOut   = $this->sendBatch('paymentout', $payloadOut);
+            $normalizedOut = $this->normalizeBatchResponse($responseOut);
 
-			if (!empty($normalizedOut['rows'])) {
-				foreach ($normalizedOut['rows'] as $row) {
-					if (!empty($row['externalCode']) && isset($prepared[$row['externalCode']])) {
-						$result['created_out']++;
-					}
-				}
-			}
+            if (!empty($normalizedOut['rows'])) {
+                foreach ($normalizedOut['rows'] as $row) {
+                    $extCode = isset($row['externalCode']) ? $row['externalCode'] : null;
+                    if ($extCode && isset($prepared[$extCode])) {
+                        $result['created_out']++;
+                        if (!empty($localIds[$extCode]) && !empty($row['id'])) {
+                            $this->updatePaymentMsId($localIds[$extCode], $row, 'out');
+                        }
+                    }
+                }
+            }
 
-			if (!empty($normalizedOut['errors'])) {
-				$result['errors'][] = [
-					'stage' => 'send_paymentout',
-					'message' => 'Batch contains element-level errors',
-					'details' => $this->flattenBatchErrors('paymentout', $normalizedOut['errors'], $payloadOut),
-				];
-			}
-		}
+            if (!empty($normalizedOut['errors'])) {
+                $result['errors'][] = [
+                    'stage'   => 'send_paymentout',
+                    'message' => 'Batch contains element-level errors',
+                    'details' => $this->flattenBatchErrors('paymentout', $normalizedOut['errors'], $payloadOut),
+                ];
+            }
+        }
 		
 		if (!empty($result['errors'])) {
 			$this->logError($result['errors']);
@@ -246,8 +260,8 @@ class PaymentsSyncService
         $filteredInDb = $this->duplicateChecker->filterNotExistingInDb('in', $paymentsIn);
         $filteredOutDb = $this->duplicateChecker->filterNotExistingInDb('out', $paymentsOut);
 
-        $filteredInMs = $this->duplicateChecker->filterNotExistingInMs('in', $filteredInDb['new']);
-        $filteredOutMs = $this->duplicateChecker->filterNotExistingInMs('out', $filteredOutDb['new']);
+        $filteredInMs = $this->duplicateChecker->filterNotExistingInMs('in', $filteredInDb['new'], $this->ms);
+        $filteredOutMs = $this->duplicateChecker->filterNotExistingInMs('out', $filteredOutDb['new'], $this->ms);
 
         $payloadIn = [];
         $payloadOut = [];
@@ -432,8 +446,8 @@ class PaymentsSyncService
      */
     try {
         if (!empty($this->config['checks']['duplicates_ms']['enabled'])) {
-            $filteredInMs = $this->duplicateChecker->filterNotExistingInMs('in', $paymentsIn);
-            $filteredOutMs = $this->duplicateChecker->filterNotExistingInMs('out', $paymentsOut);
+            $filteredInMs = $this->duplicateChecker->filterNotExistingInMs('in', $paymentsIn, $this->ms);
+            $filteredOutMs = $this->duplicateChecker->filterNotExistingInMs('out', $paymentsOut, $this->ms);
 
             $report['duplicates_ms_in'] = count($filteredInMs['duplicates']);
             $report['duplicates_ms_out'] = count($filteredOutMs['duplicates']);
@@ -656,6 +670,127 @@ class PaymentsSyncService
 					FILE_APPEND
 				);
 			}
+
+	/**
+	 * Зберегти платіж у finance_bank ДО відправки в МС.
+	 * id_ms поки null — заповнюється після підтвердження від МС через updatePaymentMsId().
+	 * Повертає finance_bank.id (insert_id).
+	 *
+	 * payment['sum'] — в копійках (формат банківських API), зберігаємо в гривнях (÷100).
+	 */
+	protected function savePaymentLocally(array $payment)
+	{
+		$direction   = ($payment['type'] === 'out') ? 'out' : 'in';
+		$extCode     = isset($payment['id_paid']) ? (string)$payment['id_paid'] : '';
+		$sum         = round((float)$payment['sum'] / 100, 2);
+		$moment      = isset($payment['moment']) ? $payment['moment'] : null;
+		$agentMs     = isset($payment['id_agent']) ? (string)$payment['id_agent'] : null;
+		$orgMs       = isset($payment['id_org'])   ? (string)$payment['id_org']   : null;
+		$isMoving    = !empty($payment['inner']) ? 1 : 0;
+		$expItemMs   = isset($payment['id_exp'])  ? (string)$payment['id_exp']  : null;
+		$description = isset($payment['description']) ? (string)$payment['description'] : null;
+		$source      = isset($payment['bank']) ? (string)$payment['bank'] : 'bank_sync';
+
+		// Визначити expense_category_id за UUID статті витрат МС
+		$expCategoryId = null;
+		if ($expItemMs) {
+			$catRow = Database::fetchRow('Papir',
+				"SELECT id FROM finance_expense_category
+				 WHERE expense_item_ms = '" . Database::escape('Papir', $expItemMs) . "'
+				 LIMIT 1"
+			);
+			if ($catRow['ok'] && !empty($catRow['row'])) {
+				$expCategoryId = (int)$catRow['row']['id'];
+			}
+		}
+
+		$insertResult = Database::insert('Papir', 'finance_bank', array(
+			'direction'           => $direction,
+			'moment'              => $moment,
+			'sum'                 => $sum,
+			'agent_ms'            => $agentMs,
+			'organization_ms'     => $orgMs,
+			'is_moving'           => $isMoving,
+			'is_posted'           => 0,
+			'expense_item_ms'     => $expItemMs,
+			'expense_category_id' => $expCategoryId,
+			'description'         => $description,
+			'external_code'       => $extCode ?: null,
+			'source'              => $source,
+		));
+
+		if (!$insertResult['ok'] || empty($insertResult['insert_id'])) {
+			return null;
+		}
+
+		$localId = (int)$insertResult['insert_id'];
+
+		// Якщо є прив'язаний замовлення — відразу записати в document_link
+		if (!empty($payment['id_order'])) {
+			$this->saveOrderLink($localId, $direction, $payment);
+		}
+
+		return $localId;
+	}
+
+	/**
+	 * Записати зв'язок платіж → замовлення в document_link.
+	 * from_ms_id поки null — заповнюється через updatePaymentMsId() після відповіді МС.
+	 */
+	protected function saveOrderLink($localId, $direction, array $payment)
+	{
+		$fromType  = ($direction === 'in') ? 'paymentin' : 'paymentout';
+		$orderMsId = (string)$payment['id_order'];
+
+		// Знайти Papir customerorder.id за МС UUID
+		$orderRow = Database::fetchRow('Papir',
+			"SELECT id FROM customerorder
+			 WHERE id_ms = '" . Database::escape('Papir', $orderMsId) . "'
+			 LIMIT 1"
+		);
+		$toId = ($orderRow['ok'] && !empty($orderRow['row'])) ? (int)$orderRow['row']['id'] : null;
+
+		Database::insert('Papir', 'document_link', array(
+			'from_type'  => $fromType,
+			'from_id'    => $localId,
+			'from_ms_id' => null,
+			'to_type'    => 'customerorder',
+			'to_id'      => $toId,
+			'to_ms_id'   => $orderMsId,
+			'link_type'  => 'payment',
+			'linked_sum' => round((float)$payment['sum'] / 100, 2),
+		));
+	}
+
+	/**
+	 * Після підтвердження від МС: оновити id_ms + doc_number + is_posted у finance_bank
+	 * та from_ms_id у document_link.
+	 *
+	 * $msRow — рядок відповіді МС (contains id, name, applicable, ...)
+	 */
+	protected function updatePaymentMsId($localId, array $msRow, $direction)
+	{
+		if (!$localId) {
+			return;
+		}
+
+		$idMs      = isset($msRow['id'])   ? trim((string)$msRow['id'])   : null;
+		$docNumber = isset($msRow['name']) ? (string)$msRow['name']       : null;
+		$isPosted  = !empty($msRow['applicable']) ? 1 : 0;
+
+		Database::update('Papir', 'finance_bank', array(
+			'id_ms'      => $idMs,
+			'doc_number' => $docNumber,
+			'is_posted'  => $isPosted,
+		), array('id' => $localId));
+
+		if ($idMs) {
+			Database::query('Papir',
+				"UPDATE document_link SET from_ms_id = '" . Database::escape('Papir', $idMs) . "'
+				 WHERE from_id = {$localId} AND from_ms_id IS NULL"
+			);
+		}
+	}
 
 	protected function sendBatch($entity, array $payload, $maxTry = 5)
 	{

@@ -390,6 +390,12 @@ require_once __DIR__ . '/../../../modules/shared/layout.php';
                     <button class="term-btn term-btn-run" data-cmd="cron_sync_quantity">sync_quantity.php</button>
                     <button class="term-btn term-btn-run" data-cmd="cron_sync_prices">sync_prices.php</button>
                     <button class="term-btn term-btn-run" data-cmd="cron_sync_action">sync_action.php</button>
+                    <button class="term-btn term-btn-run" data-cmd="cron_track_ttn">track_ttn.php</button>
+                </div>
+                <div class="term-group">
+                    <div class="term-group-label">НП: довідники (тривалі)</div>
+                    <button class="term-btn term-btn-run" data-cmd="cron_sync_warehouses">np_sync_warehouses.php</button>
+                    <button class="term-btn term-btn-run" data-cmd="cron_sync_streets">np_sync_streets.php</button>
                 </div>
             </div>
 

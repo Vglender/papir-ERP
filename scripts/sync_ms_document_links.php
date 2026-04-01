@@ -21,9 +21,14 @@ require_once __DIR__ . '/../modules/database/database.php';
 require_once __DIR__ . '/../modules/moysklad/moysklad_api.php';
 
 $dryRun  = in_array('--dry-run', $argv);
+$fullSync = in_array('--full', $argv); // загрузить ВСЕ документы без фильтра по дате
 $logFile = '/tmp/sync_ms_document_links.log';
 $myPid   = getmypid();
 $lockFile = '/tmp/sync_ms_document_links.lock';
+
+// Инкрементальный синк: документы обновлённые за последние 48 часов
+// 48ч с запасом чтобы не пропустить ничего при задержках/ретраях
+$updatedFrom = $fullSync ? null : date('Y-m-d H:i:s', strtotime('-48 hours'));
 
 function out($msg)
 {
@@ -58,6 +63,7 @@ if (!$dryRun) {
 }
 
 out($dryRun ? '=== DRY RUN ===' : '=== РЕАЛЬНИЙ СИНК ===');
+out($fullSync ? 'Режим: ПОВНИЙ (всі документи)' : 'Режим: інкрементальний (з ' . $updatedFrom . ')');
 
 // ── Загрузить маппинг ms_type → code из document_type ────────────────────
 
@@ -70,6 +76,17 @@ if ($r['ok']) {
     }
 }
 out('Завантажено типів: ' . count($msTypeToCode));
+
+// ── Кеш document_type_transition (link_type по паре from+to) ─────────────
+
+$linkTypeCache = array();
+$r = Database::fetchAll('Papir', "SELECT `from_type`, `to_type`, `link_type` FROM `document_type_transition`");
+if ($r['ok']) {
+    foreach ($r['rows'] as $row) {
+        $linkTypeCache[$row['from_type'] . '|' . $row['to_type']] = $row['link_type'];
+    }
+}
+out('Завантажено переходів: ' . count($linkTypeCache));
 
 // ── Инициализация MoySkladApi ─────────────────────────────────────────────
 
@@ -122,19 +139,26 @@ function extractMsType($href)
 }
 
 /**
- * Постранично загружает все документы заданного типа из МойСклад API.
+ * Постранично загружает документы заданного типа из МойСклад API.
+ * $updatedFrom — строка вида '2026-03-30 00:00:00' или null (без фильтра = полная загрузка).
  * Возвращает массив документов (rows).
  */
-function fetchAllMsDocuments($ms, $entityBase, $docType)
+function fetchAllMsDocuments($ms, $entityBase, $docType, $updatedFrom = null)
 {
     $limit  = 100;
     $offset = 0;
     $all    = array();
 
-    out("  Завантаження {$docType} з МойСклад...");
+    $filterParam = '';
+    if ($updatedFrom !== null) {
+        // МойСклад filter: ?filter=updatedFrom=YYYY-MM-DD HH:MM:SS
+        $filterParam = '&filter=updatedFrom%3D' . urlencode($updatedFrom);
+    }
+
+    out("  Завантаження {$docType} з МойСклад" . ($updatedFrom ? " (з {$updatedFrom})" : ' (повна)') . '...');
 
     while (true) {
-        $url = $entityBase . $docType . '?limit=' . $limit . '&offset=' . $offset;
+        $url = $entityBase . $docType . '?limit=' . $limit . '&offset=' . $offset . $filterParam;
         // query() возвращает объект (json_decode без true), приводим к массиву
         $response = $ms->query($url);
         $response = json_decode(json_encode($response), true);
@@ -149,7 +173,9 @@ function fetchAllMsDocuments($ms, $entityBase, $docType)
             break;
         }
 
-        $all = array_merge($all, $rows);
+        foreach ($rows as $row) {
+            $all[] = $row;
+        }
         out("  {$docType}: завантажено " . count($all) . ' документів...');
 
         // Проверяем, есть ли ещё страницы
@@ -195,7 +221,7 @@ foreach ($paymentDocTypes as $fromMsType => $allowedToTypes) {
 
     $fromCode = isset($msTypeToCode[$fromMsType]) ? $msTypeToCode[$fromMsType] : $fromMsType;
 
-    $documents = fetchAllMsDocuments($ms, $entityBase, $fromMsType);
+    $documents = fetchAllMsDocuments($ms, $entityBase, $fromMsType, $updatedFrom);
 
     if (empty($documents)) {
         out("  Документів не знайдено, пропускаємо.");
@@ -241,16 +267,9 @@ foreach ($paymentDocTypes as $fromMsType => $allowedToTypes) {
 
             $toCode = isset($msTypeToCode[$toMsType]) ? $msTypeToCode[$toMsType] : $toMsType;
 
-            // link_type из document_type_transition
-            $transR = Database::fetchRow('Papir',
-                "SELECT `link_type` FROM `document_type_transition`
-                 WHERE `from_type` = '" . Database::escape('Papir', $fromCode) . "'
-                   AND `to_type`   = '" . Database::escape('Papir', $toCode)   . "'
-                 LIMIT 1"
-            );
-            $linkType = ($transR['ok'] && !empty($transR['row']))
-                ? $transR['row']['link_type']
-                : null;
+            // link_type из кеша (вместо запроса в БД на каждую операцию)
+            $cacheKey = $fromCode . '|' . $toCode;
+            $linkType = isset($linkTypeCache[$cacheKey]) ? $linkTypeCache[$cacheKey] : null;
 
             $linkedSum = isset($op['linkedSum']) ? (float)$op['linkedSum'] : null;
 

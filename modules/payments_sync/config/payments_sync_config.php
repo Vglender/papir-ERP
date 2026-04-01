@@ -1,8 +1,6 @@
 <?php
 
 return [
-    'db_name' => 'ms',
-
     'default_agent_id' => '565176ae-920a-11eb-0a80-042f000cdb9f',
 
     'paymentin_state_id'  => '4e5eaa29-751f-11ec-0a80-00670008f611',

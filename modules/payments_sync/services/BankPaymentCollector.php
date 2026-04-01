@@ -238,8 +238,12 @@ class BankPaymentCollector
 
     protected function findMsAccountByAccNumber($acc)
     {
-        $sql = "SELECT id_account, id_agent FROM acc WHERE acc = '" . addslashes($acc) . "' LIMIT 1";
-        $row = Database::fetchRow($this->config['db_name'], $sql);
+        // Шукаємо по Papir.our_bank_accounts (замість ms.acc)
+        $sql = "SELECT account_ms AS id_account, organization_ms AS id_agent
+                FROM our_bank_accounts
+                WHERE iban = '" . addslashes($acc) . "'
+                LIMIT 1";
+        $row = Database::fetchRow('Papir', $sql);
 
         if (!$row['ok'] || empty($row['row'])) {
             return null;

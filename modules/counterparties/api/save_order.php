@@ -6,6 +6,7 @@
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../counterparties_bootstrap.php';
 require_once __DIR__ . '/../../customerorder/customerorder_bootstrap.php';
+require_once __DIR__ . '/../../customerorder/services/CustomerOrderMsSync.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(array('ok' => false, 'error' => 'POST required'));
@@ -190,6 +191,15 @@ try {
         'order'   => $rO['row'],
         'items'   => $rI['rows'],
     ));
+
+    // Push to MoySklad after response sent
+    if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); }
+    try {
+        $msSync = new CustomerOrderMsSync();
+        $msSync->push($orderId);
+    } catch (Exception $ex) {
+        // silent
+    }
 
 } catch (Exception $e) {
     \Database::rollback('Papir');

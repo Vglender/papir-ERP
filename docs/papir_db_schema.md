@@ -1,7 +1,7 @@
 # Papir — Структура базы данных
 
 > Обновлять при любом изменении схемы: добавлении/удалении таблиц, изменении назначения.
-> Последнее обновление: 2026-03-29
+> Последнее обновление: 2026-04-01
 
 ---
 
@@ -284,9 +284,10 @@ $allowedNext = Database::fetchAll('Papir',
 
 | Таблица | Назначение |
 |---------|-----------|
-| `finance_bank` | Банковские платежи (прихід/витрати/переводи). Поля: direction, moment, doc_number, sum, cp_id, expense_category_id, payment_purpose, description, is_moving, source, expense_item_ms |
+| `finance_bank` | Банковские платежи (прихід/витрати/переводи). Поля: direction, moment, doc_number, sum, cp_id, expense_category_id, payment_purpose, description, is_moving, source, expense_item_ms, external_code (unique per direction — ключ для защиты дублей) |
 | `finance_cash` | Кассовые операции. Поля: direction, moment, doc_number, sum, agent_ms, expense_category_id, payment_purpose, description, is_moving, source |
 | `finance_expense_category` | Статьи расходов: id, name, sort_order, status. Используется в finance_bank.expense_category_id (только для direction='out') |
+| `our_bank_accounts` | Наши банковские счета (IBAN → organization_ms / account_ms). Источник для определения внутренних переводов в payments_sync. Заполнено из ms.acc. |
 
 ---
 

@@ -5,11 +5,11 @@ class OrganizationRepository
     public function getList()
     {
         $r = Database::fetchAll('Papir',
-            "SELECT o.id, o.alias, o.name, o.short_name, o.status,
+            "SELECT o.id, o.alias, o.name, o.short_name, o.status, o.is_default,
                     o.director_name, o.director_title,
                     o.logo_path, o.stamp_path, o.signature_path
              FROM organization o
-             ORDER BY o.status DESC, o.name ASC"
+             ORDER BY o.status DESC, o.is_default DESC, o.name ASC"
         );
         return ($r['ok'] && !empty($r['rows'])) ? $r['rows'] : array();
     }

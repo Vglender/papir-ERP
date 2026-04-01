@@ -43,7 +43,14 @@ $_nav = array(
           )),
     array('key' => 'sales',   'label' => 'Продажі',    'color' => '#9333ea',
           'items' => array(
-              array('key' => 'orders', 'label' => 'Замовлення', 'url' => '/customerorder'),
+              array('key' => 'orders',  'label' => 'Замовлення',    'url' => '/customerorder'),
+              array('key' => 'demands', 'label' => 'Відвантаження', 'url' => '/demand'),
+          )),
+    array('key' => 'logistics', 'label' => 'Логістика', 'color' => '#0369a1',
+          'items' => array(
+              array('key' => 'np-ttns',    'label' => 'НП · ТТН',         'url' => '/novaposhta/ttns'),
+              array('key' => 'np-scan',    'label' => 'НП · Реєстри',     'url' => '/novaposhta/scansheets'),
+              array('key' => 'np-senders', 'label' => 'НП · Відправники', 'url' => '/novaposhta/senders'),
           )),
     array('key' => 'finance', 'label' => 'Фінанси',    'color' => '#ea580c',
           'items' => array(
@@ -58,6 +65,11 @@ $_nav = array(
               array('key' => 'moysklad', 'label' => 'МойСклад',        'url' => '#'),
               array('key' => 'merchant', 'label' => 'Google Merchant', 'url' => '/integr/merchant'),
               array('key' => 'ai',       'label' => 'AI',              'url' => '/ai'),
+          )),
+    array('key' => 'analytics', 'label' => 'Аналітика', 'color' => '#db2777',
+          'items' => array(
+              array('key' => 'google-analytics', 'label' => 'Google Analytics',  'url' => '/analytics/google'),
+              array('key' => 'google-shopping',  'label' => 'Google Shopping',   'url' => '/analytics/shopping'),
           )),
     array('key' => 'tools',   'label' => 'Інструменти', 'color' => '#b45309',
           'items' => array(
@@ -102,10 +114,12 @@ $_icons = array(
     'prostor' => '<svg viewBox="0 0 22 22" fill="none"><circle cx="8" cy="7.5" r="2.8" stroke="currentColor" stroke-width="1.7"/><path d="M2 18.5c0-3.31 2.69-6 6-6s6 2.69 6 6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15 6a2.5 2.5 0 0 1 0 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/><path d="M18.5 18.5c0-2.76-1.79-5.1-4.28-5.88" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg>',
     'catalog' => '<svg viewBox="0 0 22 22" fill="none"><rect x="2" y="2" width="8" height="8" rx="2" fill="currentColor" opacity=".95"/><rect x="12" y="2" width="8" height="8" rx="2" fill="currentColor" opacity=".55"/><rect x="2" y="12" width="8" height="8" rx="2" fill="currentColor" opacity=".55"/><rect x="12" y="12" width="8" height="8" rx="2" fill="currentColor" opacity=".3"/></svg>',
     'prices'  => '<svg viewBox="0 0 22 22" fill="none"><path d="M3 3h7.172a2 2 0 0 1 1.414.586l7 7a2 2 0 0 1 0 2.828l-5.172 5.172a2 2 0 0 1-2.828 0l-7-7A2 2 0 0 1 3 10.172V3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="7.5" cy="7.5" r="1.5" fill="currentColor"/></svg>',
-    'sales'   => '<svg viewBox="0 0 22 22" fill="none"><path d="M2 3h2.5l2 8.5h9l2-6H7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="17.5" r="1.5" fill="currentColor"/><circle cx="16" cy="17.5" r="1.5" fill="currentColor"/></svg>',
+    'sales'      => '<svg viewBox="0 0 22 22" fill="none"><path d="M2 3h2.5l2 8.5h9l2-6H7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="17.5" r="1.5" fill="currentColor"/><circle cx="16" cy="17.5" r="1.5" fill="currentColor"/></svg>',
+    'logistics'  => '<svg viewBox="0 0 22 22" fill="none"><rect x="1" y="8" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.7"/><path d="M14 11h4l3 3v3h-7V11z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="5"  cy="18.5" r="1.5" fill="currentColor"/><circle cx="16" cy="18.5" r="1.5" fill="currentColor"/></svg>',
     'finance' => '<svg viewBox="0 0 22 22" fill="none"><rect x="2" y="5" width="18" height="13" rx="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M2 9.5h18" stroke="currentColor" stroke-width="1.7"/><rect x="5" y="12.5" width="5" height="2" rx="1" fill="currentColor"/></svg>',
     'integr'  => '<svg viewBox="0 0 22 22" fill="none"><circle cx="5.5" cy="11" r="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="16.5" cy="11" r="2.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 11h6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M16.5 5v3M16.5 14v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/><path d="M5.5 5v3M5.5 14v3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".5"/></svg>',
     'tools'   => '<svg viewBox="0 0 22 22" fill="none"><path d="M14.5 3a4 4 0 0 1 .5 7.5L7 18.5a1.5 1.5 0 0 1-2.1-2.1L12.5 8A4 4 0 0 1 14.5 3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="14.5" cy="5.5" r="1" fill="currentColor"/></svg>',
+    'analytics' => '<svg viewBox="0 0 22 22" fill="none"><rect x="2" y="13" width="4" height="7" rx="1" fill="currentColor" opacity=".9"/><rect x="9" y="8" width="4" height="12" rx="1" fill="currentColor" opacity=".7"/><rect x="16" y="3" width="4" height="17" rx="1" fill="currentColor" opacity=".5"/><path d="M4 10l5-4 5 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>',
     'docs'    => '<svg viewBox="0 0 22 22" fill="none"><rect x="4" y="2" width="10" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M7 7h6M7 10h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".7"/><path d="M10 16l2 4 2-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/></svg>',
     'system'  => '<svg viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="3" stroke="currentColor" stroke-width="1.7"/><path d="M11 2v2M11 18v2M2 11h2M18 11h2M4.22 4.22l1.42 1.42M16.36 16.36l1.42 1.42M4.22 17.78l1.42-1.42M16.36 5.64l1.42-1.42" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity=".6"/></svg>',
 );

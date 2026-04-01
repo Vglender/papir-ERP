@@ -77,7 +77,7 @@ $real = isset($_GET['real']) && $_GET['real'] == '1';
 
 $ms = new MoySkladApi();
 $collector = new BankPaymentCollector($config, $accountsMap);
-$duplicateChecker = new PaymentDuplicateChecker($config['db_name'], $ms);
+$duplicateChecker = new PaymentDuplicateChecker();
 $matcher = new PaymentMatcher($config, $ms);
 $mapper = new PaymentMsMapper($config, $ms);
 $syncService = new PaymentsSyncService();

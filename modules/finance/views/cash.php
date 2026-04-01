@@ -63,7 +63,8 @@
 .fin-doc { font-size:12px; font-family:monospace; color:var(--text-muted); white-space:nowrap; max-width:120px; overflow:hidden; text-overflow:ellipsis; display:block; }
 .fin-badge-in  { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#dcfce7; color:#166534; white-space:nowrap; }
 .fin-badge-out { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#fee2e2; color:#991b1b; white-space:nowrap; }
-.fin-badge-mov { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#e5e7eb; color:#6b7280; white-space:nowrap; }
+.fin-badge-mov   { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:700; background:#e5e7eb; color:#6b7280; white-space:nowrap; }
+.fin-badge-draft { display:inline-flex; align-items:center; padding:2px 6px; border-radius:8px; font-size:10px; font-weight:600; border:1px dashed #9ca3af; color:#6b7280; white-space:nowrap; margin-left:4px; }
 .fin-cp a { font-weight:600; font-size:13px; color:var(--text); text-decoration:none; }
 .fin-cp a:hover { color:var(--blue); }
 .fin-cp-none { color:var(--text-muted); font-size:12px; }
@@ -205,7 +206,23 @@
                 <input type="hidden" name="_period" id="finPeriodHidden"
                        value="<?php echo ViewHelper::h(isset($_GET['_period']) ? $_GET['_period'] : ''); ?>">
             </div>
-            <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
+            <div class="filter-bar-sep"></div>
+            <div class="filter-bar-group">
+                <label class="filter-pill<?php echo $showDrafts ? ' active' : ''; ?>">
+                    <input type="checkbox" name="show_drafts" value="1" class="js-filter-instant"
+                           <?php echo $showDrafts ? 'checked' : ''; ?>>
+                    Чернетки
+                </label>
+            </div>
+            <div class="filter-bar-sep"></div>
+            <div class="filter-bar-group">
+                <label class="filter-pill<?php echo $showDrafts ? ' active' : ''; ?>">
+                    <input type="checkbox" name="show_drafts" value="1" class="js-filter-instant"
+                           <?php echo $showDrafts ? 'checked' : ''; ?>>
+                    Чернетки
+                </label>
+            </div>
+                        <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
                 <svg viewBox="0 0 16 16" fill="none"><path d="M6.5 2h3M8 2v1.5M13 6.5v3M13 8h-1.5M9.5 14h-3M8 14v-1.5M3 9.5v-3M3 8h1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
             </button>
         </div>
@@ -304,6 +321,9 @@
                                     <span class="fin-badge-in">↓</span>
                                 <?php else: ?>
                                     <span class="fin-badge-out">↑</span>
+                                <?php endif; ?>
+                                <?php if (empty($row['is_posted'])): ?>
+                                    <span class="fin-badge-draft">чернетка</span>
                                 <?php endif; ?>
                             </td>
                             <td class="fin-cp">

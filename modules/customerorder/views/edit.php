@@ -257,6 +257,16 @@ require_once __DIR__ . '/../../shared/layout.php';
             letter-spacing: -.3px;
             color: var(--text);
         }
+        .order-traffic-source {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: 500; padding: 3px 10px;
+            border-radius: 20px; background: #e8f0fe; color: #4285f4;
+            border: 1px solid #c5d8fc; cursor: default;
+        }
+        .order-traffic-campaign {
+            font-weight: 400; opacity: .75; font-size: 11px;
+            max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
         .doc-number span {
             font-size: 13px;
             font-weight: 400;
@@ -786,6 +796,15 @@ require_once __DIR__ . '/../../shared/layout.php';
                         Новий документ
                     <?php endif; ?>
                 </div>
+                <?php if (!empty($trafficSource)): ?>
+                <div class="order-traffic-source" title="<?= h($trafficSource['utm_campaign'] ?: ($trafficSource['gclid'] ? 'gclid: '.substr($trafficSource['gclid'],0,20).'...' : '')) ?>">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 1.5C8 1.5 5 5 5 8s3 6.5 3 6.5M8 1.5C8 1.5 11 5 11 8s-3 6.5-3 6.5M1.5 8h13" stroke="currentColor" stroke-width="1.3"/></svg>
+                    <?= h($trafficSource['label']) ?>
+                    <?php if (!empty($trafficSource['utm_campaign'])): ?>
+                    <span class="order-traffic-campaign"><?= h($trafficSource['utm_campaign']) ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Status + payment + planned date row -->

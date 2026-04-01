@@ -227,7 +227,76 @@ class MoySkladApi
 			]
 		];
 	}
-	
+
+	// ── Webhooks ────────────────────────────────────────────────
+
+	/**
+	 * Получить все вебхуки аккаунта.
+	 * Возвращает массив rows или пустой массив при ошибке.
+	 */
+	public function webhookList()
+	{
+		$raw    = $this->query($this->entityUrl('webhook'));
+		$result = json_decode(json_encode($raw), true);
+		return isset($result['rows']) ? $result['rows'] : array();
+	}
+
+	/**
+	 * Создать вебхук.
+	 * $entityType — 'paymentin', 'paymentout', 'customerorder', ...
+	 * $action     — 'CREATE', 'UPDATE', 'DELETE'
+	 * $url        — URL для POST-запросов
+	 *
+	 * Возвращает массив созданного вебхука или массив с 'errors'.
+	 */
+	public function webhookCreate($entityType, $action, $url)
+	{
+		return $this->querySend(
+			$this->entityUrl('webhook'),
+			array(
+				'url'        => $url,
+				'action'     => strtoupper($action),
+				'entityType' => $entityType,
+			),
+			'POST'
+		);
+	}
+
+	/**
+	 * Удалить вебхук по UUID.
+	 * Возвращает true при успехе (HTTP 200/204), false при ошибке.
+	 */
+	public function webhookDelete($webhookId)
+	{
+		usleep(66700);
+
+		$url  = $this->entityUrl('webhook', $webhookId);
+		$curl = curl_init();
+		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curl, CURLOPT_URL, $url);
+		curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'DELETE');
+		curl_setopt($curl, CURLOPT_USERPWD, $this->auth);
+		curl_setopt($curl, CURLOPT_HTTPHEADER, array('Accept-Encoding: gzip'));
+		curl_setopt($curl, CURLOPT_ENCODING, 'gzip');
+		$body = curl_exec($curl);
+		$code = curl_getinfo($curl, CURLINFO_HTTP_CODE);
+		curl_close($curl);
+
+		return ($code >= 200 && $code < 300);
+	}
+
+	/**
+	 * Обновить вебхук (enabled/url/action).
+	 */
+	public function webhookUpdate($webhookId, array $data)
+	{
+		return $this->querySend(
+			$this->entityUrl('webhook', $webhookId),
+			$data,
+			'PUT'
+		);
+	}
+
 }
 
     // --------------------WRAPERs-------------------------------

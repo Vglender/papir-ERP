@@ -17,6 +17,9 @@ $_publicPaths = array(
     '/auth/api/login_password',
     '/auth/api/set_password',
     '/counterparties/webhook/',   // prefix
+    '/finance/webhook/',          // prefix
+    '/customerorder/webhook/',    // prefix
+    '/demand/webhook/',           // prefix
 );
 $_requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $_requestPath = rtrim($_requestPath, '/') ?: '/';
