@@ -1,7 +1,7 @@
 # Papir — Структура базы данных
 
 > Обновлять при любом изменении схемы: добавлении/удалении таблиц, изменении назначения.
-> Последнее обновление: 2026-04-01
+> Последнее обновление: 2026-04-02
 
 ---
 
@@ -162,7 +162,8 @@ $r = Database::fetchRow('Papir',
 
 | Таблица | Записей | Назначение |
 |---------|---------|-----------|
-| `counterparty` | 8 | Контрагенты (type: person/company/fop/department). Денормализованные поля: `last_activity_at` (последнее сообщение/заказ, индекс idx_cp_activity), `unread_count` (непрочитанные входящие) |
+| `counterparty` | 8 | Контрагенты (type: person/company/fop/department). Денормализованные поля: `last_activity_at` (последнее сообщение/заказ), `unread_count` (непрочитанные), `open_task_count` + `next_task_due_at` + `next_task_priority` (для decay-сортировки в инбоксе) |
+| `cp_tasks` | 0 | Задачи контрагентов: priority(1-5), task_type, due_at, status(open/snoozed/done). Decay model: score = priority×20 + бонус от proximity к due_at. Обновляют `counterparty.open_task_count` и `next_task_*` |
 | `counterparty_company` | 4 | Расширение для юр. лиц (okpo, inn, адреса, банк) |
 | `counterparty_person` | 4 | Расширение для физ. лиц (ФИО, телефон, telegram) |
 | `counterparty_relation` | 8 | Связи между контрагентами (contact_person, employee, director...) |

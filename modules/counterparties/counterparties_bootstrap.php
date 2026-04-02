@@ -6,3 +6,4 @@ require_once __DIR__ . '/../shared/TelegramBotService.php';
 require_once __DIR__ . '/repositories/CounterpartyRepository.php';
 require_once __DIR__ . '/repositories/ChatRepository.php';
 require_once __DIR__ . '/repositories/LeadRepository.php';
+require_once __DIR__ . '/repositories/TaskRepository.php';

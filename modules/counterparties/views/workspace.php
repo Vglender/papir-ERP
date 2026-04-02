@@ -604,6 +604,112 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 @keyframes ws-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
 .ws-bubble .chat-link { color: inherit; text-decoration: underline; word-break: break-all; opacity: .9; }
 .ws-bubble .chat-link:hover { opacity: 1; }
+
+/* ── Tasks pane ─────────────────────────────────────────────────────────────── */
+.ws-tasks-pane {
+  display: flex; flex-direction: column; flex: 1; overflow: hidden;
+  background: #f9fafb;
+}
+.ws-tasks-list { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+.ws-tasks-empty { padding: 32px 0; text-align: center; font-size: 13px; color: #9ca3af; }
+
+.ws-task-card {
+  display: flex; align-items: flex-start; gap: 0;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 8px;
+  overflow: hidden; transition: border-color .12s;
+}
+.ws-task-card:hover { border-color: #c4b5fd; }
+.ws-task-card.done-card { opacity: .55; }
+.ws-task-card.snoozed-card { opacity: .7; border-style: dashed; }
+
+.ws-task-pri-bar {
+  width: 4px; flex-shrink: 0; align-self: stretch;
+  border-radius: 0;
+}
+.ws-task-pri-1 { background: #9ca3af; }
+.ws-task-pri-2 { background: #60a5fa; }
+.ws-task-pri-3 { background: #f59e0b; }
+.ws-task-pri-4 { background: #ef4444; }
+.ws-task-pri-5 { background: #7c3aed; }
+
+.ws-task-body {
+  flex: 1; min-width: 0; padding: 8px 10px; display: flex; align-items: flex-start; gap: 8px;
+}
+.ws-task-icon { font-size: 15px; flex-shrink: 0; line-height: 1.4; }
+.ws-task-content { flex: 1; min-width: 0; }
+.ws-task-title { font-size: 13px; font-weight: 600; color: #111827; line-height: 1.3; word-break: break-word; }
+.ws-task-meta { display: flex; align-items: center; gap: 6px; margin-top: 3px; flex-wrap: wrap; }
+.ws-task-type-lbl { font-size: 10px; color: #9ca3af; text-transform: uppercase; letter-spacing: .3px; }
+.ws-task-due { font-size: 11px; font-weight: 600; padding: 1px 5px; border-radius: 4px; }
+.ws-task-due.overdue   { background: #fee2e2; color: #dc2626; }
+.ws-task-due.due-soon  { background: #fff7ed; color: #c2410c; }
+.ws-task-due.due-today { background: #fef9c3; color: #854d0e; }
+.ws-task-due.due-later { background: #f0fdf4; color: #166534; }
+.ws-task-due.no-due    { color: #9ca3af; }
+.ws-task-snoozed-lbl { font-size: 11px; color: #7c3aed; background: #ede9fe; padding: 1px 5px; border-radius: 4px; }
+
+.ws-task-acts { display: flex; flex-direction: column; gap: 0; flex-shrink: 0; padding: 4px 4px 4px 0; }
+.ws-task-act {
+  width: 26px; height: 26px; border: none; background: transparent; cursor: pointer;
+  border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: #9ca3af; transition: background .1s, color .1s;
+  position: relative;
+}
+.ws-task-act:hover { background: #f3f4f6; color: #374151; }
+.ws-task-act.done-btn:hover  { background: #dcfce7; color: #16a34a; }
+.ws-task-act.snooze-btn:hover { background: #ede9fe; color: #7c3aed; }
+
+/* Quick add form */
+.ws-task-quick-add {
+  border-top: 1px solid #e5e7eb; background: #fff; padding: 10px 12px; flex-shrink: 0;
+}
+.ws-task-quick-add input[type=text] {
+  width: 100%; padding: 6px 9px; border: 1px solid #e5e7eb; border-radius: 6px;
+  font-size: 13px; font-family: inherit; outline: none; transition: border-color .12s;
+  box-sizing: border-box;
+}
+.ws-task-quick-add input[type=text]:focus { border-color: #a78bfa; }
+.ws-task-quick-row {
+  display: flex; gap: 6px; margin-top: 6px; align-items: center; flex-wrap: wrap;
+}
+.ws-task-quick-row select {
+  padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px;
+  font-size: 12px; font-family: inherit; background: #fff; outline: none; cursor: pointer;
+  flex: 1; min-width: 0;
+}
+.ws-task-quick-row input[type=datetime-local] {
+  padding: 4px 6px; border: 1px solid #e5e7eb; border-radius: 5px;
+  font-size: 12px; font-family: inherit; background: #fff; outline: none;
+  flex: 1.2; min-width: 0;
+}
+.ws-task-add-btn {
+  padding: 5px 12px; background: #7c3aed; color: #fff; border: none;
+  border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer;
+  white-space: nowrap; transition: background .1s; flex-shrink: 0;
+}
+.ws-task-add-btn:hover { background: #6d28d9; }
+.ws-task-add-btn:disabled { background: #c4b5fd; cursor: not-allowed; }
+
+/* Task indicator badge on inbox card */
+.ws-task-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px;
+  background: #ede9fe; color: #7c3aed; white-space: nowrap; flex-shrink: 0;
+}
+.ws-task-badge.overdue { background: #fee2e2; color: #dc2626; }
+
+/* Snooze dropdown */
+.ws-snooze-menu {
+  position: absolute; right: 0; top: 100%; z-index: 200;
+  background: #fff; border: 1px solid #e5e7eb; border-radius: 7px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.12); min-width: 160px; overflow: hidden;
+}
+.ws-snooze-item {
+  display: block; width: 100%; text-align: left; padding: 8px 12px;
+  font-size: 12px; background: none; border: none; cursor: pointer; color: #374151;
+  transition: background .1s;
+}
+.ws-snooze-item:hover { background: #f3f4f6; }
 </style>
 
 <div class="ws-wrap">
@@ -678,9 +784,38 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
             <button class="ws-ch-tab" data-ch="sms">SMS<span class="ch-unread-dot"></span></button>
             <button class="ws-ch-tab" data-ch="email">Email<span class="ch-unread-dot"></span></button>
             <button class="ws-ch-tab" data-ch="telegram">Telegram<span class="ch-unread-dot"></span></button>
-            <button class="ws-ch-tab" data-ch="note">Нотатка<span class="ch-unread-dot"></span></button>
+            <button class="ws-ch-tab" data-ch="tasks">✅ Завдання<span class="ch-unread-dot"></span></button>
           </div>
           <div class="ws-msgs" id="wsMsgs"><div class="ws-inbox-loading">Завантаження…</div></div>
+          <!-- Tasks pane (shown when ch=tasks) -->
+          <div class="ws-tasks-pane" id="wsTasksPane" style="display:none">
+            <div class="ws-tasks-list" id="wsTasksList">
+              <div class="ws-tasks-empty">Завантаження…</div>
+            </div>
+            <div class="ws-task-quick-add" id="wsTaskQuickAdd">
+              <input type="text" id="wsTaskTitle" placeholder="Нова задача для цього контрагента…"
+                     onkeydown="if(event.key==='Enter')WS.addTask()">
+              <div class="ws-task-quick-row">
+                <select id="wsTaskType">
+                  <option value="call_back">📞 Передзвонити</option>
+                  <option value="follow_up">💬 Нагадати</option>
+                  <option value="send_docs">📄 Надіслати документи</option>
+                  <option value="payment">💰 Платіж</option>
+                  <option value="meeting">📅 Зустріч</option>
+                  <option value="other" selected>✔ Інше</option>
+                </select>
+                <select id="wsTaskPriority">
+                  <option value="1">↓ Низький</option>
+                  <option value="2">→ Нормальний</option>
+                  <option value="3" selected>↑ Важливий</option>
+                  <option value="4">⚡ Терміновий</option>
+                  <option value="5">🔥 Критичний</option>
+                </select>
+                <input type="datetime-local" id="wsTaskDue" title="Дедлайн (необов'язково)">
+                <button class="ws-task-add-btn" id="wsTaskAddBtn" onclick="WS.addTask()">+ Додати</button>
+              </div>
+            </div>
+          </div>
           <div class="ws-takeover" id="wsTakeover" style="display:none">
             <span class="ws-takeover-txt">⚡ AI обробляє запит. Хочете відповісти самі?</span>
             <button class="ws-takeover-btn" onclick="WS.toggleAi()">Взяти діалог</button>
@@ -954,7 +1089,7 @@ var WS = {
         btn.classList.add('active');
         self.activeCh = btn.dataset.ch;
         self.clearChannelDot(self.activeCh);
-        self.loadMessages();
+        self.applyChPanel();
       });
     });
 
@@ -1069,9 +1204,15 @@ var WS = {
       });
     }
 
-    // Only CPs with at least one message, sorted by last_msg_at desc
-    var chatCps = cps.filter(function(c) { return c.last_msg_body !== null; });
+    // Only CPs with at least one message OR open tasks, sorted by decay score then last_msg_at
+    var chatCps = cps.filter(function(c) { return c.last_msg_body !== null || c.open_task_count > 0; });
     chatCps.sort(function(a, b) {
+      // 1. Unread first
+      if ((b.unread_count || 0) !== (a.unread_count || 0)) return (b.unread_count || 0) - (a.unread_count || 0);
+      // 2. Decay score (priority fatigue)
+      var sa = self.computeTaskScore(a), sb = self.computeTaskScore(b);
+      if (sb !== sa) return sb - sa;
+      // 3. Last activity
       var at = a.last_msg_at ? new Date(a.last_msg_at).getTime() : 0;
       var bt = b.last_msg_at ? new Date(b.last_msg_at).getTime() : 0;
       return bt - at;
@@ -1132,11 +1273,23 @@ var WS = {
       return c.last_order_status && c.last_order_status !== 'draft';
     });
 
-    var newCps     = orderCps.filter(function(c) { return c.last_order_status === 'new'; });
-    var waitingCps = orderCps.filter(function(c) { return c.last_order_status === 'waiting_payment'; });
-    var workingCps = orderCps.filter(function(c) { return ['confirmed','in_progress'].indexOf(c.last_order_status) !== -1; });
-    var shippedCps = orderCps.filter(function(c) { return c.last_order_status === 'shipped'; });
-    var doneCps    = orderCps.filter(function(c) { return ['completed','cancelled'].indexOf(c.last_order_status) !== -1; });
+    // Sort within each tier: decay score DESC then last_activity DESC
+    var tierSort = function(arr) {
+      return arr.slice().sort(function(a, b) {
+        var sa = self.computeTaskScore(a), sb = self.computeTaskScore(b);
+        if (sb !== sa) return sb - sa;
+        var at = a.last_msg_at ? new Date(a.last_msg_at).getTime() : 0;
+        var bt = b.last_msg_at ? new Date(b.last_msg_at).getTime() : 0;
+        return bt - at;
+      });
+    };
+
+    var newCps     = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'new'; }));
+    var waitingCps = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'waiting_payment'; }));
+    var paidCps    = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'paid'; }));
+    var workingCps = tierSort(orderCps.filter(function(c) { return ['confirmed','in_progress'].indexOf(c.last_order_status) !== -1; }));
+    var shippedCps = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'shipped'; }));
+    var doneCps    = tierSort(orderCps.filter(function(c) { return ['completed','cancelled'].indexOf(c.last_order_status) !== -1; }));
 
     var html = '';
 
@@ -1151,6 +1304,10 @@ var WS = {
     if (waitingCps.length > 0) {
       html += '<div class="ws-tier attention" style="--tier-dot-color:#f59e0b"><span class="ws-tier-dot" style="background:#f59e0b"></span>Очікують оплати (' + waitingCps.length + ')</div>';
       waitingCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
+    }
+    if (paidCps.length > 0) {
+      html += '<div class="ws-tier active" style="--tier-dot-color:#16a34a"><span class="ws-tier-dot" style="background:#16a34a"></span>Оплачені (' + paidCps.length + ')</div>';
+      paidCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
     }
     if (workingCps.length > 0) {
       html += '<div class="ws-tier active"><span class="ws-tier-dot"></span>В роботі (' + workingCps.length + ')</div>';
@@ -1276,9 +1433,10 @@ var WS = {
     } else if (c.phone) {
       sub = c.phone;
     }
-    var msgTxt = c.last_msg_body ? this.truncate(c.last_msg_body, 40) : (sub ? '' : '— немає активності —');
+    var msgTxt  = c.last_msg_body ? this.truncate(c.last_msg_body, 40) : (sub ? '' : '— немає активності —');
     var timeAgo = c.last_msg_at ? this.timeAgo(c.last_msg_at) : '';
-    var badge = c.unread_count > 0 ? '<span class="ws-unread-badge">' + c.unread_count + '</span>' : '';
+    var badge   = c.unread_count > 0 ? '<span class="ws-unread-badge">' + c.unread_count + '</span>' : '';
+    var taskBadge = this.renderTaskBadge(c);
     var sel = (this.kind === 'counterparty' && this.itemId === c.id) ? ' selected' : '';
     return '<div class="ws-card' + sel + '" data-kind="counterparty" data-id="' + c.id + '" data-channel="' + (c.last_msg_channel || 'viber') + '">'
       + '<div class="' + avClass + '">' + this.esc(initials) + '</div>'
@@ -1286,8 +1444,18 @@ var WS = {
       + '<div class="ws-card-row1"><span class="ws-card-name">' + this.esc(c.name) + '</span><span class="ws-card-time">' + timeAgo + '</span></div>'
       + (sub ? '<div class="ws-card-sub">' + this.esc(sub) + '</div>' : '')
       + (msgTxt ? '<div class="ws-card-msg' + (c.unread_count > 0 ? ' unread' : '') + '">' + this.esc(msgTxt) + '</div>' : '')
+      + (taskBadge ? '<div style="margin-top:3px">' + taskBadge + '</div>' : '')
       + '</div>' + badge
       + '</div>';
+  },
+
+  renderTaskBadge: function(c) {
+    if (!c.open_task_count) return '';
+    var score = this.computeTaskScore(c);
+    var isOverdue = c.next_task_due_at && new Date(c.next_task_due_at).getTime() < Date.now();
+    var cls = 'ws-task-badge' + (isOverdue ? ' overdue' : '');
+    var icon = isOverdue ? '🔴' : '✅';
+    return '<span class="' + cls + '">' + icon + ' ' + c.open_task_count + ' ' + (c.open_task_count === 1 ? 'задача' : 'задачі') + '</span>';
   },
 
   renderCpCardOrder: function(c) {
@@ -1330,7 +1498,7 @@ var WS = {
     if (sel) sel.classList.add('selected');
 
     // Switch to channel of last message (or keep current if not specified)
-    var validChannels = ['viber', 'sms', 'email', 'telegram', 'note'];
+    var validChannels = ['viber', 'sms', 'email', 'telegram', 'tasks'];
     if (channel && validChannels.indexOf(channel) !== -1) {
       this.activeCh = channel;
       document.querySelectorAll('.ws-ch-tab').forEach(function(b){ b.classList.remove('active'); });
@@ -1378,10 +1546,11 @@ var WS = {
 
   // ── Channel tab availability ───────────────────────────────────────────────
   updateChannelTabs: function(availableChannels) {
-    var avail = availableChannels || ['note'];
+    var avail = availableChannels || [];
+    // tasks tab is always available regardless of contact data
     document.querySelectorAll('.ws-ch-tab').forEach(function(btn) {
       var ch = btn.dataset.ch;
-      if (avail.indexOf(ch) !== -1) {
+      if (ch === 'tasks' || avail.indexOf(ch) !== -1) {
         btn.classList.remove('ch-unavailable');
         btn.removeAttribute('title');
       } else {
@@ -4006,7 +4175,23 @@ var WS = {
       document.getElementById(panes[k]).style.display = (k === tab) ? 'flex' : 'none';
     });
     if (!silent) {
-      if (tab === 'chat') this.loadMessages();
+      if (tab === 'chat') this.applyChPanel();
+    }
+  },
+
+  // Show tasks pane or messages pane based on activeCh
+  applyChPanel: function() {
+    var isTasks = (this.activeCh === 'tasks');
+    var msgs    = document.getElementById('wsMsgs');
+    var input   = document.querySelector('.ws-input-area');
+    var tPane   = document.getElementById('wsTasksPane');
+    if (msgs)   msgs.style.display   = isTasks ? 'none' : '';
+    if (input)  input.style.display  = isTasks ? 'none' : '';
+    if (tPane)  tPane.style.display  = isTasks ? 'flex' : 'none';
+    if (isTasks) {
+      this.loadTasks();
+    } else {
+      this.loadMessages();
     }
   },
 
@@ -4675,6 +4860,265 @@ var WS = {
   },
 
   // ── Helpers ────────────────────────────────────────────────────────────────
+  // ── Tasks ─────────────────────────────────────────────────────────────────
+
+  loadTasks: function() {
+    var self = this;
+    var url;
+    if (this.kind === 'lead') {
+      url = '/counterparties/api/get_tasks?lead_id=' + this.itemId;
+    } else {
+      url = '/counterparties/api/get_tasks?id=' + (this.activeChatCpId || this.itemId);
+    }
+    fetch(url)
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d.ok) self.renderTasks(d.tasks);
+      });
+  },
+
+  renderTasks: function(tasks) {
+    var self = this;
+    var list = document.getElementById('wsTasksList');
+    if (!list) return;
+
+    if (!tasks || tasks.length === 0) {
+      list.innerHTML = '<div class="ws-tasks-empty">Задач поки немає<br><span style="font-size:11px">Додайте першу задачу нижче</span></div>';
+      return;
+    }
+
+    var now = Date.now();
+    var html = '';
+    tasks.forEach(function(t) {
+      var priClass = 'ws-task-pri-' + Math.max(1, Math.min(5, parseInt(t.priority) || 3));
+      var icon = self.taskTypeIcon(t.task_type);
+      var dueHtml = self.taskDueHtml(t.due_at, t.status);
+      var isDone    = t.status === 'done';
+      var isSnoozed = t.status === 'snoozed';
+      var cardClass = 'ws-task-card' + (isDone ? ' done-card' : '') + (isSnoozed ? ' snoozed-card' : '');
+
+      var actsHtml = '';
+      if (!isDone) {
+        actsHtml += '<button class="ws-task-act done-btn" onclick="WS.doneTask(' + t.id + ')" title="Виконано">✓</button>';
+        if (!isSnoozed) {
+          actsHtml += '<button class="ws-task-act snooze-btn" onclick="WS.toggleSnoozeMenu(event,' + t.id + ')" title="Відкласти">💤</button>';
+        } else {
+          actsHtml += '<button class="ws-task-act snooze-btn" onclick="WS.wakeTask(' + t.id + ')" title="Зняти відкладення" style="color:#7c3aed">▶</button>';
+        }
+      }
+
+      var snoozedLbl = isSnoozed && t.snoozed_until
+        ? '<span class="ws-task-snoozed-lbl">💤 до ' + self.formatSnoozedUntil(t.snoozed_until) + '</span>' : '';
+
+      html += '<div class="' + cardClass + '">'
+        + '<div class="ws-task-pri-bar ' + priClass + '"></div>'
+        + '<div class="ws-task-body">'
+        + '<div class="ws-task-icon">' + icon + '</div>'
+        + '<div class="ws-task-content">'
+        + '<div class="ws-task-title">' + self.esc(t.title) + '</div>'
+        + '<div class="ws-task-meta">'
+        + '<span class="ws-task-type-lbl">' + self.taskTypeLabel(t.task_type) + '</span>'
+        + dueHtml + snoozedLbl
+        + '</div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="ws-task-acts">' + actsHtml + '</div>'
+        + '</div>';
+    });
+
+    list.innerHTML = html;
+  },
+
+  taskDueHtml: function(dueAt, status) {
+    if (status === 'done') return '';
+    if (!dueAt) return '<span class="ws-task-due no-due">без дедлайну</span>';
+    var now    = Date.now();
+    var due    = new Date(dueAt).getTime();
+    var hoursLeft = (due - now) / 3600000;
+    var label  = this.formatDueAt(dueAt);
+    if (hoursLeft <= 0)     return '<span class="ws-task-due overdue">🔴 ' + label + '</span>';
+    if (hoursLeft < 4)      return '<span class="ws-task-due due-soon">🟠 ' + label + '</span>';
+    if (hoursLeft < 24)     return '<span class="ws-task-due due-today">🟡 ' + label + '</span>';
+    return '<span class="ws-task-due due-later">🟢 ' + label + '</span>';
+  },
+
+  formatDueAt: function(dueAt) {
+    var d   = new Date(dueAt);
+    var now = new Date();
+    var isToday    = d.toDateString() === now.toDateString();
+    var tomorrow   = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    var isTomorrow = d.toDateString() === tomorrow.toDateString();
+    var hhmm = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+    if (isToday)    return 'Сьогодні ' + hhmm;
+    if (isTomorrow) return 'Завтра ' + hhmm;
+    // Past
+    var hoursAgo = (Date.now() - d.getTime()) / 3600000;
+    if (hoursAgo > 0) {
+      if (hoursAgo < 24) return 'Прострочено ' + Math.round(hoursAgo) + 'г';
+      return 'Прострочено ' + Math.round(hoursAgo / 24) + 'д';
+    }
+    var months = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
+    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + hhmm;
+  },
+
+  formatSnoozedUntil: function(until) {
+    var d   = new Date(until);
+    var now = new Date();
+    var isToday = d.toDateString() === now.toDateString();
+    var hhmm = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+    return isToday ? hhmm : (d.getDate() + '.' + ('0'+(d.getMonth()+1)).slice(-2) + ' ' + hhmm);
+  },
+
+  taskTypeIcon: function(type) {
+    var map = { call_back:'📞', follow_up:'💬', send_docs:'📄', payment:'💰', meeting:'📅', other:'✔' };
+    return map[type] || '✔';
+  },
+
+  taskTypeLabel: function(type) {
+    var map = { call_back:'Передзвонити', follow_up:'Нагадати', send_docs:'Надіслати документи', payment:'Платіж', meeting:'Зустріч', other:'Інше' };
+    return map[type] || 'Інше';
+  },
+
+  addTask: function() {
+    var self  = this;
+    var title = document.getElementById('wsTaskTitle').value.trim();
+    if (!title) { document.getElementById('wsTaskTitle').focus(); return; }
+    var btn   = document.getElementById('wsTaskAddBtn');
+    btn.disabled = true;
+    var fd = new FormData();
+    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
+    else                      fd.append('id', this.activeChatCpId || this.itemId);
+    fd.append('title',     title);
+    fd.append('task_type', document.getElementById('wsTaskType').value);
+    fd.append('priority',  document.getElementById('wsTaskPriority').value);
+    var dueVal = document.getElementById('wsTaskDue').value;
+    if (dueVal) fd.append('due_at', dueVal);
+    fetch('/counterparties/api/save_task', { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        btn.disabled = false;
+        if (d.ok) {
+          document.getElementById('wsTaskTitle').value = '';
+          document.getElementById('wsTaskDue').value   = '';
+          self.renderTasks(d.tasks);
+          // Refresh inbox card task badge
+          self.refreshInboxCard();
+        } else {
+          showToast('Помилка: ' + (d.error || ''), true);
+        }
+      });
+  },
+
+  doneTask: function(taskId) {
+    var self = this;
+    var fd = new FormData();
+    fd.append('task_id', taskId);
+    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
+    else                      fd.append('id', this.activeChatCpId || this.itemId);
+    fetch('/counterparties/api/done_task', { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d.ok) { self.renderTasks(d.tasks); self.refreshInboxCard(); }
+      });
+  },
+
+  toggleSnoozeMenu: function(e, taskId) {
+    e.stopPropagation();
+    // Remove any existing snooze menus
+    document.querySelectorAll('.ws-snooze-menu').forEach(function(m){ m.remove(); });
+    var btn = e.currentTarget;
+    var opts = [
+      { label: '1 година',      minutes: 60 },
+      { label: '4 години',      minutes: 240 },
+      { label: 'Завтра 9:00',   minutes: this.minutesUntilTomorrow9() },
+      { label: 'Через тиждень', minutes: 60 * 24 * 7 },
+    ];
+    var self = this;
+    var menu = document.createElement('div');
+    menu.className = 'ws-snooze-menu';
+    opts.forEach(function(o) {
+      var b = document.createElement('button');
+      b.className = 'ws-snooze-item';
+      b.textContent = o.label;
+      b.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        menu.remove();
+        self.snoozeTask(taskId, o.minutes);
+      });
+      menu.appendChild(b);
+    });
+    btn.style.position = 'relative';
+    btn.appendChild(menu);
+    var close = function() { menu.remove(); document.removeEventListener('click', close); };
+    setTimeout(function(){ document.addEventListener('click', close); }, 0);
+  },
+
+  snoozeTask: function(taskId, minutes) {
+    var self = this;
+    var fd = new FormData();
+    fd.append('task_id', taskId);
+    fd.append('minutes', minutes);
+    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
+    else                      fd.append('id', this.activeChatCpId || this.itemId);
+    fetch('/counterparties/api/snooze_task', { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d.ok) { self.renderTasks(d.tasks); self.refreshInboxCard(); }
+      });
+  },
+
+  wakeTask: function(taskId) {
+    var self = this;
+    var fd = new FormData();
+    fd.append('task_id', taskId);
+    fd.append('wake', 1);
+    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
+    else                      fd.append('id', this.activeChatCpId || this.itemId);
+    fetch('/counterparties/api/snooze_task', { method: 'POST', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d.ok) { self.renderTasks(d.tasks); self.refreshInboxCard(); }
+      });
+  },
+
+  minutesUntilTomorrow9: function() {
+    var now  = new Date();
+    var tom  = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0);
+    return Math.max(60, Math.round((tom.getTime() - now.getTime()) / 60000));
+  },
+
+  // Refresh the task badge on the inbox card without full reload
+  refreshInboxCard: function() {
+    var self = this;
+    if (!this.itemId || this.kind !== 'counterparty') return;
+    // Re-fetch inbox silently to update task stats
+    fetch('/counterparties/api/get_inbox?mode=' + this.mode)
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (!d.ok) return;
+        self.inboxData = d;
+        self.renderInbox();
+      });
+  },
+
+  // ── Decay Score (Priority Fatigue model) ──────────────────────────────────
+  // Decay + Action Required: score grows as deadline approaches.
+  // Max score: priority=5 overdue → 100 + 200 = 300
+  computeTaskScore: function(cp) {
+    if (!cp.open_task_count) return 0;
+    var base = (cp.next_task_priority || 3) * 20;  // 20-100
+    if (cp.next_task_due_at) {
+      var hoursLeft = (new Date(cp.next_task_due_at).getTime() - Date.now()) / 3600000;
+      if (hoursLeft <= 0)      base += 200;
+      else if (hoursLeft < 4)  base += 80;
+      else if (hoursLeft < 24) base += 40;
+      else if (hoursLeft < 72) base += 15;
+    } else {
+      base += Math.min(cp.open_task_count * 5, 20);
+    }
+    return base;
+  },
+
   esc: function(s) {
     if (!s) return '';
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
