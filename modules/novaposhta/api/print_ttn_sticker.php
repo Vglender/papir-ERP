@@ -45,4 +45,9 @@ if ($format === 'a4_6') {
          . '/apiKey/' . $ttn['sender_api'];
 }
 
+// Позначаємо як розпечатану
+\Database::update('Papir', 'ttn_novaposhta',
+    array('is_printed' => 1),
+    array('id' => $ttnId));
+
 header('Location: ' . $url);

@@ -125,6 +125,7 @@ class TtnRepository
                     t.weight, t.seats_amount,
                     t.service_type, t.payment_method,
                     t.sender_ref,
+                    t.scan_sheet_ref, t.car_call, t.is_printed,
                     s.Description AS sender_desc
              FROM ttn_novaposhta t
              LEFT JOIN np_sender s ON s.Ref = t.sender_ref

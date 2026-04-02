@@ -88,6 +88,39 @@ class TtnService
             ));
         }
 
+        // OptionsSeat (per-seat dimensions)
+        if (!empty($params['options_seat'])) {
+            $rawSeats = $params['options_seat'];
+            $decoded  = is_array($rawSeats) ? $rawSeats : json_decode($rawSeats, true);
+            if (is_array($decoded) && !empty($decoded)) {
+                $manualHandling = !empty($params['manual_handling']);
+                $seatsArr = array();
+                foreach ($decoded as $s) {
+                    $w  = isset($s['weight']) ? (float)$s['weight'] : 0;
+                    $l  = isset($s['length']) ? (int)$s['length']   : 0;
+                    $wi = isset($s['width'])  ? (int)$s['width']    : 0;
+                    $hh = isset($s['height']) ? (int)$s['height']   : 0;
+                    $vol = ($l > 0 && $wi > 0 && $hh > 0) ? round($l * $wi * $hh / 4000, 2) : 0;
+                    $seat = array(
+                        'weight'           => (string)$w,
+                        'volumetricWidth'  => (string)$wi,
+                        'volumetricLength' => (string)$l,
+                        'volumetricHeight' => (string)$hh,
+                        'volumetricVolume' => (string)$vol,
+                    );
+                    // Per-seat manual handling
+                    $seatManual = !empty($s['manual']) || $manualHandling;
+                    if ($seatManual) {
+                        $seat['optionsSeat'] = 'MANUALSORT';
+                    }
+                    $seatsArr[] = $seat;
+                }
+                if ($seatsArr) {
+                    $docProps['OptionsSeat'] = $seatsArr;
+                }
+            }
+        }
+
         $r = $np->call('InternetDocument', 'save', $docProps);
         if (!$r['ok']) {
             return array('ok' => false, 'error' => $r['error']);
@@ -105,8 +138,12 @@ class TtnService
             'ew_date_created'          => date('Y-m-d H:i:s'),
             'estimated_delivery_date'  => isset($npDoc['EstimatedDeliveryDate']) ? self::parseNpDate($npDoc['EstimatedDeliveryDate']) : null,
             'sender_ref'               => $senderRef,
+            'sender_address_ref'       => $senderAddrRef ?: null,
             'city_sender_desc'         => isset($params['city_sender_desc'])    ? $params['city_sender_desc']    : null,
+            'city_sender_ref'          => isset($params['city_sender_ref'])     ? $params['city_sender_ref']     : null,
             'city_recipient_desc'      => isset($params['city_recipient_desc']) ? $params['city_recipient_desc'] : null,
+            'city_recipient_ref'       => isset($params['city_recipient_ref'])  ? $params['city_recipient_ref']  : null,
+            'recipient_np_ref'         => $npRecipientRef ?: null,
             'recipient_address'        => $npAddressRef,
             'recipient_address_desc'   => isset($params['recipient_address_desc']) ? $params['recipient_address_desc'] : null,
             'recipients_phone'         => $params['recipient_phone'],
@@ -121,8 +158,12 @@ class TtnService
             'cost'                     => isset($npDoc['CostOnSite']) ? (float)$npDoc['CostOnSite'] : null,
             'cost_on_site'             => isset($npDoc['CostOnSite']) ? (float)$npDoc['CostOnSite'] : null,
             'backward_delivery_money'  => $backMoney > 0 ? $backMoney : 0,
+            'description'              => isset($params['description'])    ? $params['description']    : null,
+            'declared_value'           => isset($params['cost'])           ? (int)$params['cost']      : null,
             'weight'                   => $docProps['Weight'],
             'seats_amount'             => $docProps['SeatsAmount'],
+            'options_seat'             => !empty($params['options_seat']) ? (is_array($params['options_seat']) ? json_encode($params['options_seat']) : $params['options_seat']) : null,
+            'manual_handling'          => !empty($params['manual_handling']) ? 1 : 0,
             'state_name'               => 'Відправник самостійно створив цю накладну, але ще не надав до відправки',
             'state_define'             => 1,
             'deletion_mark'            => 0,

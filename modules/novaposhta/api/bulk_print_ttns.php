@@ -84,6 +84,12 @@ foreach ($groups as $apiKey => $numbers) {
             . '/limit/106/page/1';
 }
 
+// Позначаємо всі як розпечатані
+if (!empty($idList)) {
+    \Database::query('Papir',
+        "UPDATE ttn_novaposhta SET is_printed = 1 WHERE id IN ({$inSql})");
+}
+
 echo json_encode(array(
     'ok'      => true,
     'urls'    => $urls,
