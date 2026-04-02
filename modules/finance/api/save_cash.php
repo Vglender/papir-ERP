@@ -17,6 +17,7 @@ $cpId      = isset($_POST['cp_id'])     ? (int)$_POST['cp_id']                  
 $purpose   = isset($_POST['payment_purpose']) ? trim($_POST['payment_purpose'])                  : '';
 $desc      = isset($_POST['description'])     ? trim($_POST['description'])                      : '';
 $isMoving      = !empty($_POST['is_moving']) ? 1 : 0;
+$isPostedInput = isset($_POST['is_posted']) ? (int)$_POST['is_posted'] : null;
 $expCategoryId = isset($_POST['expense_category_id']) ? (int)$_POST['expense_category_id'] : 0;
 
 if (!in_array($direction, array('in', 'out'))) {
@@ -62,6 +63,9 @@ $data = array(
     'is_moving'           => $isMoving,
     'expense_category_id' => ($direction === 'out' && $expCategoryId > 0) ? $expCategoryId : null,
 );
+if ($isPostedInput !== null) {
+    $data['is_posted'] = $isPostedInput ? 1 : 0;
+}
 
 if ($id > 0) {
     // Читаем текущую запись для id_ms, organization_ms, is_posted, agent_ms_type, agent_ms
@@ -70,7 +74,8 @@ if ($id > 0) {
     );
     $existingIdMs = ($curRow['ok'] && $curRow['row']) ? (string)$curRow['row']['id_ms']          : '';
     $orgMs        = ($curRow['ok'] && $curRow['row']) ? (string)$curRow['row']['organization_ms'] : '';
-    $isPosted     = ($curRow['ok'] && $curRow['row']) ? (int)$curRow['row']['is_posted']          : 1;
+    $isPosted     = ($isPostedInput !== null) ? ($isPostedInput ? 1 : 0)
+                  : (($curRow['ok'] && $curRow['row']) ? (int)$curRow['row']['is_posted'] : 1);
     $agentMsType  = ($curRow['ok'] && $curRow['row']) ? (string)$curRow['row']['agent_ms_type']   : 'counterparty';
     // agent_ms после save — это $agentMs из формы (уже в $data), либо из DB если не меняли
     $effectiveAgentMs = ($agentMs !== null) ? (string)$agentMs : (string)$curRow['row']['agent_ms'];

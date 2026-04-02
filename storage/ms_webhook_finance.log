@@ -159,3 +159,48 @@
 2026-04-02 00:30:28 Done: processed=1 errors=0
 2026-04-02 00:30:29 Updated finance_bank id=79578 ms_id=0085bfcd-2e12-11f1-0a80-01af0004f216
 2026-04-02 00:30:29 Done: processed=1 errors=0
+2026-04-02 03:55:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a09893e8-2e2e-11f1-0a80-1d4d00072570"},"uid":"admin@papierinvest","moment":"2026-04-02 03:55:22"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/a0927530-2e2e-11f1-0a80-1d4d0007256d"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 03:55:22 Updated finance_bank id=79580 ms_id=a0927530-2e2e-11f1-0a80-1d4d0007256d
+2026-04-02 03:55:22 Done: processed=1 errors=0
+2026-04-02 04:30:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8477697c-2e33-11f1-0a80-13530007d77c"},"uid":"admin@papierinvest","moment":"2026-04-02 04:30:22"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/847044cf-2e33-11f1-0a80-13530007d779"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 04:30:23 Updated finance_bank id=79581 ms_id=847044cf-2e33-11f1-0a80-13530007d779
+2026-04-02 04:30:23 Done: processed=1 errors=0
+2026-04-02 07:05:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/2b31fdee-2e49-11f1-0a80-05580009ee16"},"uid":"admin@papierinvest","moment":"2026-04-02 07:05:21"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/2b2d5e71-2e49-11f1-0a80-05580009ee13"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 07:05:22 Updated finance_bank id=79582 ms_id=2b2d5e71-2e49-11f1-0a80-05580009ee13
+2026-04-02 07:05:22 Done: processed=1 errors=0
+2026-04-02 08:25:03 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4d11926a-2e54-11f1-0a80-16e2000337fe"},"uid":"vglender@papierinvest","moment":"2026-04-02 08:25:03"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/4cf846fc-2e54-11f1-0a80-16e2000337f9"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:25:03 Inserted finance_bank id=79583 ms_id=4cf846fc-2e54-11f1-0a80-16e2000337f9
+2026-04-02 08:25:03 Done: processed=1 errors=0
+2026-04-02 08:50:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d8688c72-2e57-11f1-0a80-1be5000c9794"},"uid":"admin@papierinvest","moment":"2026-04-02 08:50:25"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/d8633202-2e57-11f1-0a80-1be5000c9791"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:50:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d8688c72-2e57-11f1-0a80-1be5000c9794"},"uid":"admin@papierinvest","moment":"2026-04-02 08:50:25"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/d86e6fba-2e57-11f1-0a80-1be5000c9796"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:50:26 Inserted finance_bank id=79586 ms_id=d8633202-2e57-11f1-0a80-1be5000c9791
+2026-04-02 08:50:26 Done: processed=1 errors=0
+2026-04-02 08:50:26 Updated finance_bank id=79585 ms_id=d86e6fba-2e57-11f1-0a80-1be5000c9796
+2026-04-02 08:50:26 Done: processed=1 errors=0
+2026-04-02 10:45:53 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f9dc49d1-2e67-11f1-0a80-1c700006c498"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:45:53"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/f9cd6f79-2e67-11f1-0a80-1c700006c48a"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:45:54 Inserted finance_bank id=79587 ms_id=f9cd6f79-2e67-11f1-0a80-1c700006c48a
+2026-04-02 10:45:54 Done: processed=1 errors=0
+2026-04-02 12:00:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7506f01e-2e72-11f1-0a80-174b00129aa3"},"uid":"admin@papierinvest","moment":"2026-04-02 12:00:54"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/847044cf-2e33-11f1-0a80-13530007d779"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:00:55 Updated finance_bank id=79581 ms_id=847044cf-2e33-11f1-0a80-13530007d779
+2026-04-02 12:00:55 Done: processed=1 errors=0
+2026-04-02 12:07:19 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5a319dc5-2e73-11f1-0a80-1c7000096516"},"uid":"vglender@papierinvest","moment":"2026-04-02 12:07:19"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/847044cf-2e33-11f1-0a80-13530007d779"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:20 Updated finance_bank id=79581 ms_id=847044cf-2e33-11f1-0a80-13530007d779
+2026-04-02 12:07:20 Done: processed=1 errors=0
+2026-04-02 12:40:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0bcb5048-2e78-11f1-0a80-1d4d0013ad16"},"uid":"admin@papierinvest","moment":"2026-04-02 12:40:55"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/f9cd6f79-2e67-11f1-0a80-1c700006c48a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:40:56 Updated finance_bank id=79587 ms_id=f9cd6f79-2e67-11f1-0a80-1c700006c48a
+2026-04-02 12:40:56 Done: processed=1 errors=0
+2026-04-02 12:41:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/12881061-2e78-11f1-0a80-01af00146405"},"uid":"admin@papierinvest","moment":"2026-04-02 12:41:06"},"events":[{"meta":{"type":"paymentin","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentin/f9cd6f79-2e67-11f1-0a80-1c700006c48a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:41:07 Updated finance_bank id=79587 ms_id=f9cd6f79-2e67-11f1-0a80-1c700006c48a
+2026-04-02 12:41:07 Done: processed=1 errors=0
+2026-04-02 12:59:20 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/9e68b8c1-2e7a-11f1-0a80-11b40014b480"},"uid":"admin@papierinvest","moment":"2026-04-02 12:59:20"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/9e642106-2e7a-11f1-0a80-11b40014b47d"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:59:21 Updated finance_bank id=79584 ms_id=9e642106-2e7a-11f1-0a80-11b40014b47d
+2026-04-02 12:59:21 Done: processed=1 errors=0
+2026-04-02 12:59:29 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a3b9a4e6-2e7a-11f1-0a80-01af0014f130"},"uid":"admin@papierinvest","moment":"2026-04-02 12:59:29"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/9e642106-2e7a-11f1-0a80-11b40014b47d"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:59:29 Fetch error for 9e642106-2e7a-11f1-0a80-11b40014b47d: {"errors":[{"error":"\u041e\u0431\u044a\u0435\u043a\u0442 \u0441 \u0442\u0438\u043f\u043e\u043c 'paymentout' \u0438 \u0438\u0434\u0435\u043d\u0442\u0438\u0444\u0438\u043a\u0430\u0442\u043e\u0440\u043e\u043c '9e642106-2e7a-11f1-0a80-11b40014b47d' \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d","code":1021,"moreInfo":"https:\/\/dev.moysklad.ru\/doc\/api\/remap\/1.2\/#\/errors#error_1021"}]}
+2026-04-02 12:59:29 Done: processed=0 errors=1
+2026-04-02 12:59:29 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a3f3dbcb-2e7a-11f1-0a80-09e10014a277"},"uid":"admin@papierinvest","moment":"2026-04-02 12:59:29"},"events":[{"meta":{"type":"paymentout","href":"https://api.moysklad.ru/api/remap/1.2/entity/paymentout/9e642106-2e7a-11f1-0a80-11b40014b47d"},"action":"DELETE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:59:29 DELETE event for paymentout/9e642106-2e7a-11f1-0a80-11b40014b47d → set is_posted=0 in finance_bank, affected=0
+2026-04-02 12:59:29 Done: processed=1 errors=0
+2026-04-02 13:00:01 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/b68917b3-2e7a-11f1-0a80-1352000b39f2"},"uid":"vglender@papierinvest","moment":"2026-04-02 13:00:00"},"events":[{"meta":{"type":"cashin","href":"https://api.moysklad.ru/api/remap/1.2/entity/cashin/c2302542-2e6f-11f1-0a80-174b0011f9b4"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:00:01 Inserted finance_cash id=40349 ms_id=c2302542-2e6f-11f1-0a80-174b0011f9b4
+2026-04-02 13:00:01 Done: processed=1 errors=0

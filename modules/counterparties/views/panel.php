@@ -846,16 +846,8 @@ foreach ($contacts as $_ct) {
                         updateInputState();
                     }
                     renderMessages(d.messages);
-                    // Clear unread badge for this channel
-                    if (unreadBadge) {
-                        fetch('/counterparties/api/get_messages?id=' + cpId + '&limit=1')
-                            .then(function(r2){ return r2.json(); })
-                            .then(function(d2) {
-                                // We just need to trigger markRead which happens server-side
-                                // Update badge to 0 visually
-                                if (unreadBadge) unreadBadge.style.display = 'none';
-                            });
-                    }
+                    // markRead already called server-side in get_messages when channel is passed
+                    if (unreadBadge) { unreadBadge.style.display = 'none'; }
                 } else {
                     msgList.innerHTML = '<div class="cpp-msgs-empty">' + esc(d.error || 'Помилка') + '</div>';
                 }
@@ -971,7 +963,10 @@ foreach ($contacts as $_ct) {
         });
 
         msgText.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { msgSendBtn.click(); }
+            if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                msgSendBtn.click();
+            }
         });
     }
 

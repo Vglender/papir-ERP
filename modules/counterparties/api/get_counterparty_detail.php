@@ -20,7 +20,7 @@ if (!$cp) {
 }
 
 $stats        = $repo->getOrderStats($id);
-$recentOrders = $repo->getRecentOrders($id, 5);
+$recentOrders = $repo->getRecentOrders($id, 100);
 $allContacts  = $repo->getContacts($id);
 
 function cpAvailableChannels($phone, $email, $telegramChatId) {
@@ -116,6 +116,16 @@ echo json_encode(array(
         'sum_total'      => (float)$activeOrder['sum_total'],
         'moment'         => $activeOrder['moment'],
     ) : null,
+    'recent_orders' => array_values(array_map(function($o) use ($orderStatusLabels) {
+        return array(
+            'id'           => (int)$o['id'],
+            'number'       => $o['number'],
+            'status'       => $o['status'],
+            'status_label' => isset($orderStatusLabels[$o['status']]) ? $orderStatusLabels[$o['status']] : $o['status'],
+            'sum_total'    => (float)$o['sum_total'],
+            'moment'       => $o['moment'],
+        );
+    }, $recentOrders)),
     'order_status_labels' => $orderStatusLabels,
     'unread_by_channel'   => $unreadByChannel,
     'contacts'            => array_values(array_filter(array_map(function($ct) {

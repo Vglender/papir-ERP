@@ -18,6 +18,7 @@ $cpId      = isset($_POST['cp_id'])     ? (int)$_POST['cp_id']            : 0;
 $purpose   = isset($_POST['payment_purpose']) ? trim($_POST['payment_purpose']) : '';
 $desc      = isset($_POST['description'])     ? trim($_POST['description'])     : '';
 $isMoving       = !empty($_POST['is_moving']) ? 1 : 0;
+$isPostedInput  = isset($_POST['is_posted']) ? (int)$_POST['is_posted'] : null;
 $expCategoryId  = isset($_POST['expense_category_id']) ? (int)$_POST['expense_category_id'] : 0;
 
 if (!in_array($direction, array('in', 'out'))) {
@@ -51,6 +52,9 @@ $data = array(
     'cp_id'               => $cpId > 0 ? $cpId : null,
     'expense_category_id' => ($direction === 'out' && $expCategoryId > 0) ? $expCategoryId : null,
 );
+if ($isPostedInput !== null) {
+    $data['is_posted'] = $isPostedInput ? 1 : 0;
+}
 
 require_once __DIR__ . '/finance_ms_sync.php';
 
@@ -61,7 +65,8 @@ if ($id > 0) {
     );
     $existingIdMs = ($curRow['ok'] && $curRow['row']) ? (string)$curRow['row']['id_ms']          : '';
     $orgMs        = ($curRow['ok'] && $curRow['row']) ? (string)$curRow['row']['organization_ms'] : '';
-    $isPosted     = ($curRow['ok'] && $curRow['row']) ? (int)$curRow['row']['is_posted']          : 1;
+    $isPosted     = ($isPostedInput !== null) ? ($isPostedInput ? 1 : 0)
+                  : (($curRow['ok'] && $curRow['row']) ? (int)$curRow['row']['is_posted'] : 1);
     $agentMsType  = ($curRow['ok'] && $curRow['row']) ? (string)$curRow['row']['agent_ms_type']   : '';
 
     $r = Database::update('Papir', 'finance_bank', $data, array('id' => $id));

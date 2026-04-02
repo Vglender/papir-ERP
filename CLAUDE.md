@@ -560,6 +560,12 @@ modules/counterparties/
 
 **Tables:** `cp_messages` (id, counterparty_id, channel, direction, status, phone, body, external_id, read_at, created_at), `cp_message_templates` (id, title, body, channels csv, sort_order, status).
 
+**Денормалізовані поля в `counterparty`** (оновлюються автоматично в `ChatRepository`):
+- `last_activity_at DATETIME` — час останнього повідомлення або замовлення; індекс `idx_cp_activity (status, last_activity_at)`. Оновлюється в `saveMessage()`. Бекфілл при міграції: MAX(cp_messages.created_at, customerorder.moment, counterparty.created_at).
+- `unread_count INT UNSIGNED` — кількість непрочитаних вхідних. Інкрементується в `saveMessage(direction=in)`, перераховується в `markRead()`.
+
+> ⚠️ Не оновлювати `counterparty.unread_count` вручну — лише через `ChatRepository`. При додаванні нового каналу (webhook) — переконатись, що `saveMessage` викликається (а не прямий INSERT в `cp_messages`).
+
 **AlphaSmsService** (`modules/shared/AlphaSmsService.php`) — статичний клас: `sendViber($phone, $text)`, `sendSms($phone, $text)`, `normalizePhone($phone)` → `380XXXXXXXXX`, `phoneLast9($phone)`.
 
 **Webhook URL для Alpha SMS:** `https://papir.officetorg.com.ua/counterparties/webhook/viber_in`

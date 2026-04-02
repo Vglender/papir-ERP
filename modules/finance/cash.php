@@ -3,6 +3,14 @@ require_once __DIR__ . '/finance_bootstrap.php';
 
 $repo = new FinanceCashRepository();
 
+// Дефолти при першому відкритті (без фільтрів у URL)
+if (!isset($_GET['date_from']) && !isset($_GET['date_to']) && !isset($_GET['search'])
+    && !isset($_GET['direction']) && !isset($_GET['_period'])) {
+    $today = date('Y-m-d');
+    header('Location: /finance/cash?date_from=' . $today . '&date_to=' . $today . '&show_drafts=1&_period=today');
+    exit;
+}
+
 $search    = isset($_GET['search'])    ? trim($_GET['search'])      : '';
 $direction = isset($_GET['direction']) ? trim($_GET['direction'])   : '';
 $dateFrom  = isset($_GET['date_from']) ? trim($_GET['date_from'])   : '';

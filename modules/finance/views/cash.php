@@ -295,6 +295,7 @@
                                 'moving'     => $isMoving,
                                 'source'     => $row['source'],
                                 'exp_cat_id' => $row['expense_category_id'] ? (int)$row['expense_category_id'] : null,
+                                'is_posted'  => (int)$row['is_posted'],
                             ));
                         ?>
                         <tr class="fin-row<?php echo $isMoving ? ' moving' : ''; ?>"
@@ -467,6 +468,10 @@
                         <label class="fin-moving-label">
                             <input type="checkbox" id="panelIsMoving" name="is_moving" value="1">
                             <span>Внутрішній переказ між рахунками</span>
+                        </label>
+                        <label class="fin-moving-label">
+                            <input type="checkbox" id="panelIsPosted" name="is_posted" value="1">
+                            <span>Активний (проведений)</span>
                         </label>
                     </div>
 
@@ -666,6 +671,7 @@ var panelDoc      = document.getElementById('panelDoc');
 var panelPurp     = document.getElementById('panelPurpose');
 var panelDesc     = document.getElementById('panelDesc');
 var panelIsMove   = document.getElementById('panelIsMoving');
+var panelIsPosted = document.getElementById('panelIsPosted');
 var panelErr      = document.getElementById('panelErr');
 var panelSrcBadge = document.getElementById('panelSrcBadge');
 var cpLink        = document.getElementById('finCpLink');
@@ -709,6 +715,7 @@ function openPanel(row) {
     panelPurp.value         = d.purpose || '';
     panelDesc.value         = d.desc    || '';
     panelIsMove.checked     = !!d.moving;
+    panelIsPosted.checked   = d.is_posted !== undefined ? !!d.is_posted : true;
     cpNameInput.value       = d.cp_name || '';
     cpIdInput.value         = d.cp_id   || '';
     panelExpCat.value       = d.exp_cat_id ? String(d.exp_cat_id) : '';
@@ -733,6 +740,7 @@ function openNewPanel() {
     panelPurp.value             = '';
     panelDesc.value             = '';
     panelIsMove.checked         = false;
+    panelIsPosted.checked       = true;
     cpNameInput.value           = '';
     cpIdInput.value             = '';
     panelExpCat.value           = '';
@@ -782,6 +790,7 @@ document.getElementById('finPanelForm').addEventListener('submit', function(e) {
     body.append('description',         panelDesc.value);
     body.append('expense_category_id', panelExpCat.value);
     if (panelIsMove.checked) body.append('is_moving', '1');
+    body.append('is_posted', panelIsPosted.checked ? '1' : '0');
 
     fetch('/finance/api/save_cash', { method:'POST', body: body, credentials:'same-origin' })
         .then(function(r){
@@ -809,6 +818,7 @@ document.getElementById('finPanelForm').addEventListener('submit', function(e) {
                 d.purpose   = panelPurp.value;
                 d.desc      = panelDesc.value;
                 d.moving    = panelIsMove.checked;
+                d.is_posted = panelIsPosted.checked ? 1 : 0;
                 d.cp_name   = (data.cp_name !== undefined) ? data.cp_name : cpNameInput.value;
                 d.cp_id     = cpIdInput.value || '';
                 d.exp_cat_id = panelExpCat.value ? parseInt(panelExpCat.value) : null;
@@ -819,6 +829,16 @@ document.getElementById('finPanelForm').addEventListener('submit', function(e) {
                     if (d.moving)        { badge.className='fin-badge-mov'; badge.textContent='⇄'; }
                     else if (dir==='in') { badge.className='fin-badge-in';  badge.textContent='↓'; }
                     else                 { badge.className='fin-badge-out'; badge.textContent='↑'; }
+                }
+                var draftBadge = activeRow.querySelector('.fin-badge-draft');
+                if (d.is_posted) {
+                    if (draftBadge) draftBadge.remove();
+                } else {
+                    if (!draftBadge) {
+                        var nb = document.createElement('span');
+                        nb.className = 'fin-badge-draft'; nb.textContent = 'чернетка';
+                        badge.parentNode.appendChild(nb);
+                    }
                 }
                 var sumCell = activeRow.querySelector('.fin-sum-cell');
                 if (sumCell) {

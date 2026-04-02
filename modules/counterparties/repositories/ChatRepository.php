@@ -21,8 +21,9 @@ class ChatRepository
 
     public function saveMessage($data)
     {
+        $cid = (int)$data['counterparty_id'];
         $row = array(
-            'counterparty_id' => (int)$data['counterparty_id'],
+            'counterparty_id' => $cid,
             'channel'         => $data['channel'],
             'direction'       => isset($data['direction'])       ? $data['direction']       : 'out',
             'operator_name'   => isset($data['operator_name'])   ? $data['operator_name']   : null,
@@ -39,7 +40,17 @@ class ChatRepository
             $row['created_at'] = $data['created_at'];
         }
         $r = Database::insert('Papir', 'cp_messages', $row);
-        return ($r['ok']) ? (int)$r['insert_id'] : 0;
+        if (!$r['ok']) { return 0; }
+
+        // Update counterparty activity: last_activity_at + unread_count for inbound messages
+        if ($cid > 0) {
+            $direction = isset($data['direction']) ? $data['direction'] : 'out';
+            $unreadSql = ($direction === 'in') ? ', unread_count = unread_count + 1' : '';
+            Database::query('Papir',
+                "UPDATE counterparty SET last_activity_at = NOW(){$unreadSql} WHERE id = {$cid}");
+        }
+
+        return (int)$r['insert_id'];
     }
 
     public function getUnreadCount($counterpartyId)
@@ -62,6 +73,15 @@ class ChatRepository
             $where .= " AND channel = '{$ch}'";
         }
         Database::query('Papir', "UPDATE cp_messages SET read_at = NOW() WHERE {$where}");
+
+        // Recalculate denormalized unread_count on counterparty
+        Database::query('Papir',
+            "UPDATE counterparty SET unread_count = (
+                SELECT COUNT(*) FROM cp_messages
+                WHERE counterparty_id = {$cid}
+                  AND direction = 'in' AND read_at IS NULL
+                  AND (scheduled_at IS NULL OR scheduled_at <= NOW())
+             ) WHERE id = {$cid}");
     }
 
     public function saveReminder($counterpartyId, $body, $scheduledAt, $assignedTo = null)

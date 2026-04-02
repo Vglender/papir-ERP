@@ -87,9 +87,10 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
         <th style="width:28px"></th>
         <th><input type="checkbox" id="ssCheckAll" title="Вибрати всі"></th>
         <th>Номер реєстру</th>
-        <th>ТТН</th>
-        <th style="text-align:right">Сума ТТН</th>
-        <th style="text-align:right">Накл. платіж</th>
+        <th style="text-align:right">ТТН</th>
+        <th style="text-align:right">Місць</th>
+        <th style="text-align:right;background:#f0fdf4;color:#166534">Сума ТТН</th>
+        <th style="text-align:right;background:#fff7ed;color:#9a3412">Накл. платіж</th>
         <th>Дата</th>
         <th>Статус</th>
         <th></th>

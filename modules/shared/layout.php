@@ -48,9 +48,10 @@ $_nav = array(
           )),
     array('key' => 'logistics', 'label' => 'Логістика', 'color' => '#0369a1',
           'items' => array(
-              array('key' => 'np-ttns',    'label' => 'НП · ТТН',         'url' => '/novaposhta/ttns'),
-              array('key' => 'np-scan',    'label' => 'НП · Реєстри',     'url' => '/novaposhta/scansheets'),
-              array('key' => 'np-senders', 'label' => 'НП · Відправники', 'url' => '/novaposhta/senders'),
+              array('key' => 'np-ttns',    'label' => 'НП · ТТН',            'url' => '/novaposhta/ttns'),
+              array('key' => 'np-scan',    'label' => 'НП · Реєстри',      'url' => '/novaposhta/scansheets'),
+              array('key' => 'np-courier', 'label' => 'НП · Виклики кур.',  'url' => '/novaposhta/courier-calls'),
+              array('key' => 'np-senders', 'label' => 'НП · Відправники',  'url' => '/novaposhta/senders'),
           )),
     array('key' => 'finance', 'label' => 'Фінанси',    'color' => '#ea580c',
           'items' => array(

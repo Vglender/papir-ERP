@@ -8,9 +8,9 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
 
 .sender-grid     { display: grid; grid-template-columns: repeat(auto-fill, minmax(480px, 1fr)); gap: 20px; }
 
-.sender-card     { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0; overflow: hidden; }
+.sender-card     { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0; position: relative; }
 .sender-card-head{ display: flex; align-items: flex-start; gap: 12px; padding: 16px 18px 14px;
-                   border-bottom: 1px solid #f1f5f9; }
+                   border-bottom: 1px solid #f1f5f9; border-radius: 10px 10px 0 0; }
 .sender-card-name{ font-size: 15px; font-weight: 700; color: #0f172a; }
 .sender-card-meta{ font-size: 12px; color: #64748b; margin-top: 2px; }
 .sender-card-actions { margin-left: auto; display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
@@ -56,9 +56,21 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
 
 /* Dropdown options */
 .af-city-dd .dd-opt,
-.af-street-dd .dd-opt { padding: 6px 10px; cursor: pointer; }
+.af-street-dd .dd-opt,
+.af-wh-dd .dd-opt { padding: 6px 10px; cursor: pointer; font-size: 12px; }
 .af-city-dd .dd-opt:hover,
-.af-street-dd .dd-opt:hover { background: #f0fdfa; }
+.af-street-dd .dd-opt:hover,
+.af-wh-dd .dd-opt:hover { background: #f0fdfa; }
+.af-city-dd,
+.af-street-dd,
+.af-wh-dd { box-shadow: 0 4px 12px rgba(0,0,0,.12); z-index: 9999 !important; }
+
+/* Address type toggle */
+.addr-type-tabs { display: flex; gap: 0; margin-bottom: 8px; border: 1px solid #d1d5db; border-radius: 6px; overflow: hidden; }
+.addr-type-tab  { flex: 1; padding: 4px 8px; font-size: 11px; font-weight: 600; text-align: center;
+                  background: #f8fafc; border: none; cursor: pointer; color: #64748b; }
+.addr-type-tab.active { background: #0d9488; color: #fff; }
+.addr-type-tab:first-child { border-right: 1px solid #d1d5db; }
 
 /* Refresh state */
 .sender-card.refreshing .sender-card-head { opacity: .6; }
@@ -200,25 +212,48 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
         </div>
         <!-- Add address form -->
         <div class="add-addr-form" id="addAddrForm_<?php echo ViewHelper::h($sRef); ?>" style="display:none;margin-top:8px">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-            <div style="position:relative">
-              <input type="text" class="af-city-input" placeholder="Місто *" style="font-size:12px;width:100%"
-                     autocomplete="off">
-              <div class="af-city-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;
-                   border:1px solid #d1d5db;border-radius:6px;z-index:100;max-height:160px;overflow-y:auto;font-size:12px"></div>
-              <input type="hidden" class="af-city-ref">
-            </div>
-            <div style="position:relative">
+          <!-- Type toggle -->
+          <div class="addr-type-tabs">
+            <button type="button" class="addr-type-tab active" data-type="street">Адреса</button>
+            <button type="button" class="addr-type-tab" data-type="warehouse">Відділення</button>
+          </div>
+
+          <!-- City row (shared) -->
+          <div style="position:relative;margin-bottom:6px">
+            <input type="text" class="af-city-input" placeholder="Місто *" style="font-size:12px;width:100%"
+                   autocomplete="off">
+            <div class="af-city-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;
+                 border:1px solid #d1d5db;border-radius:6px;z-index:9999;max-height:180px;overflow-y:auto"></div>
+            <input type="hidden" class="af-city-ref">
+          </div>
+
+          <!-- Street fields (street mode) -->
+          <div class="af-street-block">
+            <div style="position:relative;margin-bottom:6px">
               <input type="text" class="af-street-input" placeholder="Вулиця *" style="font-size:12px;width:100%"
                      autocomplete="off" disabled>
               <div class="af-street-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;
-                   border:1px solid #d1d5db;border-radius:6px;z-index:100;max-height:160px;overflow-y:auto;font-size:12px"></div>
+                   border:1px solid #d1d5db;border-radius:6px;z-index:9999;max-height:180px;overflow-y:auto"></div>
               <input type="hidden" class="af-street-ref">
             </div>
+            <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px">
+              <input type="text" class="af-building" placeholder="Будинок *" style="font-size:12px;width:80px">
+              <input type="text" class="af-flat"     placeholder="Кв./офіс"  style="font-size:12px;width:80px">
+            </div>
           </div>
+
+          <!-- Warehouse field (warehouse mode) -->
+          <div class="af-wh-block" style="display:none">
+            <div style="position:relative;margin-bottom:4px">
+              <input type="text" class="af-wh-input" placeholder="Відділення *" style="font-size:12px;width:100%"
+                     autocomplete="off" disabled>
+              <div class="af-wh-dd" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;
+                   border:1px solid #d1d5db;border-radius:6px;z-index:9999;max-height:180px;overflow-y:auto"></div>
+              <input type="hidden" class="af-wh-ref">
+            </div>
+          </div>
+
           <div style="display:flex;gap:6px;align-items:center">
-            <input type="text" class="af-building" placeholder="Будинок *" style="font-size:12px;width:80px">
-            <input type="text" class="af-flat"     placeholder="Кв./офіс"  style="font-size:12px;width:80px">
             <button class="btn btn-primary btn-xs af-save-btn" data-ref="<?php echo ViewHelper::h($sRef); ?>">Зберегти</button>
             <button class="btn btn-ghost btn-xs af-cancel-btn" data-ref="<?php echo ViewHelper::h($sRef); ?>">Скасувати</button>
           </div>
@@ -497,21 +532,50 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
         });
     });
 
-    // City search in add-addr-form
+    // Add-address form: type toggle + city/street/warehouse search
     document.querySelectorAll('.add-addr-form').forEach(function (form) {
-        var cityInput  = form.querySelector('.af-city-input');
-        var cityDd     = form.querySelector('.af-city-dd');
-        var cityRef    = form.querySelector('.af-city-ref');
-        var streetInput= form.querySelector('.af-street-input');
-        var streetDd   = form.querySelector('.af-street-dd');
-        var streetRef  = form.querySelector('.af-street-ref');
-        var sRef       = form.closest('.sender-card').dataset.ref;
-        var cityTimer, streetTimer;
+        var cityInput   = form.querySelector('.af-city-input');
+        var cityDd      = form.querySelector('.af-city-dd');
+        var cityRef     = form.querySelector('.af-city-ref');
+        var streetBlock = form.querySelector('.af-street-block');
+        var streetInput = form.querySelector('.af-street-input');
+        var streetDd    = form.querySelector('.af-street-dd');
+        var streetRef   = form.querySelector('.af-street-ref');
+        var whBlock     = form.querySelector('.af-wh-block');
+        var whInput     = form.querySelector('.af-wh-input');
+        var whDd        = form.querySelector('.af-wh-dd');
+        var whRef       = form.querySelector('.af-wh-ref');
+        var sRef        = form.closest('.sender-card').dataset.ref;
+        var cityTimer, streetTimer, whTimer;
+        var addrType    = 'street';
 
+        // Type tabs
+        form.querySelectorAll('.addr-type-tab').forEach(function (tab) {
+            tab.addEventListener('click', function () {
+                form.querySelectorAll('.addr-type-tab').forEach(function (t) { t.classList.remove('active'); });
+                tab.classList.add('active');
+                addrType = tab.dataset.type;
+                // Reset second-level fields
+                streetInput.value = ''; streetRef.value = ''; streetDd.style.display = 'none';
+                whInput.value = ''; whRef.value = ''; whDd.style.display = 'none';
+                if (addrType === 'warehouse') {
+                    streetBlock.style.display = 'none';
+                    whBlock.style.display = 'block';
+                    whInput.disabled = !cityRef.value;
+                } else {
+                    streetBlock.style.display = 'block';
+                    whBlock.style.display = 'none';
+                    streetInput.disabled = !cityRef.value;
+                }
+            });
+        });
+
+        // City search
         cityInput.addEventListener('input', function () {
             clearTimeout(cityTimer);
-            cityRef.value = ''; streetRef.value = '';
-            streetInput.disabled = true; streetInput.value = '';
+            cityRef.value = '';
+            streetRef.value = ''; streetInput.disabled = true; streetInput.value = '';
+            whRef.value = ''; whInput.disabled = true; whInput.value = '';
             var q = cityInput.value.trim();
             if (q.length < 2) { cityDd.style.display = 'none'; return; }
             cityTimer = setTimeout(function () {
@@ -526,11 +590,16 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
                         opt.textContent = c.Description + (c.SettlementTypeDescription ? ' (' + c.SettlementTypeDescription + ')' : '');
                         opt.addEventListener('mousedown', function (e) {
                             e.preventDefault();
-                            cityInput.value  = opt.textContent;
-                            cityRef.value    = c.Ref;
+                            cityInput.value = opt.textContent;
+                            cityRef.value   = c.Ref;
                             cityDd.style.display = 'none';
-                            streetInput.disabled = false;
-                            streetInput.focus();
+                            if (addrType === 'warehouse') {
+                                whInput.disabled = false;
+                                whInput.focus();
+                            } else {
+                                streetInput.disabled = false;
+                                streetInput.focus();
+                            }
                         });
                         cityDd.appendChild(opt);
                     });
@@ -540,6 +609,7 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
         });
         cityInput.addEventListener('blur', function () { setTimeout(function () { cityDd.style.display = 'none'; }, 150); });
 
+        // Street search
         streetInput.addEventListener('input', function () {
             clearTimeout(streetTimer);
             streetRef.value = '';
@@ -570,6 +640,46 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
             }, 300);
         });
         streetInput.addEventListener('blur', function () { setTimeout(function () { streetDd.style.display = 'none'; }, 150); });
+
+        // Warehouse search
+        whInput.addEventListener('input', function () {
+            clearTimeout(whTimer);
+            whRef.value = '';
+            var q   = whInput.value.trim();
+            var crf = cityRef.value;
+            if (!crf) { whDd.style.display = 'none'; return; }
+            whTimer = setTimeout(function () {
+                fetch('/novaposhta/api/search_warehouse?city_ref=' + encodeURIComponent(crf) + '&q=' + encodeURIComponent(q) + '&sender_ref=' + encodeURIComponent(sRef))
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    whDd.innerHTML = '';
+                    if (!res.ok || !res.warehouses || !res.warehouses.length) { whDd.style.display = 'none'; return; }
+                    res.warehouses.forEach(function (w) {
+                        var opt = document.createElement('div');
+                        opt.className = 'dd-opt';
+                        opt.textContent = w.Description || w.ShortAddress || ('№' + w.Number);
+                        opt.addEventListener('mousedown', function (e) {
+                            e.preventDefault();
+                            whInput.value = opt.textContent;
+                            whRef.value   = w.Ref;
+                            whDd.style.display = 'none';
+                        });
+                        whDd.appendChild(opt);
+                    });
+                    whDd.style.display = 'block';
+                });
+            }, 300);
+        });
+        whInput.addEventListener('blur', function () { setTimeout(function () { whDd.style.display = 'none'; }, 150); });
+        // Show all warehouses when focused with empty query
+        whInput.addEventListener('focus', function () {
+            if (!cityRef.value) return;
+            if (!whInput.value && whDd.children.length === 0) {
+                whInput.dispatchEvent(new Event('input'));
+            } else if (whDd.children.length > 0) {
+                whDd.style.display = 'block';
+            }
+        });
     });
 
     document.querySelectorAll('.af-save-btn').forEach(function (btn) {
@@ -578,25 +688,47 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
             var form   = document.getElementById('addAddrForm_' + ref);
             var cRef   = form.querySelector('.af-city-ref').value;
             var cName  = form.querySelector('.af-city-input').value.trim();
-            var sRef2  = form.querySelector('.af-street-ref').value;
-            var bld    = form.querySelector('.af-building').value.trim();
-            var flat   = form.querySelector('.af-flat').value.trim();
             var err    = form.querySelector('.af-error');
-            if (!cRef || !sRef2 || !bld) {
-                err.textContent = 'Оберіть місто, вулицю і вкажіть будинок';
-                err.style.display = 'block'; return;
+            var activeTab = form.querySelector('.addr-type-tab.active');
+            var addrType  = activeTab ? activeTab.dataset.type : 'street';
+            var body;
+
+            if (addrType === 'warehouse') {
+                var wRef  = form.querySelector('.af-wh-ref').value;
+                var wName = form.querySelector('.af-wh-input').value.trim();
+                if (!cRef || !wRef) {
+                    err.textContent = 'Оберіть місто і відділення';
+                    err.style.display = 'block'; return;
+                }
+                body = 'sender_ref='      + encodeURIComponent(ref) +
+                       '&address_type=warehouse' +
+                       '&city_ref='        + encodeURIComponent(cRef) +
+                       '&city_name='       + encodeURIComponent(cName) +
+                       '&warehouse_ref='   + encodeURIComponent(wRef) +
+                       '&warehouse_name='  + encodeURIComponent(wName);
+            } else {
+                var sRef2  = form.querySelector('.af-street-ref').value;
+                var bld    = form.querySelector('.af-building').value.trim();
+                var flat   = form.querySelector('.af-flat').value.trim();
+                if (!cRef || !sRef2 || !bld) {
+                    err.textContent = 'Оберіть місто, вулицю і вкажіть будинок';
+                    err.style.display = 'block'; return;
+                }
+                body = 'sender_ref='   + encodeURIComponent(ref) +
+                       '&address_type=street' +
+                       '&city_ref='    + encodeURIComponent(cRef) +
+                       '&city_name='   + encodeURIComponent(cName) +
+                       '&street_ref='  + encodeURIComponent(sRef2) +
+                       '&building='    + encodeURIComponent(bld) +
+                       '&flat='        + encodeURIComponent(flat);
             }
+
             err.style.display = 'none';
             btn.disabled = true;
             fetch('/novaposhta/api/save_sender_address', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                body: 'sender_ref='  + encodeURIComponent(ref) +
-                      '&city_ref='   + encodeURIComponent(cRef) +
-                      '&city_name='  + encodeURIComponent(cName) +
-                      '&street_ref=' + encodeURIComponent(sRef2) +
-                      '&building='   + encodeURIComponent(bld) +
-                      '&flat='       + encodeURIComponent(flat)
+                body: body
             })
             .then(function (r) { return r.json(); })
             .then(function (res) {
@@ -606,6 +738,12 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
                 form.querySelector('.af-city-input').value = ''; form.querySelector('.af-city-ref').value = '';
                 form.querySelector('.af-street-input').value = ''; form.querySelector('.af-street-ref').value = '';
                 form.querySelector('.af-building').value = ''; form.querySelector('.af-flat').value = '';
+                form.querySelector('.af-wh-input').value = ''; form.querySelector('.af-wh-ref').value = '';
+                // Reset to street tab
+                form.querySelectorAll('.addr-type-tab').forEach(function (t) { t.classList.remove('active'); });
+                form.querySelector('.addr-type-tab[data-type="street"]').classList.add('active');
+                form.querySelector('.af-street-block').style.display = 'block';
+                form.querySelector('.af-wh-block').style.display = 'none';
                 // Re-render address list
                 var list = document.getElementById('addrList_' + ref);
                 list.innerHTML = res.addresses.map(function (a) {

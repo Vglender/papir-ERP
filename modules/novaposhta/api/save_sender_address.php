@@ -7,16 +7,35 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$senderRef = isset($_POST['sender_ref'])  ? trim($_POST['sender_ref'])  : '';
-$streetRef = isset($_POST['street_ref'])  ? trim($_POST['street_ref'])  : '';
-$building  = isset($_POST['building'])    ? trim($_POST['building'])    : '';
-$flat      = isset($_POST['flat'])        ? trim($_POST['flat'])        : '';
-$cityRef   = isset($_POST['city_ref'])    ? trim($_POST['city_ref'])    : '';
-$cityName  = isset($_POST['city_name'])   ? trim($_POST['city_name'])   : '';
+$senderRef   = isset($_POST['sender_ref'])    ? trim($_POST['sender_ref'])    : '';
+$addressType = isset($_POST['address_type'])  ? trim($_POST['address_type'])  : 'street';
+$cityRef     = isset($_POST['city_ref'])      ? trim($_POST['city_ref'])      : '';
+$cityName    = isset($_POST['city_name'])     ? trim($_POST['city_name'])     : '';
 
-if (!$senderRef || !$streetRef || !$building) {
-    echo json_encode(array('ok' => false, 'error' => 'sender_ref, street_ref, building required'));
+// street-specific
+$streetRef   = isset($_POST['street_ref'])    ? trim($_POST['street_ref'])    : '';
+$building    = isset($_POST['building'])      ? trim($_POST['building'])      : '';
+$flat        = isset($_POST['flat'])          ? trim($_POST['flat'])          : '';
+
+// warehouse-specific
+$warehouseRef  = isset($_POST['warehouse_ref'])  ? trim($_POST['warehouse_ref'])  : '';
+$warehouseName = isset($_POST['warehouse_name']) ? trim($_POST['warehouse_name']) : '';
+
+if (!$senderRef) {
+    echo json_encode(array('ok' => false, 'error' => 'sender_ref required'));
     exit;
+}
+
+if ($addressType === 'warehouse') {
+    if (!$warehouseRef) {
+        echo json_encode(array('ok' => false, 'error' => 'warehouse_ref required'));
+        exit;
+    }
+} else {
+    if (!$streetRef || !$building) {
+        echo json_encode(array('ok' => false, 'error' => 'street_ref and building required'));
+        exit;
+    }
 }
 
 $sender = \Papir\Crm\SenderRepository::getByRef($senderRef);
@@ -26,29 +45,46 @@ if (!$sender || !$sender['api']) {
 }
 
 $np = new \Papir\Crm\NovaPoshta($sender['api']);
-$r  = $np->call('Address', 'save', array(
-    'CounterpartyRef' => $senderRef,
-    'StreetRef'       => $streetRef,
-    'BuildingNumber'  => $building,
-    'Flat'            => $flat,
-    'Note'            => '',
-));
 
-if (!$r['ok'] || empty($r['data'][0]['Ref'])) {
-    echo json_encode(array('ok' => false, 'error' => $r['error'] ?: 'NP API error'));
-    exit;
+if ($addressType === 'warehouse') {
+    // For warehouse pickup, the warehouse Ref IS the SenderAddress in TTN creation.
+    // No need to call Address.save — just store locally.
+    $addrRef     = $warehouseRef;
+    $description = $warehouseName;
+} else {
+    $r = $np->call('Address', 'save', array(
+        'CounterpartyRef' => $senderRef,
+        'StreetRef'       => $streetRef,
+        'BuildingNumber'  => $building,
+        'Flat'            => $flat,
+        'Note'            => '',
+    ));
+
+    if (!$r['ok'] || empty($r['data'][0]['Ref'])) {
+        echo json_encode(array('ok' => false, 'error' => $r['error'] ?: 'NP API error'));
+        exit;
+    }
+
+    $addrRef     = $r['data'][0]['Ref'];
+    $description = isset($r['data'][0]['Description']) ? $r['data'][0]['Description'] : '';
 }
 
-$addrRef     = $r['data'][0]['Ref'];
-$description = isset($r['data'][0]['Description']) ? $r['data'][0]['Description'] : '';
-
-\Papir\Crm\SenderRepository::upsertAddress($senderRef, array(
+$addrData = array(
+    'sender_ref'      => $senderRef,
     'Ref'             => $addrRef,
     'Description'     => $description,
-    'CityRef'         => $cityRef,
-    'CityDescription' => $cityName,
-    'StreetRef'       => $streetRef,
-));
+    'CityRef'         => $cityRef ?: null,
+    'CityDescription' => $cityName ?: null,
+    'address_type'    => $addressType,
+);
+
+if ($addressType === 'warehouse') {
+    $addrData['WarehouseRef'] = $warehouseRef;
+} else {
+    $addrData['StreetRef'] = $streetRef;
+}
+
+\Papir\Crm\SenderRepository::upsertAddress($senderRef, $addrData);
 
 $existing = \Papir\Crm\SenderRepository::getDefaultAddress($senderRef);
 if (!$existing) {

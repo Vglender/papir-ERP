@@ -246,3 +246,366 @@
 2026-04-02 00:31:18 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1e978814-2e12-11f1-0a80-195b0004ade0"},"uid":"admin@papierinvest","moment":"2026-04-02 00:31:18"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/93045c87-2df4-11f1-0a80-004500015021"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
 2026-04-02 00:31:18 Updated order id=681720 ms=93045c87-2df4-11f1-0a80-004500015021 status=in_progress
 2026-04-02 00:31:18 Done: processed=1 errors=0
+2026-04-02 01:02:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8b368202-2e16-11f1-0a80-0e2400052e34"},"uid":"admin@papierinvest","moment":"2026-04-02 01:02:58"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/8b212aeb-2e16-11f1-0a80-0e2400052e26"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 01:02:59 Inserted order id=681728 ms=8b212aeb-2e16-11f1-0a80-0e2400052e26
+2026-04-02 01:02:59 Done: processed=1 errors=0
+2026-04-02 01:53:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/aa503482-2e1d-11f1-0a80-174b0005a3d0"},"uid":"admin@papierinvest","moment":"2026-04-02 01:53:57"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/93045c87-2df4-11f1-0a80-004500015021"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 01:53:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/aa7dbbde-2e1d-11f1-0a80-085d001117ae"},"uid":"@papierinvest","moment":"2026-04-02 01:53:57"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/93045c87-2df4-11f1-0a80-004500015021"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 01:53:57 Updated order id=681720 ms=93045c87-2df4-11f1-0a80-004500015021 status=shipped
+2026-04-02 01:53:57 Done: processed=1 errors=0
+2026-04-02 01:53:58 Updated order id=681720 ms=93045c87-2df4-11f1-0a80-004500015021 status=shipped
+2026-04-02 01:53:58 Done: processed=1 errors=0
+2026-04-02 01:55:21 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/dc31d0b1-2e1d-11f1-0a80-16e300055a80"},"uid":"admin@papierinvest","moment":"2026-04-02 01:55:20"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d5352216-2ddb-11f1-0a80-11b0001f1767"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 01:55:21 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/dc62844b-2e1d-11f1-0a80-085d001128ed"},"uid":"@papierinvest","moment":"2026-04-02 01:55:21"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d5352216-2ddb-11f1-0a80-11b0001f1767"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 01:55:21 Updated order id=681714 ms=d5352216-2ddb-11f1-0a80-11b0001f1767 status=shipped
+2026-04-02 01:55:21 Done: processed=1 errors=0
+2026-04-02 01:55:21 Updated order id=681714 ms=d5352216-2ddb-11f1-0a80-11b0001f1767 status=shipped
+2026-04-02 01:55:21 Done: processed=1 errors=0
+2026-04-02 05:22:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/dcb7c84d-2e3a-11f1-0a80-1d4d0008601e"},"uid":"admin@papierinvest","moment":"2026-04-02 05:22:57"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 05:22:57 Inserted order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013
+2026-04-02 05:22:57 Done: processed=1 errors=0
+2026-04-02 05:24:03 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/03e4e11b-2e3b-11f1-0a80-146c0008c679"},"uid":"admin@papierinvest","moment":"2026-04-02 05:24:02"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 05:24:03 Updated order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013 status=in_progress
+2026-04-02 05:24:03 Done: processed=1 errors=0
+2026-04-02 05:24:13 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0a4574de-2e3b-11f1-0a80-1be5000857cb"},"uid":"admin@papierinvest","moment":"2026-04-02 05:24:13"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 05:24:14 Updated order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013 status=in_progress
+2026-04-02 05:24:14 Done: processed=1 errors=0
+2026-04-02 05:24:20 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0e1ff5cd-2e3b-11f1-0a80-01af0008837c"},"uid":"admin@papierinvest","moment":"2026-04-02 05:24:20"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 05:24:20 Updated order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013 status=in_progress
+2026-04-02 05:24:20 Done: processed=1 errors=0
+2026-04-02 08:25:03 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4d11926a-2e54-11f1-0a80-16e2000337fe"},"uid":"vglender@papierinvest","moment":"2026-04-02 08:25:03"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:25:04 Updated order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013 status=in_progress
+2026-04-02 08:25:04 Done: processed=1 errors=0
+2026-04-02 08:26:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7798b8aa-2e54-11f1-0a80-1548000ba385"},"uid":"admin@papierinvest","moment":"2026-04-02 08:26:14"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:26:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/77be8853-2e54-11f1-0a80-085d0025a2f1"},"uid":"@papierinvest","moment":"2026-04-02 08:26:14"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/dc950500-2e3a-11f1-0a80-1d4d00086013"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:26:15 Updated order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013 status=shipped
+2026-04-02 08:26:15 Done: processed=1 errors=0
+2026-04-02 08:26:15 Updated order id=681729 ms=dc950500-2e3a-11f1-0a80-1d4d00086013 status=shipped
+2026-04-02 08:26:15 Done: processed=1 errors=0
+2026-04-02 08:33:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/83fb42c5-2e55-11f1-0a80-0558000be49f"},"uid":"admin@papierinvest","moment":"2026-04-02 08:33:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/de073cf6-2de0-11f1-0a80-0f51002043b8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:33:45 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/842659f3-2e55-11f1-0a80-085d00263f96"},"uid":"@papierinvest","moment":"2026-04-02 08:33:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/de073cf6-2de0-11f1-0a80-0f51002043b8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:33:45 Updated order id=681716 ms=de073cf6-2de0-11f1-0a80-0f51002043b8 status=shipped
+2026-04-02 08:33:45 Done: processed=1 errors=0
+2026-04-02 08:33:45 Updated order id=681716 ms=de073cf6-2de0-11f1-0a80-0f51002043b8 status=shipped
+2026-04-02 08:33:45 Done: processed=1 errors=0
+2026-04-02 08:50:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d83808a6-2e57-11f1-0a80-09e1000c5fbb"},"uid":"admin@papierinvest","moment":"2026-04-02 08:50:24"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3bce46e8-2dd6-11f1-0a80-0f51001de86f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:50:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d8633ba8-2e57-11f1-0a80-085d00276ea7"},"uid":"@papierinvest","moment":"2026-04-02 08:50:25"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3bce46e8-2dd6-11f1-0a80-0f51001de86f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:50:25 Updated order id=681711 ms=3bce46e8-2dd6-11f1-0a80-0f51001de86f status=shipped
+2026-04-02 08:50:25 Done: processed=1 errors=0
+2026-04-02 08:50:26 Updated order id=681711 ms=3bce46e8-2dd6-11f1-0a80-0f51001de86f status=shipped
+2026-04-02 08:50:26 Done: processed=1 errors=0
+2026-04-02 08:51:50 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0b53cc8b-2e58-11f1-0a80-0045000cc62d"},"uid":"admin@papierinvest","moment":"2026-04-02 08:51:50"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3bab87c1-2d2c-11f1-0a80-0d9600009f84"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:51:51 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0b830ce0-2e58-11f1-0a80-085d00277d34"},"uid":"@papierinvest","moment":"2026-04-02 08:51:51"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3bab87c1-2d2c-11f1-0a80-0d9600009f84"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:51:51 Updated order id=681695 ms=3bab87c1-2d2c-11f1-0a80-0d9600009f84 status=shipped
+2026-04-02 08:51:51 Done: processed=1 errors=0
+2026-04-02 08:51:51 Updated order id=681695 ms=3bab87c1-2d2c-11f1-0a80-0d9600009f84 status=shipped
+2026-04-02 08:51:51 Done: processed=1 errors=0
+2026-04-02 08:52:37 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/27249d61-2e58-11f1-0a80-146c000c9338"},"uid":"admin@papierinvest","moment":"2026-04-02 08:52:37"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/abb68448-2ddc-11f1-0a80-085400203a00"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:52:37 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/274e05bd-2e58-11f1-0a80-085d0027857c"},"uid":"@papierinvest","moment":"2026-04-02 08:52:37"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/abb68448-2ddc-11f1-0a80-085400203a00"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:52:38 Updated order id=681715 ms=abb68448-2ddc-11f1-0a80-085400203a00 status=shipped
+2026-04-02 08:52:38 Done: processed=1 errors=0
+2026-04-02 08:52:38 Updated order id=681715 ms=abb68448-2ddc-11f1-0a80-085400203a00 status=shipped
+2026-04-02 08:52:38 Done: processed=1 errors=0
+2026-04-02 08:53:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/41c68499-2e58-11f1-0a80-1be5000ca76e"},"uid":"admin@papierinvest","moment":"2026-04-02 08:53:22"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3c672fa5-2dfe-11f1-0a80-146c0002ca77"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:53:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/41ef8e17-2e58-11f1-0a80-085d00278f3b"},"uid":"@papierinvest","moment":"2026-04-02 08:53:22"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3c672fa5-2dfe-11f1-0a80-146c0002ca77"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:53:22 Updated order id=681725 ms=3c672fa5-2dfe-11f1-0a80-146c0002ca77 status=shipped
+2026-04-02 08:53:22 Done: processed=1 errors=0
+2026-04-02 08:53:22 Updated order id=681725 ms=3c672fa5-2dfe-11f1-0a80-146c0002ca77 status=shipped
+2026-04-02 08:53:22 Done: processed=1 errors=0
+2026-04-02 08:54:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7304da7b-2e58-11f1-0a80-01af000cd56d"},"uid":"admin@papierinvest","moment":"2026-04-02 08:54:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/568fd5e5-2dfb-11f1-0a80-1d4d00025dfe"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:54:45 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/73303b96-2e58-11f1-0a80-085d0027b371"},"uid":"@papierinvest","moment":"2026-04-02 08:54:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/568fd5e5-2dfb-11f1-0a80-1d4d00025dfe"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:54:45 Updated order id=681724 ms=568fd5e5-2dfb-11f1-0a80-1d4d00025dfe status=shipped
+2026-04-02 08:54:45 Done: processed=1 errors=0
+2026-04-02 08:54:45 Updated order id=681724 ms=568fd5e5-2dfb-11f1-0a80-1d4d00025dfe status=shipped
+2026-04-02 08:54:45 Done: processed=1 errors=0
+2026-04-02 08:55:35 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/914a7a96-2e58-11f1-0a80-0e24000c62cd"},"uid":"admin@papierinvest","moment":"2026-04-02 08:55:35"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/37e2baa8-2df8-11f1-0a80-00450001e462"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:55:36 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/918a92e3-2e58-11f1-0a80-085d0027d0d1"},"uid":"@papierinvest","moment":"2026-04-02 08:55:35"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/37e2baa8-2df8-11f1-0a80-00450001e462"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:55:36 Updated order id=681722 ms=37e2baa8-2df8-11f1-0a80-00450001e462 status=shipped
+2026-04-02 08:55:36 Done: processed=1 errors=0
+2026-04-02 08:55:36 Updated order id=681722 ms=37e2baa8-2df8-11f1-0a80-00450001e462 status=shipped
+2026-04-02 08:55:36 Done: processed=1 errors=0
+2026-04-02 08:56:23 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ada4a7a6-2e58-11f1-0a80-1353000d4d3a"},"uid":"admin@papierinvest","moment":"2026-04-02 08:56:23"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7175c252-2e01-11f1-0a80-15480002f5ea"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:56:23 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/adcfc776-2e58-11f1-0a80-085d0027e256"},"uid":"@papierinvest","moment":"2026-04-02 08:56:23"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7175c252-2e01-11f1-0a80-15480002f5ea"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:56:23 Updated order id=681726 ms=7175c252-2e01-11f1-0a80-15480002f5ea status=shipped
+2026-04-02 08:56:23 Done: processed=1 errors=0
+2026-04-02 08:56:23 Updated order id=681726 ms=7175c252-2e01-11f1-0a80-15480002f5ea status=shipped
+2026-04-02 08:56:23 Done: processed=1 errors=0
+2026-04-02 08:57:30 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d577095e-2e58-11f1-0a80-06d400037956"},"uid":"olga@papierinvest","moment":"2026-04-02 08:57:29"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 08:57:30 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 08:57:30 Done: processed=1 errors=0
+2026-04-02 09:02:56 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/9807a67a-2e59-11f1-0a80-01af000d33a5"},"uid":"admin@papierinvest","moment":"2026-04-02 09:02:56"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:02:56 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 09:02:56 Done: processed=1 errors=0
+2026-04-02 09:06:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/21c28ba9-2e5a-11f1-0a80-16e3000cbfea"},"uid":"admin@papierinvest","moment":"2026-04-02 09:06:47"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d6ad7dd3-29eb-11f1-0a80-023b0041c2d1"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:06:48 Updated order id=676195 ms=d6ad7dd3-29eb-11f1-0a80-023b0041c2d1 status=shipped
+2026-04-02 09:06:48 Done: processed=1 errors=0
+2026-04-02 09:23:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8008f399-2e5c-11f1-0a80-0045000dc58b"},"uid":"admin@papierinvest","moment":"2026-04-02 09:23:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/6899ab53-2ddb-11f1-0a80-0d96001ee5ce"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:23:45 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8039f1ce-2e5c-11f1-0a80-085d0029f5fb"},"uid":"@papierinvest","moment":"2026-04-02 09:23:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/6899ab53-2ddb-11f1-0a80-0d96001ee5ce"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:23:45 Updated order id=681713 ms=6899ab53-2ddb-11f1-0a80-0d96001ee5ce status=shipped
+2026-04-02 09:23:45 Done: processed=1 errors=0
+2026-04-02 09:23:45 Updated order id=681713 ms=6899ab53-2ddb-11f1-0a80-0d96001ee5ce status=shipped
+2026-04-02 09:23:45 Done: processed=1 errors=0
+2026-04-02 09:28:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/3b6f8b2a-2e5d-11f1-0a80-1353000e34b7"},"uid":"admin@papierinvest","moment":"2026-04-02 09:28:58"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3b6163e4-2e5d-11f1-0a80-1353000e34a8"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:28:59 Inserted order id=681730 ms=3b6163e4-2e5d-11f1-0a80-1353000e34a8
+2026-04-02 09:28:59 Done: processed=1 errors=0
+2026-04-02 09:45:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8cf58ea0-2e5f-11f1-0a80-06d40004a422"},"uid":"olga@papierinvest","moment":"2026-04-02 09:45:34"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:45:35 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 09:45:35 Done: processed=1 errors=0
+2026-04-02 09:49:20 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/13b553e2-2e60-11f1-0a80-1be5000e4f5c"},"uid":"admin@papierinvest","moment":"2026-04-02 09:49:20"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f619fa72-2dc8-11f1-0a80-0d96001a8717"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:49:21 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/13dcccaa-2e60-11f1-0a80-085d002c01f4"},"uid":"@papierinvest","moment":"2026-04-02 09:49:21"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f619fa72-2dc8-11f1-0a80-0d96001a8717"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:49:21 Updated order id=681707 ms=f619fa72-2dc8-11f1-0a80-0d96001a8717 status=shipped
+2026-04-02 09:49:21 Done: processed=1 errors=0
+2026-04-02 09:49:21 Updated order id=681707 ms=f619fa72-2dc8-11f1-0a80-0d96001a8717 status=shipped
+2026-04-02 09:49:21 Done: processed=1 errors=0
+2026-04-02 09:54:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bdfee2c6-2e60-11f1-0a80-0045000e816a"},"uid":"admin@papierinvest","moment":"2026-04-02 09:54:06"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/bdeab1ec-2e60-11f1-0a80-0045000e815e"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:54:07 Inserted order id=681731 ms=bdeab1ec-2e60-11f1-0a80-0045000e815e
+2026-04-02 09:54:07 Done: processed=1 errors=0
+2026-04-02 09:55:12 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e55f9343-2e60-11f1-0a80-1be5000e9c25"},"uid":"admin@papierinvest","moment":"2026-04-02 09:55:12"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/bdeab1ec-2e60-11f1-0a80-0045000e815e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:55:13 Updated order id=681731 ms=bdeab1ec-2e60-11f1-0a80-0045000e815e status=in_progress
+2026-04-02 09:55:13 Done: processed=1 errors=0
+2026-04-02 09:56:23 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0fbb8843-2e61-11f1-0a80-1353000ef019"},"uid":"admin@papierinvest","moment":"2026-04-02 09:56:23"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:56:24 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 09:56:24 Done: processed=1 errors=0
+2026-04-02 09:57:15 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/2e2fdb25-2e61-11f1-0a80-146c000e49ac"},"uid":"admin@papierinvest","moment":"2026-04-02 09:57:14"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/bdeab1ec-2e60-11f1-0a80-0045000e815e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:57:15 Updated order id=681731 ms=bdeab1ec-2e60-11f1-0a80-0045000e815e status=in_progress
+2026-04-02 09:57:15 Done: processed=1 errors=0
+2026-04-02 09:57:21 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/325292e5-2e61-11f1-0a80-11b4000e7908"},"uid":"admin@papierinvest","moment":"2026-04-02 09:57:21"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/bdeab1ec-2e60-11f1-0a80-0045000e815e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 09:57:22 Updated order id=681731 ms=bdeab1ec-2e60-11f1-0a80-0045000e815e status=in_progress
+2026-04-02 09:57:22 Done: processed=1 errors=0
+2026-04-02 10:06:35 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7c6aa8df-2e62-11f1-0a80-108b000f0439"},"uid":"admin@papierinvest","moment":"2026-04-02 10:06:35"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/bdeab1ec-2e60-11f1-0a80-0045000e815e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:06:36 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7ca6eb94-2e62-11f1-0a80-085d002d5b37"},"uid":"@papierinvest","moment":"2026-04-02 10:06:35"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/bdeab1ec-2e60-11f1-0a80-0045000e815e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:06:36 Updated order id=681731 ms=bdeab1ec-2e60-11f1-0a80-0045000e815e status=shipped
+2026-04-02 10:06:36 Done: processed=1 errors=0
+2026-04-02 10:06:36 Updated order id=681731 ms=bdeab1ec-2e60-11f1-0a80-0045000e815e status=shipped
+2026-04-02 10:06:36 Done: processed=1 errors=0
+2026-04-02 10:08:02 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/b03b1c4c-2e62-11f1-0a80-06d40005387d"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:08:02"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/5c414837-2b3f-11f1-0a80-11a20070751c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:08:03 Updated order id=681643 ms=5c414837-2b3f-11f1-0a80-11a20070751c status=cancelled
+2026-04-02 10:08:03 Done: processed=1 errors=0
+2026-04-02 10:08:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bd9f81bd-2e62-11f1-0a80-06d400053acb"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:08:24"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/5e3cbc98-29d4-11f1-0a80-1a2a003af2de"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:08:25 Updated order id=676108 ms=5e3cbc98-29d4-11f1-0a80-1a2a003af2de status=cancelled
+2026-04-02 10:08:25 Done: processed=1 errors=0
+2026-04-02 10:15:52 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c816225c-2e63-11f1-0a80-17480005f8f4"},"uid":"olga@papierinvest","moment":"2026-04-02 10:15:51"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:15:52 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 10:15:52 Done: processed=1 errors=0
+2026-04-02 10:16:04 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/cf4d1f27-2e63-11f1-0a80-174b000f17bc"},"uid":"admin@papierinvest","moment":"2026-04-02 10:16:03"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:16:04 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 10:16:04 Done: processed=1 errors=0
+2026-04-02 10:16:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/dc07a287-2e63-11f1-0a80-13520005a598"},"uid":"olga@papierinvest","moment":"2026-04-02 10:16:25"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:16:26 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 10:16:26 Done: processed=1 errors=0
+2026-04-02 10:16:36 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e2ba824b-2e63-11f1-0a80-0558000edacd"},"uid":"admin@papierinvest","moment":"2026-04-02 10:16:36"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:16:37 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=in_progress
+2026-04-02 10:16:37 Done: processed=1 errors=0
+2026-04-02 10:26:52 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/518cc967-2e65-11f1-0a80-03d500060a58"},"uid":"olga@papierinvest","moment":"2026-04-02 10:26:52"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/517ee90c-2e65-11f1-0a80-03d500060a4f"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:26:52 Inserted order id=681732 ms=517ee90c-2e65-11f1-0a80-03d500060a4f
+2026-04-02 10:26:52 Done: processed=1 errors=0
+2026-04-02 10:29:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/be921a81-2e65-11f1-0a80-0e24000f23e4"},"uid":"admin@papierinvest","moment":"2026-04-02 10:29:54"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/517ee90c-2e65-11f1-0a80-03d500060a4f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:29:55 Updated order id=681732 ms=517ee90c-2e65-11f1-0a80-03d500060a4f status=confirmed
+2026-04-02 10:29:55 Done: processed=1 errors=0
+2026-04-02 10:30:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e46bc814-2e65-11f1-0a80-1c700006538e"},"uid":"olga@papierinvest","moment":"2026-04-02 10:30:58"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/517ee90c-2e65-11f1-0a80-03d500060a4f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:30:59 Updated order id=681732 ms=517ee90c-2e65-11f1-0a80-03d500060a4f status=new
+2026-04-02 10:30:59 Done: processed=1 errors=0
+2026-04-02 10:31:18 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f01cfbd8-2e65-11f1-0a80-09df0006447d"},"uid":"olga@papierinvest","moment":"2026-04-02 10:31:18"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/517ee90c-2e65-11f1-0a80-03d500060a4f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:31:18 Updated order id=681732 ms=517ee90c-2e65-11f1-0a80-03d500060a4f status=completed
+2026-04-02 10:31:18 Done: processed=1 errors=0
+2026-04-02 10:31:34 Incoming: {"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/517ee90c-2e65-11f1-0a80-03d500060a4f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:31:34 Updated order id=681732 ms=517ee90c-2e65-11f1-0a80-03d500060a4f status=completed
+2026-04-02 10:31:34 Done: processed=1 errors=0
+2026-04-02 10:33:02 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/2e008487-2e66-11f1-0a80-108800067c57"},"uid":"olga@papierinvest","moment":"2026-04-02 10:33:01"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/2de59342-2e66-11f1-0a80-108800067c4e"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:33:02 Inserted order id=681733 ms=2de59342-2e66-11f1-0a80-108800067c4e
+2026-04-02 10:33:02 Done: processed=1 errors=0
+2026-04-02 10:34:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/73798ee7-2e66-11f1-0a80-03d500064958"},"uid":"olga@papierinvest","moment":"2026-04-02 10:34:58"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/2de59342-2e66-11f1-0a80-108800067c4e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:34:59 Updated order id=681733 ms=2de59342-2e66-11f1-0a80-108800067c4e status=completed
+2026-04-02 10:34:59 Done: processed=1 errors=0
+2026-04-02 10:34:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/741ac629-2e66-11f1-0a80-146c000f7384"},"uid":"admin@papierinvest","moment":"2026-04-02 10:34:59"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:35:00 Inserted order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379
+2026-04-02 10:35:00 Done: processed=1 errors=0
+2026-04-02 10:36:45 Incoming: {"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/2de59342-2e66-11f1-0a80-108800067c4e"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:36:45 Updated order id=681733 ms=2de59342-2e66-11f1-0a80-108800067c4e status=completed
+2026-04-02 10:36:45 Done: processed=1 errors=0
+2026-04-02 10:42:17 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/78d5d942-2e67-11f1-0a80-09df0006b09e"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:42:16"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:42:17 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=new
+2026-04-02 10:42:17 Done: processed=1 errors=0
+2026-04-02 10:42:27 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7f1d1f84-2e67-11f1-0a80-16e3000fc463"},"uid":"admin@papierinvest","moment":"2026-04-02 10:42:27"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:42:27 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7f48dfda-2e67-11f1-0a80-085d00303954"},"uid":"@papierinvest","moment":"2026-04-02 10:42:27"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/f2cc8845-1ede-11f1-0a80-1a910010c57c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:42:28 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=shipped
+2026-04-02 10:42:28 Done: processed=1 errors=0
+2026-04-02 10:42:28 Updated order id=670874 ms=f2cc8845-1ede-11f1-0a80-1a910010c57c status=shipped
+2026-04-02 10:42:28 Done: processed=1 errors=0
+2026-04-02 10:45:53 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f9dc49d1-2e67-11f1-0a80-1c700006c498"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:45:53"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:45:54 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=new
+2026-04-02 10:45:54 Done: processed=1 errors=0
+2026-04-02 10:45:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/fac71843-2e67-11f1-0a80-085d0030901c"},"uid":"@papierinvest","moment":"2026-04-02 10:45:54"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:45:55 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=in_progress
+2026-04-02 10:45:55 Done: processed=1 errors=0
+2026-04-02 10:46:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/00c200fc-2e68-11f1-0a80-146c000fe247"},"uid":"admin@papierinvest","moment":"2026-04-02 10:46:04"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:46:05 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=in_progress
+2026-04-02 10:46:05 Done: processed=1 errors=0
+2026-04-02 10:46:09 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/031bbb02-2e68-11f1-0a80-195a0006d5b9"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:46:08"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:46:09 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=in_progress
+2026-04-02 10:46:09 Done: processed=1 errors=0
+2026-04-02 10:46:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/04aee7b3-2e68-11f1-0a80-1be50010531d"},"uid":"admin@papierinvest","moment":"2026-04-02 10:46:11"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:46:12 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=in_progress
+2026-04-02 10:46:12 Done: processed=1 errors=0
+2026-04-02 10:47:41 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/39eac40d-2e68-11f1-0a80-16e3000fe5f1"},"uid":"admin@papierinvest","moment":"2026-04-02 10:47:40"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:47:41 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/3a352ce3-2e68-11f1-0a80-085d0030af75"},"uid":"@papierinvest","moment":"2026-04-02 10:47:41"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:47:41 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=shipped
+2026-04-02 10:47:41 Done: processed=1 errors=0
+2026-04-02 10:47:42 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=shipped
+2026-04-02 10:47:42 Done: processed=1 errors=0
+2026-04-02 10:48:29 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/56d24e27-2e68-11f1-0a80-146c000ff0b4"},"uid":"admin@papierinvest","moment":"2026-04-02 10:48:29"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3eeb7a44-278e-11f1-0a80-02380022dc44"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:48:30 Updated order id=674957 ms=3eeb7a44-278e-11f1-0a80-02380022dc44 status=shipped
+2026-04-02 10:48:30 Done: processed=1 errors=0
+2026-04-02 10:48:30 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/577c57d6-2e68-11f1-0a80-085d0030bc5d"},"uid":"@papierinvest","moment":"2026-04-02 10:48:30"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3eeb7a44-278e-11f1-0a80-02380022dc44"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:48:31 Updated order id=674957 ms=3eeb7a44-278e-11f1-0a80-02380022dc44 status=shipped
+2026-04-02 10:48:31 Done: processed=1 errors=0
+2026-04-02 10:50:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/90794283-2e68-11f1-0a80-146c000ffa0c"},"uid":"admin@papierinvest","moment":"2026-04-02 10:50:06"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3eeb7a44-278e-11f1-0a80-02380022dc44"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:50:06 Updated order id=674957 ms=3eeb7a44-278e-11f1-0a80-02380022dc44 status=shipped
+2026-04-02 10:50:06 Done: processed=1 errors=0
+2026-04-02 10:50:21 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/99bb2faf-2e68-11f1-0a80-16e20006e2b0"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:50:21"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3431aa37-287a-11f1-0a80-0d870002386c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:50:22 Updated order id=675489 ms=3431aa37-287a-11f1-0a80-0d870002386c status=shipped
+2026-04-02 10:50:22 Done: processed=1 errors=0
+2026-04-02 10:51:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/b483867f-2e68-11f1-0a80-174800071557"},"uid":"vglender@papierinvest","moment":"2026-04-02 10:51:06"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/3431aa37-287a-11f1-0a80-0d870002386c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 10:51:07 Updated order id=675489 ms=3431aa37-287a-11f1-0a80-0d870002386c status=shipped
+2026-04-02 10:51:07 Done: processed=1 errors=0
+2026-04-02 11:08:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/3359301a-2e6b-11f1-0a80-16e30010a69d"},"uid":"admin@papierinvest","moment":"2026-04-02 11:08:58"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/33497cb1-2e6b-11f1-0a80-16e30010a690"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:08:58 Inserted order id=681735 ms=33497cb1-2e6b-11f1-0a80-16e30010a690
+2026-04-02 11:08:59 Done: processed=1 errors=0
+2026-04-02 11:10:04 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5a77b2d6-2e6b-11f1-0a80-0e24001058c0"},"uid":"admin@papierinvest","moment":"2026-04-02 11:10:03"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/33497cb1-2e6b-11f1-0a80-16e30010a690"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:10:04 Updated order id=681735 ms=33497cb1-2e6b-11f1-0a80-16e30010a690 status=in_progress
+2026-04-02 11:10:04 Done: processed=1 errors=0
+2026-04-02 11:10:20 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/63f756c1-2e6b-11f1-0a80-1d4d00109530"},"uid":"admin@papierinvest","moment":"2026-04-02 11:10:19"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/33497cb1-2e6b-11f1-0a80-16e30010a690"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:10:20 Updated order id=681735 ms=33497cb1-2e6b-11f1-0a80-16e30010a690 status=in_progress
+2026-04-02 11:10:20 Done: processed=1 errors=0
+2026-04-02 11:10:26 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/67f99e23-2e6b-11f1-0a80-09e10010b72e"},"uid":"admin@papierinvest","moment":"2026-04-02 11:10:26"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/33497cb1-2e6b-11f1-0a80-16e30010a690"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:10:27 Updated order id=681735 ms=33497cb1-2e6b-11f1-0a80-16e30010a690 status=in_progress
+2026-04-02 11:10:27 Done: processed=1 errors=0
+2026-04-02 11:15:10 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/11250cc1-2e6c-11f1-0a80-11b40010f6a5"},"uid":"admin@papierinvest","moment":"2026-04-02 11:15:10"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/33497cb1-2e6b-11f1-0a80-16e30010a690"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:15:10 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/114eb8fe-2e6c-11f1-0a80-085d00331b36"},"uid":"@papierinvest","moment":"2026-04-02 11:15:10"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/33497cb1-2e6b-11f1-0a80-16e30010a690"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:15:11 Updated order id=681735 ms=33497cb1-2e6b-11f1-0a80-16e30010a690 status=shipped
+2026-04-02 11:15:11 Done: processed=1 errors=0
+2026-04-02 11:15:11 Updated order id=681735 ms=33497cb1-2e6b-11f1-0a80-16e30010a690 status=shipped
+2026-04-02 11:15:11 Done: processed=1 errors=0
+2026-04-02 11:42:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d39c44a7-2e6f-11f1-0a80-108b00123199"},"uid":"admin@papierinvest","moment":"2026-04-02 11:42:05"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d37fcee3-2e6f-11f1-0a80-108b0012318a"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:42:06 Inserted order id=681736 ms=d37fcee3-2e6f-11f1-0a80-108b0012318a
+2026-04-02 11:42:06 Done: processed=1 errors=0
+2026-04-02 11:43:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/faf113bb-2e6f-11f1-0a80-1d4d00118d94"},"uid":"admin@papierinvest","moment":"2026-04-02 11:43:11"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d37fcee3-2e6f-11f1-0a80-108b0012318a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:43:12 Updated order id=681736 ms=d37fcee3-2e6f-11f1-0a80-108b0012318a status=in_progress
+2026-04-02 11:43:12 Done: processed=1 errors=0
+2026-04-02 11:43:24 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/02c5e2ce-2e70-11f1-0a80-1be500121c63"},"uid":"admin@papierinvest","moment":"2026-04-02 11:43:24"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d37fcee3-2e6f-11f1-0a80-108b0012318a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:43:25 Updated order id=681736 ms=d37fcee3-2e6f-11f1-0a80-108b0012318a status=in_progress
+2026-04-02 11:43:25 Done: processed=1 errors=0
+2026-04-02 11:43:31 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/06ac8331-2e70-11f1-0a80-16e30011b9fb"},"uid":"admin@papierinvest","moment":"2026-04-02 11:43:30"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d37fcee3-2e6f-11f1-0a80-108b0012318a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:43:31 Updated order id=681736 ms=d37fcee3-2e6f-11f1-0a80-108b0012318a status=in_progress
+2026-04-02 11:43:31 Done: processed=1 errors=0
+2026-04-02 11:56:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e807baa2-2e71-11f1-0a80-1be500128390"},"uid":"admin@papierinvest","moment":"2026-04-02 11:56:58"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/e7f5414f-2e71-11f1-0a80-1be500128376"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 11:56:59 Inserted order id=681737 ms=e7f5414f-2e71-11f1-0a80-1be500128376
+2026-04-02 11:56:59 Done: processed=1 errors=0
+2026-04-02 12:00:00 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/54a55be9-2e72-11f1-0a80-0558001273d5"},"uid":"admin@papierinvest","moment":"2026-04-02 12:00:00"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/548ad1ff-2e72-11f1-0a80-0558001273c8"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:00:01 Inserted order id=681738 ms=548ad1ff-2e72-11f1-0a80-0558001273c8
+2026-04-02 12:00:01 Done: processed=1 errors=0
+2026-04-02 12:01:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7bee77fa-2e72-11f1-0a80-174b00129bd5"},"uid":"admin@papierinvest","moment":"2026-04-02 12:01:06"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/548ad1ff-2e72-11f1-0a80-0558001273c8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:01:07 Updated order id=681738 ms=548ad1ff-2e72-11f1-0a80-0558001273c8 status=in_progress
+2026-04-02 12:01:07 Done: processed=1 errors=0
+2026-04-02 12:01:19 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8396149b-2e72-11f1-0a80-01af0012a79e"},"uid":"admin@papierinvest","moment":"2026-04-02 12:01:19"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/548ad1ff-2e72-11f1-0a80-0558001273c8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:01:20 Updated order id=681738 ms=548ad1ff-2e72-11f1-0a80-0558001273c8 status=in_progress
+2026-04-02 12:01:20 Done: processed=1 errors=0
+2026-04-02 12:01:26 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/87807cdc-2e72-11f1-0a80-11b400126cc0"},"uid":"admin@papierinvest","moment":"2026-04-02 12:01:25"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/548ad1ff-2e72-11f1-0a80-0558001273c8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:01:26 Updated order id=681738 ms=548ad1ff-2e72-11f1-0a80-0558001273c8 status=in_progress
+2026-04-02 12:01:26 Done: processed=1 errors=0
+2026-04-02 12:03:04 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c23a4d92-2e72-11f1-0a80-09e100128451"},"uid":"admin@papierinvest","moment":"2026-04-02 12:03:04"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/c224a761-2e72-11f1-0a80-09e100128444"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:03:05 Inserted order id=681739 ms=c224a761-2e72-11f1-0a80-09e100128444
+2026-04-02 12:03:05 Done: processed=1 errors=0
+2026-04-02 12:04:10 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e96725a0-2e72-11f1-0a80-0e24001238b5"},"uid":"admin@papierinvest","moment":"2026-04-02 12:04:10"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/c224a761-2e72-11f1-0a80-09e100128444"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:04:11 Updated order id=681739 ms=c224a761-2e72-11f1-0a80-09e100128444 status=in_progress
+2026-04-02 12:04:11 Done: processed=1 errors=0
+2026-04-02 12:04:19 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ee963fa0-2e72-11f1-0a80-01af0012bfa1"},"uid":"admin@papierinvest","moment":"2026-04-02 12:04:18"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/c224a761-2e72-11f1-0a80-09e100128444"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:04:19 Updated order id=681739 ms=c224a761-2e72-11f1-0a80-09e100128444 status=in_progress
+2026-04-02 12:04:19 Done: processed=1 errors=0
+2026-04-02 12:04:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f28bf01b-2e72-11f1-0a80-0e2400123dda"},"uid":"admin@papierinvest","moment":"2026-04-02 12:04:25"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/c224a761-2e72-11f1-0a80-09e100128444"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:04:26 Updated order id=681739 ms=c224a761-2e72-11f1-0a80-09e100128444 status=in_progress
+2026-04-02 12:04:26 Done: processed=1 errors=0
+2026-04-02 12:07:19 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5a319dc5-2e73-11f1-0a80-1c7000096516"},"uid":"vglender@papierinvest","moment":"2026-04-02 12:07:19"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:19 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5a6702bb-2e73-11f1-0a80-085d0037e4cf"},"uid":"@papierinvest","moment":"2026-04-02 12:07:19"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:20 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=in_progress
+2026-04-02 12:07:20 Done: processed=1 errors=0
+2026-04-02 12:07:20 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=in_progress
+2026-04-02 12:07:20 Done: processed=1 errors=0
+2026-04-02 12:07:21 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5b706c95-2e73-11f1-0a80-146c00128ee1"},"uid":"admin@papierinvest","moment":"2026-04-02 12:07:21"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5bcd3d29-2e73-11f1-0a80-15480012a9c1"},"uid":"admin@papierinvest","moment":"2026-04-02 12:07:22"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:22 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=in_progress
+2026-04-02 12:07:22 Done: processed=1 errors=0
+2026-04-02 12:07:22 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=in_progress
+2026-04-02 12:07:22 Done: processed=1 errors=0
+2026-04-02 12:07:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/631079d1-2e73-11f1-0a80-1be50012f0be"},"uid":"admin@papierinvest","moment":"2026-04-02 12:07:34"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:35 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=in_progress
+2026-04-02 12:07:35 Done: processed=1 errors=0
+2026-04-02 12:07:41 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/67215e5b-2e73-11f1-0a80-1be50012f3c3"},"uid":"admin@papierinvest","moment":"2026-04-02 12:07:41"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:07:41 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=in_progress
+2026-04-02 12:07:41 Done: processed=1 errors=0
+2026-04-02 12:15:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/73715368-2e74-11f1-0a80-15480012e51d"},"uid":"admin@papierinvest","moment":"2026-04-02 12:15:11"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/735defbd-2e74-11f1-0a80-15480012e511"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:15:13 Inserted order id=681740 ms=735defbd-2e74-11f1-0a80-15480012e511
+2026-04-02 12:15:13 Done: processed=1 errors=0
+2026-04-02 12:40:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0bcb5048-2e78-11f1-0a80-1d4d0013ad16"},"uid":"admin@papierinvest","moment":"2026-04-02 12:40:55"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:40:56 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=shipped
+2026-04-02 12:40:56 Done: processed=1 errors=0
+2026-04-02 12:41:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/12881061-2e78-11f1-0a80-01af00146405"},"uid":"admin@papierinvest","moment":"2026-04-02 12:41:06"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/7409748a-2e66-11f1-0a80-146c000f7379"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:41:07 Updated order id=681734 ms=7409748a-2e66-11f1-0a80-146c000f7379 status=shipped
+2026-04-02 12:41:07 Done: processed=1 errors=0
+2026-04-02 12:43:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5ccffa4f-2e78-11f1-0a80-01ac000b04bd"},"uid":"vglender@papierinvest","moment":"2026-04-02 12:43:11"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/e7f5414f-2e71-11f1-0a80-1be500128376"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:43:12 Updated order id=681737 ms=e7f5414f-2e71-11f1-0a80-1be500128376 status=new
+2026-04-02 12:43:12 Done: processed=1 errors=0
+2026-04-02 12:44:43 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/93c07604-2e78-11f1-0a80-01ac000b1045"},"uid":"vglender@papierinvest","moment":"2026-04-02 12:44:43"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/e7f5414f-2e71-11f1-0a80-1be500128376"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:44:44 Updated order id=681737 ms=e7f5414f-2e71-11f1-0a80-1be500128376 status=new
+2026-04-02 12:44:44 Done: processed=1 errors=0
+2026-04-02 12:46:01 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c2034ccc-2e78-11f1-0a80-154800143664"},"uid":"admin@papierinvest","moment":"2026-04-02 12:46:01"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/6df1eaa2-2135-11f1-0a80-0687007bd24d"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:46:02 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c264c16a-2e78-11f1-0a80-085d003b58ed"},"uid":"@papierinvest","moment":"2026-04-02 12:46:01"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/6df1eaa2-2135-11f1-0a80-0687007bd24d"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:46:02 Updated order id=672016 ms=6df1eaa2-2135-11f1-0a80-0687007bd24d status=shipped
+2026-04-02 12:46:02 Done: processed=1 errors=0
+2026-04-02 12:46:02 Updated order id=672016 ms=6df1eaa2-2135-11f1-0a80-0687007bd24d status=shipped
+2026-04-02 12:46:02 Done: processed=1 errors=0
+2026-04-02 12:48:31 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1b6f550a-2e79-11f1-0a80-174b001470b5"},"uid":"admin@papierinvest","moment":"2026-04-02 12:48:31"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/548ad1ff-2e72-11f1-0a80-0558001273c8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:48:31 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1ba0533f-2e79-11f1-0a80-085d003b82ec"},"uid":"@papierinvest","moment":"2026-04-02 12:48:31"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/548ad1ff-2e72-11f1-0a80-0558001273c8"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:48:31 Updated order id=681738 ms=548ad1ff-2e72-11f1-0a80-0558001273c8 status=shipped
+2026-04-02 12:48:31 Done: processed=1 errors=0
+2026-04-02 12:48:32 Updated order id=681738 ms=548ad1ff-2e72-11f1-0a80-0558001273c8 status=shipped
+2026-04-02 12:48:32 Done: processed=1 errors=0
+2026-04-02 12:49:46 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/486f64dc-2e79-11f1-0a80-11b400143c82"},"uid":"admin@papierinvest","moment":"2026-04-02 12:49:46"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/c224a761-2e72-11f1-0a80-09e100128444"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:49:47 Updated order id=681739 ms=c224a761-2e72-11f1-0a80-09e100128444 status=shipped
+2026-04-02 12:49:47 Done: processed=1 errors=0
+2026-04-02 12:49:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/48c94fef-2e79-11f1-0a80-085d003ba39e"},"uid":"@papierinvest","moment":"2026-04-02 12:49:47"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/c224a761-2e72-11f1-0a80-09e100128444"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 12:49:47 Updated order id=681739 ms=c224a761-2e72-11f1-0a80-09e100128444 status=shipped
+2026-04-02 12:49:47 Done: processed=1 errors=0
+2026-04-02 13:00:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d0baee5d-2e7a-11f1-0a80-077e000b38f6"},"uid":"vglender@papierinvest","moment":"2026-04-02 13:00:44"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/e7f5414f-2e71-11f1-0a80-1be500128376"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:00:45 Updated order id=681737 ms=e7f5414f-2e71-11f1-0a80-1be500128376 status=new
+2026-04-02 13:00:45 Done: processed=1 errors=0
+2026-04-02 13:02:46 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/18ee7046-2e7b-11f1-0a80-0556000ad925"},"uid":"vglender@papierinvest","moment":"2026-04-02 13:02:45"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/e7f5414f-2e71-11f1-0a80-1be500128376"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:02:46 Updated order id=681737 ms=e7f5414f-2e71-11f1-0a80-1be500128376 status=waiting_payment
+2026-04-02 13:02:46 Done: processed=1 errors=0
+2026-04-02 13:02:51 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1c397b14-2e7b-11f1-0a80-195a000b2fc4"},"uid":"vglender@papierinvest","moment":"2026-04-02 13:02:51"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/e7f5414f-2e71-11f1-0a80-1be500128376"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:02:52 Updated order id=681737 ms=e7f5414f-2e71-11f1-0a80-1be500128376 status=new
+2026-04-02 13:02:52 Done: processed=1 errors=0
+2026-04-02 13:11:50 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5d5173e0-2e7c-11f1-0a80-0e240014986b"},"uid":"admin@papierinvest","moment":"2026-04-02 13:11:50"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:11:50 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5d88ba44-2e7c-11f1-0a80-085d003d916c"},"uid":"@papierinvest","moment":"2026-04-02 13:11:50"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d953411d-29de-11f1-0a80-070b003d4130"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:11:50 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=shipped
+2026-04-02 13:11:50 Done: processed=1 errors=0
+2026-04-02 13:11:51 Updated order id=676147 ms=d953411d-29de-11f1-0a80-070b003d4130 status=shipped
+2026-04-02 13:11:51 Done: processed=1 errors=0
+2026-04-02 13:30:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/02e4b784-2e7f-11f1-0a80-108b0015c18f"},"uid":"admin@papierinvest","moment":"2026-04-02 13:30:46"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/fcebc302-2781-11f1-0a80-1ac60011c1f2"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:30:48 Updated order id=674901 ms=fcebc302-2781-11f1-0a80-1ac60011c1f2 status=in_progress
+2026-04-02 13:30:49 Done: processed=1 errors=0
+2026-04-02 13:31:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1332326f-2e7f-11f1-0a80-195b00165bf0"},"uid":"admin@papierinvest","moment":"2026-04-02 13:31:14"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/daf29fdf-2dd3-11f1-0a80-1be0001cd265"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:31:15 Updated order id=681710 ms=daf29fdf-2dd3-11f1-0a80-1be0001cd265 status=in_progress
+2026-04-02 13:31:15 Done: processed=1 errors=0
+2026-04-02 13:33:46 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/6dbbca34-2e7f-11f1-0a80-195a000c280a"},"uid":"olga@papierinvest","moment":"2026-04-02 13:33:46"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d37fcee3-2e6f-11f1-0a80-108b0012318a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:33:46 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/6deee30e-2e7f-11f1-0a80-085d003f85ca"},"uid":"@papierinvest","moment":"2026-04-02 13:33:46"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/d37fcee3-2e6f-11f1-0a80-108b0012318a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:33:47 Updated order id=681736 ms=d37fcee3-2e6f-11f1-0a80-108b0012318a status=cancelled
+2026-04-02 13:33:47 Done: processed=1 errors=0
+2026-04-02 13:33:48 Updated order id=681736 ms=d37fcee3-2e6f-11f1-0a80-108b0012318a status=cancelled
+2026-04-02 13:33:48 Done: processed=1 errors=0
+2026-04-02 13:35:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bd2032a9-2e7f-11f1-0a80-108b0015e053"},"uid":"admin@papierinvest","moment":"2026-04-02 13:35:59"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/daf29fdf-2dd3-11f1-0a80-1be0001cd265"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:35:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bd497bab-2e7f-11f1-0a80-085d003fab3f"},"uid":"@papierinvest","moment":"2026-04-02 13:35:59"},"events":[{"meta":{"type":"customerorder","href":"https://api.moysklad.ru/api/remap/1.2/entity/customerorder/daf29fdf-2dd3-11f1-0a80-1be0001cd265"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:36:00 Updated order id=681710 ms=daf29fdf-2dd3-11f1-0a80-1be0001cd265 status=shipped
+2026-04-02 13:36:00 Done: processed=1 errors=0
+2026-04-02 13:36:00 Updated order id=681710 ms=daf29fdf-2dd3-11f1-0a80-1be0001cd265 status=shipped
+2026-04-02 13:36:00 Done: processed=1 errors=0

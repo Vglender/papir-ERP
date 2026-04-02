@@ -38,13 +38,14 @@ class ScanSheetRepository
 
         $rRows = \Database::fetchAll('Papir',
             "SELECT ss.*, s.Description AS sender_desc,
-                    agg.total_cost, agg.total_redelivery
+                    agg.total_cost, agg.total_redelivery, agg.total_seats
              FROM np_scan_sheets ss
              LEFT JOIN np_sender s ON s.Ref = ss.sender_ref
              LEFT JOIN (
                  SELECT scan_sheet_ref,
                         SUM(cost) AS total_cost,
-                        SUM(COALESCE(afterpayment_on_goods_cost, backward_delivery_money)) AS total_redelivery
+                        SUM(COALESCE(afterpayment_on_goods_cost, backward_delivery_money)) AS total_redelivery,
+                        SUM(seats_amount) AS total_seats
                  FROM ttn_novaposhta
                  WHERE deletion_mark = 0 AND scan_sheet_ref IS NOT NULL
                  GROUP BY scan_sheet_ref

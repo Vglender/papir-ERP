@@ -33,7 +33,9 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 .ws-layout {
     display: grid;
     grid-template-columns: 268px minmax(280px, 360px) 1fr;
+    grid-template-rows: 1fr;
     flex: 1;
+    min-height: 0;
     overflow: hidden;
 }
 
@@ -388,7 +390,7 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 .ws-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 13px; }
 
 /* ── Context (right) ────────────────────────────────────────────────────────── */
-.ws-ctx { overflow: hidden; background: #fff; display: flex; flex-direction: column; }
+.ws-ctx { overflow: hidden; background: #fff; display: flex; flex-direction: column; min-height: 0; }
 .ws-ctx-empty { flex: 1; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 12px; padding: 20px; text-align: center; }
 .ws-ctx-section { padding: 14px 14px 0; }
 .ws-ctx-section + .ws-ctx-section { padding-top: 12px; border-top: 1px solid #f3f4f6; margin-top: 12px; }
@@ -904,6 +906,7 @@ var WS = {
   inboxTimer:     null,
   currentCp:      null,
   currentLead:    null,
+  _firstRender:   true,     // auto-select top item on first inbox load
 
   // ── Init ───────────────────────────────────────────────────────────────────
   init: function() {
@@ -913,9 +916,10 @@ var WS = {
     var urlParams = new URLSearchParams(window.location.search);
     var autoSelect = parseInt(urlParams.get('select') || '0', 10);
     if (autoSelect > 0) {
-      this.kind        = 'counterparty';
-      this.itemId      = autoSelect;
-      this._autoSelect = autoSelect;
+      this.kind         = 'counterparty';
+      this.itemId       = autoSelect;
+      this._autoSelect  = autoSelect;
+      this._firstRender = false;  // explicit selection — don't override with auto-first
       history.replaceState(null, '', '/counterparties');
       // Fire detail fetch in parallel with inbox — don't wait for inbox to render
       this._autoSelectPromise = fetch('/counterparties/api/get_counterparty_detail?id=' + autoSelect)
@@ -978,7 +982,7 @@ var WS = {
       document.getElementById('wsCharC').textContent = len > 0 ? len + ' симв.' : '';
     });
     inp.addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
         e.preventDefault();
         self.sendMessage();
         return;
@@ -1202,6 +1206,15 @@ var WS = {
   },
 
   restoreSelection: function(inboxEl) {
+    // Auto-select first card on initial page load (only once, no existing selection)
+    if (!this.kind && this._firstRender) {
+      this._firstRender = false;
+      var first = inboxEl.querySelector('.ws-card[data-kind]');
+      if (first) {
+        first.click();
+      }
+      return;
+    }
     if (this.kind && this.itemId) {
       var sel = inboxEl.querySelector('.ws-card[data-kind="'+this.kind+'"][data-id="'+this.itemId+'"]');
       if (sel) {
@@ -1509,15 +1522,106 @@ var WS = {
         + '</div>'
       : '';
 
+    // Status color helper
+    var statusColors = {
+      'new':'badge-blue','confirmed':'badge-blue','in_progress':'badge-blue',
+      'waiting_payment':'badge-orange','paid':'badge-green','shipped':'badge-green',
+      'completed':'badge-gray','cancelled':'badge-red','draft':'badge-gray'
+    };
+
+    // Active order card
+    var activeOrdHtml = '';
+    if (ord) {
+      var ordDate = ord.moment ? ord.moment.substring(0, 10).split('-').reverse().join('.') : '';
+      var ordSum  = ord.sum_total > 0 ? '₴' + Math.round(ord.sum_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') : '—';
+      var ordBc   = statusColors[ord.status] || 'badge-gray';
+      activeOrdHtml = '<div class="ws-ctx-active-order" id="wsActiveOrder" data-order-id="' + ord.id + '">'
+        + '<div class="ws-ctx-active-order-row">'
+        + '<span class="ws-ctx-active-order-num">' + self.esc(ord.number || ('#' + ord.id)) + '</span>'
+        + '<span class="ws-ctx-active-order-date">' + ordDate + '</span>'
+        + '<span class="ws-ctx-active-order-sum">' + ordSum + '</span>'
+        + '<span class="badge ' + ordBc + '" style="font-size:9px;padding:1px 5px">' + self.esc(ord.status_label) + '</span>'
+        + '</div>'
+        + '</div>';
+    }
+
+    // Previous orders (all except active)
+    var activeOrdId = ord ? ord.id : 0;
+    var otherOrders = (d.recent_orders || []).filter(function(o) { return o.id !== activeOrdId; });
+
+    // 3-column bottom grid
+    var bottomGrid = '<div class="ws-ctx-bottom-grid" id="wsBottomGrid">';
+
+    // Col 1: Previous orders
+    bottomGrid += '<div class="ws-bottom-col" id="wsBottomOrders">'
+      + '<div class="ws-bottom-col-hd">Замовлення'
+      + (otherOrders.length ? ' <span class="ws-bottom-cnt">' + otherOrders.length + '</span>' : '')
+      + '</div>';
+    if (otherOrders.length === 0) {
+      bottomGrid += '<div class="ws-bottom-empty">Попередніх немає</div>';
+    } else {
+      otherOrders.forEach(function(o) {
+        var date = o.moment ? o.moment.substring(0, 10).split('-').reverse().join('.') : '';
+        var sum  = o.sum_total > 0 ? '₴' + Math.round(o.sum_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') : '—';
+        bottomGrid += '<div class="ws-bottom-row ws-bottom-order-row" data-order-id="' + o.id + '">'
+          + '<span class="ws-bottom-row-num">' + self.esc(o.number || ('#' + o.id)) + '</span>'
+          + '<span class="ws-bottom-row-date">' + date + '</span>'
+          + '<span class="ws-bottom-row-sum">' + sum + '</span>'
+          + '</div>';
+      });
+    }
+    bottomGrid += '</div>';
+
+    // Col 2: Demands/shipments — populated by renderBottomGrid after flow loads
+    bottomGrid += '<div class="ws-bottom-col ws-bottom-col-sep" id="wsBottomDemands">'
+      + '<div class="ws-bottom-col-hd">Відвантаження</div>'
+      + '<div class="ws-bottom-empty">…</div>'
+      + '</div>';
+
+    // Col 3: TTNs — populated by renderBottomGrid after flow loads
+    bottomGrid += '<div class="ws-bottom-col ws-bottom-col-sep" id="wsBottomTtns">'
+      + '<div class="ws-bottom-col-hd">Відправки</div>'
+      + '<div class="ws-bottom-empty">…</div>'
+      + '</div>';
+
+    bottomGrid += '</div>';
+
     ctxHtml += '</div>'
              + createBar
+             + activeOrdHtml
              + '<div class="ws-ctx-detail-zone" id="wsDetailZone">'
              + '<div class="ws-ctx-detail-empty"><div>📄</div><div>Натисніть документ у схемі</div></div>'
-             + '</div>';
+             + '</div>'
+             + bottomGrid;
 
     document.getElementById('wsCtx').innerHTML = '<div class="ws-ctx-split">' + ctxHtml + '</div>';
 
+    // Bind active order card click
+    var activeOrdEl = document.getElementById('wsActiveOrder');
+    if (activeOrdEl) {
+      activeOrdEl.addEventListener('click', function() {
+        activeOrdEl.classList.add('active');
+        document.getElementById('wsBottomOrders') && document.getElementById('wsBottomOrders').querySelectorAll('.ws-bottom-order-row').forEach(function(r) { r.classList.remove('active'); });
+        self.loadOrderFlow(ord.id, (cp && cp.id_ms) ? cp.id_ms : '');
+      });
+    }
+
+    // Bind previous orders click
+    var bottomOrders = document.getElementById('wsBottomOrders');
+    if (bottomOrders) {
+      bottomOrders.querySelectorAll('.ws-bottom-order-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+          bottomOrders.querySelectorAll('.ws-bottom-order-row').forEach(function(r) { r.classList.remove('active'); });
+          row.classList.add('active');
+          if (activeOrdEl) activeOrdEl.classList.remove('active');
+          var ordId = parseInt(row.dataset.orderId, 10);
+          self.loadOrderFlow(ordId, (cp && cp.id_ms) ? cp.id_ms : '');
+        });
+      });
+    }
+
     if (ord) {
+      if (activeOrdEl) activeOrdEl.classList.add('active');
       this.loadOrderFlow(ord.id, cp.id_ms || '');
     }
   },
@@ -1729,9 +1833,85 @@ var WS = {
       });
     }
 
+    // Populate demands/TTNs columns in bottom grid
+    self.renderBottomGrid(d);
+
     // Auto-open order node if present
     var orderNode = chainEl.querySelector('.wf-node[data-type="order"]');
     if (orderNode) { orderNode.click(); }
+  },
+
+  // ── Render bottom 3-column grid (demands + TTNs) ───────────────────────────
+  renderBottomGrid: function(d) {
+    var self = this;
+
+    // Col 2: Demands
+    var demandsEl = document.getElementById('wsBottomDemands');
+    if (demandsEl) {
+      var demands = d.demands || [];
+      var html = '<div class="ws-bottom-col-hd">Відвантаження'
+        + (demands.length ? ' <span class="ws-bottom-cnt">' + demands.length + '</span>' : '')
+        + '</div>';
+      if (demands.length === 0) {
+        html += '<div class="ws-bottom-empty">Немає</div>';
+      } else {
+        demands.forEach(function(dem) {
+          var date = dem.moment ? dem.moment.substring(0, 10).split('-').reverse().join('.') : '';
+          var sum  = parseFloat(dem.sum_total) > 0
+            ? '₴' + Math.round(dem.sum_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') : '—';
+          html += '<div class="ws-bottom-row ws-bottom-demand-row" data-demand-id="' + dem.id + '">'
+            + '<span class="ws-bottom-row-num">#' + self.esc(dem.number || ('d' + dem.id)) + '</span>'
+            + '<span class="ws-bottom-row-date">' + date + '</span>'
+            + '<span class="ws-bottom-row-sum">' + sum + '</span>'
+            + '</div>';
+        });
+      }
+      demandsEl.innerHTML = html;
+      demandsEl.querySelectorAll('.ws-bottom-demand-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+          demandsEl.querySelectorAll('.ws-bottom-demand-row').forEach(function(r) { r.classList.remove('active'); });
+          row.classList.add('active');
+          self.loadDemandForm(parseInt(row.dataset.demandId, 10), d);
+        });
+      });
+    }
+
+    // Col 3: TTNs (NP + UP)
+    var ttnsEl = document.getElementById('wsBottomTtns');
+    if (ttnsEl) {
+      var allTtns = [];
+      (d.ttns_np || []).forEach(function(t) {
+        allTtns.push({ type: 'ttn_np', num: t.int_doc_number, status: t.state_name, moment: t.moment, data: t });
+      });
+      (d.ttns_up || []).forEach(function(t) {
+        allTtns.push({ type: 'ttn_up', num: t.barcode, status: t.lifecycle_status, moment: t.moment, data: t });
+      });
+      allTtns.sort(function(a, b) { return (a.moment || '').localeCompare(b.moment || ''); });
+
+      var html = '<div class="ws-bottom-col-hd">Відправки'
+        + (allTtns.length ? ' <span class="ws-bottom-cnt">' + allTtns.length + '</span>' : '')
+        + '</div>';
+      if (allTtns.length === 0) {
+        html += '<div class="ws-bottom-empty">Немає</div>';
+      } else {
+        allTtns.forEach(function(t, idx) {
+          html += '<div class="ws-bottom-row ws-bottom-ttn-row" data-ttn-idx="' + idx + '">'
+            + '<span class="ws-bottom-row-num">' + self.esc(t.num || '—') + '</span>'
+            + '<span class="ws-bottom-row-status">' + self.esc(t.status || '—') + '</span>'
+            + '</div>';
+        });
+      }
+      ttnsEl.innerHTML = html;
+      ttnsEl.querySelectorAll('.ws-bottom-ttn-row').forEach(function(row) {
+        row.addEventListener('click', function() {
+          ttnsEl.querySelectorAll('.ws-bottom-ttn-row').forEach(function(r) { r.classList.remove('active'); });
+          row.classList.add('active');
+          var idx = parseInt(row.dataset.ttnIdx, 10);
+          var t = allTtns[idx];
+          self.openDocDetail({ type: t.type, data: t.data }, d);
+        });
+      });
+    }
   },
 
   // ── Open document detail in bottom zone ───────────────────────────────────
@@ -5367,7 +5547,65 @@ function showToast(msg, isError) {
 .ws-ctx-contacts a { color: #7c3aed; text-decoration: none; }
 .ws-ctx-contacts a:hover { text-decoration: underline; }
 .ws-ctx-flow-zone { flex-shrink: 0; padding: 10px 0 8px; border-bottom: 1px solid #f3f4f6; background: #fff; }
-.ws-ctx-detail-zone { flex: 1; overflow-y: auto; min-height: 0; background: #fafafa; }
+.ws-ctx-active-order { flex-shrink: 0; background: #fff; border-top: 1px solid #f3f4f6; cursor: pointer; }
+.ws-ctx-active-order-row {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; font-size: 11px; transition: background .1s;
+}
+.ws-ctx-active-order:hover .ws-ctx-active-order-row { background: #f5f3ff; }
+.ws-ctx-active-order.active .ws-ctx-active-order-row { background: #ede9fe; }
+.ws-ctx-active-order-num { font-weight: 700; color: #111827; white-space: nowrap; flex-shrink: 0; }
+.ws-ctx-active-order-date { color: #9ca3af; font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+.ws-ctx-active-order-sum { font-weight: 700; color: #7c3aed; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+/* ── 3-column bottom grid ─────────────────────────────────────────────────── */
+.ws-ctx-bottom-grid {
+    flex: 1; min-height: 140px; display: grid;
+    grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr;
+    border-top: 2px solid #e5e7eb; background: #fff; overflow: hidden;
+}
+.ws-bottom-col { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; }
+.ws-bottom-col-sep { border-left: 1px solid #f3f4f6; }
+.ws-bottom-col-hd {
+    display: flex; align-items: center; gap: 4px;
+    padding: 4px 8px 3px; font-size: 9px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .4px; color: #9ca3af;
+    background: #fff; flex-shrink: 0; border-bottom: 1px solid #f3f4f6;
+}
+.ws-bottom-cnt {
+    background: #f3f4f6; border-radius: 8px; font-size: 9px;
+    padding: 0 4px; color: #6b7280; font-weight: 400;
+    text-transform: none; letter-spacing: 0;
+}
+.ws-bottom-row {
+    display: flex; align-items: center; gap: 4px;
+    padding: 3px 8px; font-size: 10px; cursor: pointer;
+    border-bottom: 1px solid #f9fafb; transition: background .1s;
+    overflow: hidden;
+}
+.ws-bottom-row:hover { background: #f5f3ff; }
+.ws-bottom-row.active { background: #ede9fe; }
+.ws-bottom-row-num    { font-weight: 600; color: #111827; white-space: nowrap; flex-shrink: 0; }
+.ws-bottom-row-date   { color: #9ca3af; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
+.ws-bottom-row-sum    { font-weight: 600; color: #7c3aed; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+.ws-bottom-row-status { color: #6b7280; font-size: 9px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-bottom-empty { font-size: 10px; color: #d1d5db; padding: 6px 8px; }
+/* legacy */
+.ws-ctx-order-history-cnt {
+    background: #f3f4f6; border-radius: 8px; font-size: 10px;
+    padding: 0 5px; color: #6b7280; font-weight: 400;
+    text-transform: none; letter-spacing: 0;
+}
+.ws-ctx-order-row {
+    display: flex; align-items: center; gap: 5px;
+    padding: 4px 12px; cursor: pointer; font-size: 11px;
+    border-bottom: 1px solid #f9fafb; transition: background .1s;
+}
+.ws-ctx-order-row:hover { background: #f5f3ff; }
+.ws-ctx-order-row.active { background: #ede9fe; }
+.ws-ctx-order-row-num { font-weight: 600; color: #111827; white-space: nowrap; flex-shrink: 0; }
+.ws-ctx-order-row-date { color: #9ca3af; font-size: 10px; white-space: nowrap; flex-shrink: 0; }
+.ws-ctx-order-row-sum { font-weight: 600; color: #7c3aed; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+.ws-ctx-detail-zone { flex-shrink: 0; overflow-y: auto; max-height: 40vh; min-height: 60px; background: #fafafa; }
 .ws-ctx-detail-empty {
     display: flex; align-items: center; justify-content: center;
     height: 100%; min-height: 80px; font-size: 11px; color: #d1d5db;

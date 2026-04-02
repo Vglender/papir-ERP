@@ -162,7 +162,7 @@ $r = Database::fetchRow('Papir',
 
 | Таблица | Записей | Назначение |
 |---------|---------|-----------|
-| `counterparty` | 8 | Контрагенты (type: person/company/fop/department) |
+| `counterparty` | 8 | Контрагенты (type: person/company/fop/department). Денормализованные поля: `last_activity_at` (последнее сообщение/заказ, индекс idx_cp_activity), `unread_count` (непрочитанные входящие) |
 | `counterparty_company` | 4 | Расширение для юр. лиц (okpo, inn, адреса, банк) |
 | `counterparty_person` | 4 | Расширение для физ. лиц (ФИО, телефон, telegram) |
 | `counterparty_relation` | 8 | Связи между контрагентами (contact_person, employee, director...) |

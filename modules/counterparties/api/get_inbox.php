@@ -41,6 +41,11 @@ foreach ($leadsRaw as $l) {
 $activeStatuses = array('new','confirmed','in_progress','waiting_payment','paid','shipped');
 $activeStatusesSql = "'" . implode("','", $activeStatuses) . "'";
 
+// Fast inbox query:
+// - ORDER BY c.last_activity_at uses idx_cp_activity → no filesort, early stop at LIMIT 300
+// - c.unread_count is denormalized → no GROUP BY subquery on cp_messages
+// - LATERAL join for last order → 300 indexed lookups instead of full 113k-row scan
+// - person-type filter uses idx_counterparty_type to avoid NOT EXISTS correlated subquery
 $sql = "SELECT
             c.id, c.type, c.name, c.status AS cp_status,
             COALESCE(cc.phone, cp.phone) AS phone,
@@ -49,7 +54,7 @@ $sql = "SELECT
             msg.created_at  AS last_msg_at,
             msg.direction   AS last_msg_dir,
             msg.channel     AS last_msg_channel,
-            COALESCE(unr.cnt, 0) AS unread_count,
+            c.unread_count,
             ord.id          AS last_order_id,
             ord.number      AS last_order_number,
             ord.status      AS last_order_status,
@@ -68,33 +73,22 @@ $sql = "SELECT
                 GROUP BY counterparty_id
             ) latest ON latest.counterparty_id = m1.counterparty_id AND latest.max_id = m1.id
         ) msg ON msg.counterparty_id = c.id
-        LEFT JOIN (
-            SELECT counterparty_id, COUNT(*) AS cnt
-            FROM cp_messages
-            WHERE counterparty_id IS NOT NULL AND direction = 'in' AND read_at IS NULL
-              AND (scheduled_at IS NULL OR scheduled_at <= NOW())
-            GROUP BY counterparty_id
-        ) unr ON unr.counterparty_id = c.id
-        LEFT JOIN (
-            SELECT o1.*
-            FROM customerorder o1
-            INNER JOIN (
-                SELECT counterparty_id, MAX(id) AS max_id
-                FROM customerorder
-                WHERE deleted_at IS NULL
-                GROUP BY counterparty_id
-            ) lo ON lo.counterparty_id = o1.counterparty_id AND lo.max_id = o1.id
-        ) ord ON ord.counterparty_id = c.id
+        LEFT JOIN LATERAL (
+            SELECT id, number, status, sum_total, moment
+            FROM customerorder
+            WHERE counterparty_id = c.id AND deleted_at IS NULL
+            ORDER BY id DESC
+            LIMIT 1
+        ) ord ON TRUE
+        LEFT JOIN counterparty_relation cr_excl
+            ON cr_excl.child_counterparty_id = c.id
+            AND cr_excl.relation_type IN ('contact_person','employee','accountant','director','manager')
         WHERE c.status = 1
           AND (
               c.type IN ('company','fop','department','other')
-              OR (c.type = 'person' AND NOT EXISTS (
-                  SELECT 1 FROM counterparty_relation cr2
-                  WHERE cr2.child_counterparty_id = c.id
-                    AND cr2.relation_type IN ('contact_person','employee','accountant','director','manager')
-              ))
+              OR (c.type = 'person' AND cr_excl.id IS NULL)
           )
-        ORDER BY COALESCE(msg.created_at, ord.moment, c.created_at) DESC
+        ORDER BY c.last_activity_at DESC
         LIMIT 300";
 
 $r = Database::fetchAll('Papir', $sql);

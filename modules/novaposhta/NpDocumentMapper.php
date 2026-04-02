@@ -118,6 +118,7 @@ class NpDocumentMapper
             'payer_type'                => !empty($doc['PayerType'])     ? $doc['PayerType']     : null,
             'sender_ref'                => $senderRef,
             'scan_sheet_ref'            => $scanSheetRef,
+            'car_call'                  => !empty($doc['CarCall']) ? $doc['CarCall'] : null,
             'deletion_mark'             => (isset($doc['DeletionMark']) && $doc['DeletionMark'] == '1') ? 1 : 0,
             'updated_at'                => date('Y-m-d H:i:s'),
         );
@@ -162,6 +163,8 @@ class NpDocumentMapper
         if ($mapped['scan_sheet_ref'] && !$existingScanSheetRef) {
             $upd['scan_sheet_ref'] = $mapped['scan_sheet_ref'];
         }
+        // car_call: always update (НП is the source of truth)
+        $upd['car_call'] = $mapped['car_call'];
         return $upd;
     }
 }

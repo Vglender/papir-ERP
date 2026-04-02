@@ -85,6 +85,8 @@ class SenderRepository
             'CityDescription' => isset($npAddress['CityDescription']) ? $npAddress['CityDescription'] : null,
             'StreetRef'       => isset($npAddress['StreetRef'])       ? $npAddress['StreetRef']       : null,
             'BuildingRef'     => isset($npAddress['BuildingRef'])     ? $npAddress['BuildingRef']     : null,
+            'WarehouseRef'    => isset($npAddress['WarehouseRef'])    ? $npAddress['WarehouseRef']    : null,
+            'address_type'    => isset($npAddress['address_type'])    ? $npAddress['address_type']    : 'street',
             'updated_at'      => date('Y-m-d H:i:s'),
         );
         return \Database::upsertOne('Papir', 'np_sender_address', $data,
