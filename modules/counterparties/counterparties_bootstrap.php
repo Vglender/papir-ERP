@@ -7,3 +7,6 @@ require_once __DIR__ . '/repositories/CounterpartyRepository.php';
 require_once __DIR__ . '/repositories/ChatRepository.php';
 require_once __DIR__ . '/repositories/LeadRepository.php';
 require_once __DIR__ . '/repositories/TaskRepository.php';
+require_once __DIR__ . '/repositories/ScenarioRepository.php';
+require_once __DIR__ . '/services/TriggerEngine.php';
+require_once __DIR__ . '/services/TaskQueueRunner.php';

@@ -204,7 +204,15 @@ class TtnService
 
         $np = new NovaPoshta($ttn['sender_api']);
         $r = $np->call('InternetDocument', 'delete', array('DocumentRefs' => $ttn['ref']));
-        if (!$r['ok']) return array('ok' => false, 'error' => $r['error']);
+        if (!$r['ok']) {
+            // Якщо НП каже що документ/баркод не існує — просто видаляємо у себе
+            if (strpos($r['error'], 'invalid DocumentBarcodes') !== false
+             || strpos($r['error'], 'invalid DocumentRefs')     !== false) {
+                TtnRepository::markDeleted($ttnId);
+                return array('ok' => true);
+            }
+            return array('ok' => false, 'error' => $r['error']);
+        }
 
         TtnRepository::markDeleted($ttnId);
         return array('ok' => true);

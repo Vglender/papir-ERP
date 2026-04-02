@@ -43,8 +43,9 @@ $_nav = array(
           )),
     array('key' => 'sales',   'label' => 'Продажі',    'color' => '#9333ea',
           'items' => array(
-              array('key' => 'orders',  'label' => 'Замовлення',    'url' => '/customerorder'),
-              array('key' => 'demands', 'label' => 'Відвантаження', 'url' => '/demand'),
+              array('key' => 'orders',    'label' => 'Замовлення',    'url' => '/customerorder'),
+              array('key' => 'demands',   'label' => 'Відвантаження', 'url' => '/demand'),
+              array('key' => 'scenarios', 'label' => 'Сценарії ⚡',   'url' => '/sales/scenarios'),
           )),
     array('key' => 'logistics', 'label' => 'Логістика', 'color' => '#0369a1',
           'items' => array(

@@ -690,6 +690,17 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 .ws-task-add-btn:hover { background: #6d28d9; }
 .ws-task-add-btn:disabled { background: #c4b5fd; cursor: not-allowed; }
 
+/* ── Urgency dot (ball is with us / client model) ──────────────────────── */
+.ws-urg-dot {
+  display: inline-block; width: 9px; height: 9px; border-radius: 50%;
+  flex-shrink: 0; margin-right: 5px; vertical-align: middle;
+}
+.ws-urg-critical { background: #ef4444; box-shadow: 0 0 0 2px rgba(239,68,68,.25); animation: ws-pulse-dot 1.5s infinite; }
+.ws-urg-high     { background: #f97316; }
+.ws-urg-medium   { background: #eab308; }
+.ws-urg-low      { background: #22c55e; }
+@keyframes ws-pulse-dot { 0%,100%{box-shadow:0 0 0 2px rgba(239,68,68,.25)} 50%{box-shadow:0 0 0 4px rgba(239,68,68,.15)} }
+
 /* Task indicator badge on inbox card */
 .ws-task-badge {
   display: inline-flex; align-items: center; gap: 3px;
@@ -1204,15 +1215,14 @@ var WS = {
       });
     }
 
-    // Only CPs with at least one message OR open tasks, sorted by decay score then last_msg_at
+    // CPs with messages OR open tasks
     var chatCps = cps.filter(function(c) { return c.last_msg_body !== null || c.open_task_count > 0; });
+    // Sort: message urgency (ball model) → task decay → last activity
     chatCps.sort(function(a, b) {
-      // 1. Unread first
-      if ((b.unread_count || 0) !== (a.unread_count || 0)) return (b.unread_count || 0) - (a.unread_count || 0);
-      // 2. Decay score (priority fatigue)
-      var sa = self.computeTaskScore(a), sb = self.computeTaskScore(b);
-      if (sb !== sa) return sb - sa;
-      // 3. Last activity
+      var ma = self.computeMessageScore(a), mb = self.computeMessageScore(b);
+      if (mb !== ma) return mb - ma;
+      var ta = self.computeTaskScore(a),    tb = self.computeTaskScore(b);
+      if (tb !== ta) return tb - ta;
       var at = a.last_msg_at ? new Date(a.last_msg_at).getTime() : 0;
       var bt = b.last_msg_at ? new Date(b.last_msg_at).getTime() : 0;
       return bt - at;
@@ -1412,12 +1422,13 @@ var WS = {
     var msgTxt = l.last_msg_body ? this.truncate(l.last_msg_body, 40) : '— немає повідомлень —';
     var timeAgo = l.last_msg_at ? this.timeAgo(l.last_msg_at) : this.timeAgo(l.created_at);
     var badge = l.unread_count > 0 ? '<span class="ws-unread-badge">' + l.unread_count + '</span>' : '';
+    var urgDot = this.renderUrgencyDot(l.unread_count > 0 ? 'critical' : 'high');
     var sel = (this.kind === 'lead' && this.itemId === l.id) ? ' selected' : '';
     return '<div class="ws-card' + sel + '" data-kind="lead" data-id="' + l.id + '" data-channel="' + (l.last_msg_channel || l.source || 'viber') + '">'
       + '<span class="ws-urgent-bar"></span>'
       + '<div class="ws-card-av lead">?</div>'
       + '<div class="ws-card-body">'
-      + '<div class="ws-card-row1"><span class="ws-card-name">' + this.esc(name) + '</span><span class="ws-card-time">' + timeAgo + '</span></div>'
+      + '<div class="ws-card-row1">' + urgDot + '<span class="ws-card-name">' + this.esc(name) + '</span><span class="ws-card-time">' + timeAgo + '</span></div>'
       + '<div class="ws-card-sub">' + this.esc(l.source_label) + (l.phone ? ' · ' + this.esc(l.phone) : '') + '</div>'
       + '<div class="ws-card-msg' + (l.unread_count > 0 ? ' unread' : '') + '">' + this.esc(msgTxt) + '</div>'
       + '</div>' + badge
@@ -1426,22 +1437,19 @@ var WS = {
 
   renderCpCard: function(c) {
     var initials = this.initials(c.name);
-    var avClass = 'ws-card-av ' + (c.type || 'person');
-    var sub = '';
-    if (c.last_order_number) {
-      sub = '📦 #' + c.last_order_number + ' · ' + (this.orderStatusLabel(c.last_order_status));
-    } else if (c.phone) {
-      sub = c.phone;
-    }
-    var msgTxt  = c.last_msg_body ? this.truncate(c.last_msg_body, 40) : (sub ? '' : '— немає активності —');
-    var timeAgo = c.last_msg_at ? this.timeAgo(c.last_msg_at) : '';
-    var badge   = c.unread_count > 0 ? '<span class="ws-unread-badge">' + c.unread_count + '</span>' : '';
+    var avClass  = 'ws-card-av ' + (c.type || 'person');
+    // Chat mode: no order noise — phone only
+    var sub      = c.phone || '';
+    var msgTxt   = c.last_msg_body ? this.truncate(c.last_msg_body, 45) : '';
+    var timeAgo  = c.last_msg_at ? this.timeAgo(c.last_msg_at) : '';
+    var badge    = c.unread_count > 0 ? '<span class="ws-unread-badge">' + c.unread_count + '</span>' : '';
     var taskBadge = this.renderTaskBadge(c);
-    var sel = (this.kind === 'counterparty' && this.itemId === c.id) ? ' selected' : '';
+    var urgDot   = this.renderUrgencyDot(this.getMsgState(c));
+    var sel      = (this.kind === 'counterparty' && this.itemId === c.id) ? ' selected' : '';
     return '<div class="ws-card' + sel + '" data-kind="counterparty" data-id="' + c.id + '" data-channel="' + (c.last_msg_channel || 'viber') + '">'
       + '<div class="' + avClass + '">' + this.esc(initials) + '</div>'
       + '<div class="ws-card-body">'
-      + '<div class="ws-card-row1"><span class="ws-card-name">' + this.esc(c.name) + '</span><span class="ws-card-time">' + timeAgo + '</span></div>'
+      + '<div class="ws-card-row1">' + urgDot + '<span class="ws-card-name">' + this.esc(c.name) + '</span><span class="ws-card-time">' + timeAgo + '</span></div>'
       + (sub ? '<div class="ws-card-sub">' + this.esc(sub) + '</div>' : '')
       + (msgTxt ? '<div class="ws-card-msg' + (c.unread_count > 0 ? ' unread' : '') + '">' + this.esc(msgTxt) + '</div>' : '')
       + (taskBadge ? '<div style="margin-top:3px">' + taskBadge + '</div>' : '')
@@ -1449,13 +1457,44 @@ var WS = {
       + '</div>';
   },
 
+  // Urgency state: ball is with us (critical/high/medium) or client (low)
+  getMsgState: function(c) {
+    if (!c.last_msg_body) return null;
+    if (c.last_msg_dir === 'in') {
+      if (c.unread_count > 0) {
+        var waitMin = c.last_msg_at ? (Date.now() - new Date(c.last_msg_at).getTime()) / 60000 : 0;
+        return waitMin > 60 ? 'critical' : 'high';
+      }
+      return 'medium';  // read but no reply yet
+    }
+    return 'low';  // ball is with client
+  },
+
+  renderUrgencyDot: function(state) {
+    if (!state) return '';
+    var cls = { critical: 'ws-urg-critical', high: 'ws-urg-high', medium: 'ws-urg-medium', low: 'ws-urg-low' }[state] || '';
+    return '<span class="ws-urg-dot ' + cls + '"></span>';
+  },
+
+  // Score for messages tab sorting: base_weight × time_factor × channel_coeff
+  computeMessageScore: function(c) {
+    if (!c.last_msg_body || !c.last_msg_at) return 0;
+    if (c.last_msg_dir === 'in') {
+      var waitMin   = (Date.now() - new Date(c.last_msg_at).getTime()) / 60000;
+      var base      = c.unread_count > 0 ? 100 : 30;
+      var timeBonus = Math.floor(waitMin / 15) * (c.unread_count > 0 ? 5 : 2);
+      var chCoeff   = { viber: 1.2, sms: 1.0, email: 0.8, telegram: 1.1 }[c.last_msg_channel] || 1.0;
+      return Math.min(500, (base + timeBonus) * chCoeff);
+    }
+    return 5;  // ball is with client — very low
+  },
+
   renderTaskBadge: function(c) {
     if (!c.open_task_count) return '';
-    var score = this.computeTaskScore(c);
     var isOverdue = c.next_task_due_at && new Date(c.next_task_due_at).getTime() < Date.now();
-    var cls = 'ws-task-badge' + (isOverdue ? ' overdue' : '');
+    var cls  = 'ws-task-badge' + (isOverdue ? ' overdue' : '');
     var icon = isOverdue ? '🔴' : '✅';
-    return '<span class="' + cls + '">' + icon + ' ' + c.open_task_count + ' ' + (c.open_task_count === 1 ? 'задача' : 'задачі') + '</span>';
+    return '<span class="' + cls + '">' + icon + '\u00a0' + c.open_task_count + (c.open_task_count === 1 ? '\u00a0задача' : '\u00a0задачі') + '</span>';
   },
 
   renderCpCardOrder: function(c) {

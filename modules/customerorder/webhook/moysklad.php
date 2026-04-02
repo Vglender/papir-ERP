@@ -10,6 +10,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../database/database.php';
 require_once __DIR__ . '/../../moysklad/moysklad_api.php';
+require_once __DIR__ . '/../../moysklad/src/WebhookCpHelper.php';
 
 function mswhk_order_log($msg) {
     @file_put_contents('/var/www/papir/storage/ms_webhook_customerorder.log',
@@ -105,13 +106,12 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
     $sumShipped  = isset($doc['shippedSum'])  ? round((float)$doc['shippedSum']  / 100, 2) : 0.0;
     $sumReserved = isset($doc['reservedSum']) ? round((float)$doc['reservedSum'] / 100, 2) : 0.0;
 
-    // Контрагент
+    // Контрагент — найти или создать
     $counterpartyId = null;
     if (!empty($doc['agent']['meta']['href'])) {
-        $agentMs = mswhk_order_uuid($doc['agent']['meta']['href']);
-        $r = Database::fetchRow('Papir',
-            "SELECT id FROM counterparty WHERE id_ms = '" . Database::escape('Papir', $agentMs) . "' LIMIT 1");
-        if ($r['ok'] && !empty($r['row'])) $counterpartyId = (int)$r['row']['id'];
+        $agentMs  = mswhk_order_uuid($doc['agent']['meta']['href']);
+        $agentDoc = isset($doc['agent']) && is_array($doc['agent']) ? $doc['agent'] : array();
+        $counterpartyId = mswhk_cp_resolve($agentMs, $agentDoc, 'mswhk_order_log');
     }
 
     // Организация

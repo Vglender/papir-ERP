@@ -93,6 +93,11 @@ class TtnRepository
             $where[] = "DATE(t.moment) <= '{$e}'";
         }
 
+        // Exact state_define filter (used for draft mode)
+        if (isset($filters['state_define']) && $filters['state_define'] !== '') {
+            $where[] = 't.state_define = ' . (int)$filters['state_define'];
+        }
+
         if (isset($filters['deletion_mark']) && $filters['deletion_mark'] !== '') {
             $where[] = 't.deletion_mark = ' . (int)$filters['deletion_mark'];
         } else {
@@ -100,6 +105,11 @@ class TtnRepository
         }
 
         $whereStr = implode(' AND ', $where);
+
+        // Draft mode: старі ТТН (2+ дні) — вгору, потім нові; в межах кожної групи — за датою
+        $orderBy = !empty($filters['draft_sort'])
+            ? "CASE WHEN t.moment < DATE_SUB(NOW(), INTERVAL 2 DAY) THEN 0 ELSE 1 END ASC, t.moment ASC"
+            : "t.moment DESC, t.id DESC";
 
         $rTotal = \Database::fetchRow('Papir',
             "SELECT COUNT(*) AS cnt FROM ttn_novaposhta t WHERE {$whereStr}");
@@ -119,7 +129,7 @@ class TtnRepository
              FROM ttn_novaposhta t
              LEFT JOIN np_sender s ON s.Ref = t.sender_ref
              WHERE {$whereStr}
-             ORDER BY t.moment DESC, t.id DESC
+             ORDER BY {$orderBy}
              LIMIT " . (int)$limit . " OFFSET " . (int)$offset);
 
         $rows = ($rRows['ok']) ? $rRows['rows'] : array();

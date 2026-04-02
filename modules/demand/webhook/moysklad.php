@@ -8,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../database/database.php';
 require_once __DIR__ . '/../../moysklad/moysklad_api.php';
+require_once __DIR__ . '/../../moysklad/src/WebhookCpHelper.php';
 require_once __DIR__ . '/../repositories/DemandRepository.php';
 
 function mswhk_demand_log($msg) {
@@ -80,13 +81,12 @@ foreach ($body['events'] as $event) {
         continue;
     }
 
-    // Resolve counterparty_id
+    // Resolve counterparty_id — найти или создать
     $cpId = null;
     if (!empty($doc['agent']['meta']['href'])) {
-        $cpMsId = substr($doc['agent']['meta']['href'], strrpos($doc['agent']['meta']['href'], '/') + 1);
-        $rCp = Database::fetchRow('Papir',
-            "SELECT id FROM counterparty WHERE id_ms = '" . Database::escape('Papir', $cpMsId) . "' LIMIT 1");
-        if ($rCp['ok'] && !empty($rCp['row'])) $cpId = (int)$rCp['row']['id'];
+        $cpMsId   = substr($doc['agent']['meta']['href'], strrpos($doc['agent']['meta']['href'], '/') + 1);
+        $agentDoc = isset($doc['agent']) && is_array($doc['agent']) ? $doc['agent'] : array();
+        $cpId     = mswhk_cp_resolve($cpMsId, $agentDoc, 'mswhk_demand_log');
     }
 
     // Resolve customerorder_id

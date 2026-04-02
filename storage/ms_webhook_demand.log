@@ -1184,3 +1184,81 @@
 2026-04-02 13:37:00 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e1426eb7-2e7f-11f1-0a80-1088000c1a44"},"uid":"olga@papierinvest","moment":"2026-04-02 13:37:00"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/02913416-2e70-11f1-0a80-1be500121c37"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
 2026-04-02 13:37:01 Updated demand id=162000 ms=02913416-2e70-11f1-0a80-1be500121c37 status=robot
 2026-04-02 13:37:01 Done: processed=1 errors=0
+2026-04-02 13:52:32 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0d0b4bff-2e82-11f1-0a80-108b00168560"},"uid":"admin@papierinvest","moment":"2026-04-02 13:52:32"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0cdebed0-2e82-11f1-0a80-108b0016853c"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:52:33 Inserted demand id=162006 ms=0cdebed0-2e82-11f1-0a80-108b0016853c status=robot
+2026-04-02 13:52:33 Done: processed=1 errors=0
+2026-04-02 13:52:33 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0d89b813-2e82-11f1-0a80-1be5001654a0"},"uid":"admin@papierinvest","moment":"2026-04-02 13:52:33"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0cdebed0-2e82-11f1-0a80-108b0016853c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:52:34 Updated demand id=162006 ms=0cdebed0-2e82-11f1-0a80-108b0016853c status=robot
+2026-04-02 13:52:34 Done: processed=1 errors=0
+2026-04-02 13:56:52 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a814c2f3-2e82-11f1-0a80-09df000d270d"},"uid":"olga@papierinvest","moment":"2026-04-02 13:56:52"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0cdebed0-2e82-11f1-0a80-108b0016853c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:56:53 Updated demand id=162006 ms=0cdebed0-2e82-11f1-0a80-108b0016853c status=robot
+2026-04-02 13:56:53 Done: processed=1 errors=0
+2026-04-02 13:57:00 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/aca2f240-2e82-11f1-0a80-108b0016ae26"},"uid":"admin@papierinvest","moment":"2026-04-02 13:57:00"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0cdebed0-2e82-11f1-0a80-108b0016853c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 13:57:00 Updated demand id=162006 ms=0cdebed0-2e82-11f1-0a80-108b0016853c status=shipped
+2026-04-02 13:57:00 Done: processed=1 errors=0
+2026-04-02 14:25:35 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/aae39630-2e86-11f1-0a80-146c001798b6"},"uid":"admin@papierinvest","moment":"2026-04-02 14:25:35"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/aab58f6e-2e86-11f1-0a80-146c00179885"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:25:36 Inserted demand id=162007 ms=aab58f6e-2e86-11f1-0a80-146c00179885 status=robot
+2026-04-02 14:25:36 Done: processed=1 errors=0
+2026-04-02 14:25:36 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ab621b71-2e86-11f1-0a80-1be500179432"},"uid":"admin@papierinvest","moment":"2026-04-02 14:25:36"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/aab58f6e-2e86-11f1-0a80-146c00179885"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:25:36 Updated demand id=162007 ms=aab58f6e-2e86-11f1-0a80-146c00179885 status=robot
+2026-04-02 14:25:36 Done: processed=1 errors=0
+2026-04-02 14:30:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5cf74b96-2e87-11f1-0a80-11b40017fc91"},"uid":"admin@papierinvest","moment":"2026-04-02 14:30:34"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/5cd1584c-2e87-11f1-0a80-11b40017fc75"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:30:35 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5d8df2b6-2e87-11f1-0a80-01af00184ab9"},"uid":"admin@papierinvest","moment":"2026-04-02 14:30:35"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/5cd1584c-2e87-11f1-0a80-11b40017fc75"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:30:35 Inserted demand id=162008 ms=5cd1584c-2e87-11f1-0a80-11b40017fc75 status=robot
+2026-04-02 14:30:35 Done: processed=1 errors=0
+2026-04-02 14:30:36 Updated demand id=162008 ms=5cd1584c-2e87-11f1-0a80-11b40017fc75 status=robot
+2026-04-02 14:30:36 Done: processed=1 errors=0
+2026-04-02 14:35:31 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0e1dde47-2e88-11f1-0a80-1d4d0017cc35"},"uid":"admin@papierinvest","moment":"2026-04-02 14:35:31"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0de069cd-2e88-11f1-0a80-1d4d0017cbed"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:35:32 Inserted demand id=162009 ms=0de069cd-2e88-11f1-0a80-1d4d0017cbed status=robot
+2026-04-02 14:35:32 Done: processed=1 errors=0
+2026-04-02 14:35:32 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0e9ffba7-2e88-11f1-0a80-108b00182e68"},"uid":"admin@papierinvest","moment":"2026-04-02 14:35:32"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0de069cd-2e88-11f1-0a80-1d4d0017cbed"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:35:33 Updated demand id=162009 ms=0de069cd-2e88-11f1-0a80-1d4d0017cbed status=robot
+2026-04-02 14:35:33 Done: processed=1 errors=0
+2026-04-02 14:38:40 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7f0537f2-2e88-11f1-0a80-06d4000db521"},"uid":"olga@papierinvest","moment":"2026-04-02 14:38:40"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/5cd1584c-2e87-11f1-0a80-11b40017fc75"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:38:41 Updated demand id=162008 ms=5cd1584c-2e87-11f1-0a80-11b40017fc75 status=robot
+2026-04-02 14:38:41 Done: processed=1 errors=0
+2026-04-02 14:38:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/831ae0e6-2e88-11f1-0a80-16e30017f14b"},"uid":"admin@papierinvest","moment":"2026-04-02 14:38:47"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/5cd1584c-2e87-11f1-0a80-11b40017fc75"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:38:48 Updated demand id=162008 ms=5cd1584c-2e87-11f1-0a80-11b40017fc75 status=shipped
+2026-04-02 14:38:48 Done: processed=1 errors=0
+2026-04-02 14:41:49 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/efb829a1-2e88-11f1-0a80-03d5000e7e53"},"uid":"olga@papierinvest","moment":"2026-04-02 14:41:49"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0de069cd-2e88-11f1-0a80-1d4d0017cbed"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:41:50 Updated demand id=162009 ms=0de069cd-2e88-11f1-0a80-1d4d0017cbed status=robot
+2026-04-02 14:41:50 Done: processed=1 errors=0
+2026-04-02 14:41:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f4711459-2e88-11f1-0a80-16e300181ac8"},"uid":"admin@papierinvest","moment":"2026-04-02 14:41:57"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/0de069cd-2e88-11f1-0a80-1d4d0017cbed"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:41:58 Updated demand id=162009 ms=0de069cd-2e88-11f1-0a80-1d4d0017cbed status=shipped
+2026-04-02 14:41:58 Done: processed=1 errors=0
+2026-04-02 14:53:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/87e2a0e4-2e8a-11f1-0a80-11b40018b737"},"uid":"admin@papierinvest","moment":"2026-04-02 14:53:14"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/87bc7b4a-2e8a-11f1-0a80-11b40018b718"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:53:15 Inserted demand id=162010 ms=87bc7b4a-2e8a-11f1-0a80-11b40018b718 status=robot
+2026-04-02 14:53:15 Done: processed=1 errors=0
+2026-04-02 14:53:15 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/884f93ed-2e8a-11f1-0a80-1be500189960"},"uid":"admin@papierinvest","moment":"2026-04-02 14:53:15"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/87bc7b4a-2e8a-11f1-0a80-11b40018b718"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:53:16 Updated demand id=162010 ms=87bc7b4a-2e8a-11f1-0a80-11b40018b718 status=robot
+2026-04-02 14:53:16 Done: processed=1 errors=0
+2026-04-02 14:54:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a5d47646-2e8a-11f1-0a80-00450019663a"},"uid":"admin@papierinvest","moment":"2026-04-02 14:54:04"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/a5a04c38-2e8a-11f1-0a80-00450019661c"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:54:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a65eaa4a-2e8a-11f1-0a80-108b0018d013"},"uid":"admin@papierinvest","moment":"2026-04-02 14:54:05"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/a5a04c38-2e8a-11f1-0a80-00450019661c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:54:05 Inserted demand id=162011 ms=a5a04c38-2e8a-11f1-0a80-00450019661c status=robot
+2026-04-02 14:54:05 Done: processed=1 errors=0
+2026-04-02 14:54:06 Updated demand id=162011 ms=a5a04c38-2e8a-11f1-0a80-00450019661c status=robot
+2026-04-02 14:54:06 Done: processed=1 errors=0
+2026-04-02 14:56:27 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/faa123ec-2e8a-11f1-0a80-1d4b000ece75"},"uid":"olga@papierinvest","moment":"2026-04-02 14:56:27"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/87bc7b4a-2e8a-11f1-0a80-11b40018b718"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:56:27 Updated demand id=162010 ms=87bc7b4a-2e8a-11f1-0a80-11b40018b718 status=robot
+2026-04-02 14:56:27 Done: processed=1 errors=0
+2026-04-02 14:56:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/fed57b4c-2e8a-11f1-0a80-108b0018de93"},"uid":"admin@papierinvest","moment":"2026-04-02 14:56:34"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/87bc7b4a-2e8a-11f1-0a80-11b40018b718"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:56:34 Updated demand id=162010 ms=87bc7b4a-2e8a-11f1-0a80-11b40018b718 status=shipped
+2026-04-02 14:56:34 Done: processed=1 errors=0
+2026-04-02 14:56:48 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/071e3e93-2e8b-11f1-0a80-1088000e48e2"},"uid":"olga@papierinvest","moment":"2026-04-02 14:56:48"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/a5a04c38-2e8a-11f1-0a80-00450019661c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:56:48 Updated demand id=162011 ms=a5a04c38-2e8a-11f1-0a80-00450019661c status=robot
+2026-04-02 14:56:48 Done: processed=1 errors=0
+2026-04-02 14:57:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/3129d0b4-2e8b-11f1-0a80-146c0018a954"},"uid":"admin@papierinvest","moment":"2026-04-02 14:57:58"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/a5a04c38-2e8a-11f1-0a80-00450019661c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 14:57:59 Updated demand id=162011 ms=a5a04c38-2e8a-11f1-0a80-00450019661c status=shipped
+2026-04-02 14:57:59 Done: processed=1 errors=0
+2026-04-02 15:31:43 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e82ccfc2-2e8f-11f1-0a80-1353001a5ed4"},"uid":"admin@papierinvest","moment":"2026-04-02 15:31:43"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/e7fe2564-2e8f-11f1-0a80-1353001a5eb3"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 15:31:44 Inserted demand id=162012 ms=e7fe2564-2e8f-11f1-0a80-1353001a5eb3 status=robot
+2026-04-02 15:31:44 Done: processed=1 errors=0
+2026-04-02 15:31:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e8a974f8-2e8f-11f1-0a80-1d4d00196a95"},"uid":"admin@papierinvest","moment":"2026-04-02 15:31:44"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/e7fe2564-2e8f-11f1-0a80-1353001a5eb3"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 15:31:45 Updated demand id=162012 ms=e7fe2564-2e8f-11f1-0a80-1353001a5eb3 status=robot
+2026-04-02 15:31:45 Done: processed=1 errors=0
+2026-04-02 15:41:29 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4555b502-2e91-11f1-0a80-16e2000fc6a0"},"uid":"olga@papierinvest","moment":"2026-04-02 15:41:29"},"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/e7fe2564-2e8f-11f1-0a80-1353001a5eb3"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 15:41:30 Updated demand id=162012 ms=e7fe2564-2e8f-11f1-0a80-1353001a5eb3 status=shipped
+2026-04-02 15:41:30 Done: processed=1 errors=0
+2026-04-02 15:42:02 Incoming: {"events":[{"meta":{"type":"demand","href":"https://api.moysklad.ru/api/remap/1.2/entity/demand/e7fe2564-2e8f-11f1-0a80-1353001a5eb3"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-02 15:42:03 Updated demand id=162012 ms=e7fe2564-2e8f-11f1-0a80-1353001a5eb3 status=shipped
+2026-04-02 15:42:03 Done: processed=1 errors=0

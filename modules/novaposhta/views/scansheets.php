@@ -98,7 +98,7 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
     </thead>
     <tbody>
     <?php if (empty($rows)): ?>
-      <tr><td colspan="9" style="text-align:center;color:#9ca3af;padding:32px">Реєстрів не знайдено</td></tr>
+      <tr><td colspan="10" style="text-align:center;color:#9ca3af;padding:32px">Реєстрів не знайдено</td></tr>
     <?php else: ?>
       <?php foreach ($rows as $row): ?>
         <?php $ssRef = $row['Ref']; ?>
@@ -112,11 +112,14 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
           <td class="fw-600">
             <?php echo ViewHelper::h($row['Number'] ?: $ssRef); ?>
           </td>
-          <td><?php echo (int)$row['Count']; ?></td>
+          <td style="text-align:right"><?php echo (int)$row['Count']; ?></td>
           <td style="text-align:right" class="nowrap">
+            <?php echo $row['total_seats'] !== null ? (int)$row['total_seats'] : '—'; ?>
+          </td>
+          <td style="text-align:right;background:#f0fdf4" class="nowrap">
             <?php echo $row['total_cost'] !== null ? number_format((float)$row['total_cost'], 2, '.', ' ') . ' грн' : '—'; ?>
           </td>
-          <td style="text-align:right" class="nowrap">
+          <td style="text-align:right;background:#fff7ed" class="nowrap">
             <?php echo $row['total_redelivery'] !== null ? number_format((float)$row['total_redelivery'], 2, '.', ' ') . ' грн' : '—'; ?>
           </td>
           <td class="fs-12 text-muted nowrap">
@@ -144,7 +147,7 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
         </tr>
         <!-- Expandable sub-row for TTNs -->
         <tr class="ss-sub-row" id="ss-sub-<?php echo ViewHelper::h($ssRef); ?>">
-          <td colspan="9" class="ss-sub-cell">
+          <td colspan="10" class="ss-sub-cell">
             <div class="ss-sub-content" id="ss-sub-content-<?php echo ViewHelper::h($ssRef); ?>"
                  style="padding:8px 12px 8px 40px">
               <span style="color:#9ca3af;font-size:12px">Завантаження…</span>
