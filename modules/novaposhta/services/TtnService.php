@@ -35,11 +35,12 @@ class TtnService
         $np = new NovaPoshta($sender['api']);
 
         // 1. Ensure recipient NP counterparty exists
-        $recipientRef = self::ensureRecipient($np, $params, $senderRef);
-        if (!$recipientRef['ok']) {
-            return $recipientRef;
+        $recipientResult = self::ensureRecipient($np, $params, $senderRef);
+        if (!$recipientResult['ok']) {
+            return $recipientResult;
         }
-        $npRecipientRef = $recipientRef['ref'];
+        $npRecipientRef = $recipientResult['ref'];         // generic PrivatePerson ref → Recipient field
+        $npContactRef   = $recipientResult['contact_ref']; // unique person ref → ContactRecipient field
 
         // 2. Ensure recipient address
         $addrResult = self::ensureRecipientAddress($np, $params, $npRecipientRef);
@@ -48,20 +49,43 @@ class TtnService
         }
         $npAddressRef = $addrResult['ref'];
 
-        // 3. Get contact person for recipient
-        $contactResult = self::getContactPerson($np, $npRecipientRef);
-        $npContactRef = $contactResult['ok'] ? $contactResult['ref'] : null;
-
         // 4. Prepare InternetDocument.save payload
         $serviceType = isset($params['service_type']) ? $params['service_type'] : 'WarehouseWarehouse';
         $senderAddrRef = isset($params['sender_address_ref']) ? $params['sender_address_ref'] : '';
+
+        // Resolve ContactSender — must be contact person ref, not org counterparty ref
+        $senderPhone = self::normalizePhone(isset($params['sender_phone']) ? $params['sender_phone'] : '');
+        $contactSenderRef = null;
+        if ($senderPhone) {
+            $eSPhone = \Database::escape('Papir', $senderPhone);
+            $eSRef   = \Database::escape('Papir', $senderRef);
+            $rCs = \Database::fetchRow('Papir',
+                "SELECT Ref FROM np_sender_contact_persons
+                 WHERE sender_ref = '{$eSRef}'
+                   AND REGEXP_REPLACE(phone,'[^0-9]','') LIKE '%{$eSPhone}'
+                 LIMIT 1");
+            if ($rCs['ok'] && !empty($rCs['row']['Ref'])) {
+                $contactSenderRef = $rCs['row']['Ref'];
+            }
+        }
+        if (!$contactSenderRef) {
+            $eSRef = \Database::escape('Papir', $senderRef);
+            $rCs = \Database::fetchRow('Papir',
+                "SELECT Ref FROM np_sender_contact_persons WHERE sender_ref = '{$eSRef}' LIMIT 1");
+            if ($rCs['ok'] && !empty($rCs['row']['Ref'])) {
+                $contactSenderRef = $rCs['row']['Ref'];
+            }
+        }
+        if (!$contactSenderRef) {
+            $contactSenderRef = $sender['Ref'];
+        }
 
         $docProps = array(
             'CitySender'      => isset($params['city_sender_ref']) ? $params['city_sender_ref'] : '',
             'Sender'          => $sender['Counterparty'],
             'SenderAddress'   => $senderAddrRef,
-            'ContactSender'   => $sender['Ref'],
-            'SendersPhone'    => self::normalizePhone(isset($params['sender_phone']) ? $params['sender_phone'] : ''),
+            'ContactSender'   => $contactSenderRef,
+            'SendersPhone'    => $senderPhone,
             'CityRecipient'   => isset($params['city_recipient_ref']) ? $params['city_recipient_ref'] : '',
             'Recipient'       => $npRecipientRef,
             'RecipientAddress'=> $npAddressRef,
@@ -79,13 +103,19 @@ class TtnService
         );
 
         // COD (backward delivery)
+        // use_payment_control=1 → NovaPay: AfterpaymentOnGoodsCost (поле на рівні документа)
+        // use_payment_control=0 → готівка: BackwardDeliveryData.CargoType=Money
         $backMoney = isset($params['backward_delivery_money']) ? (float)$params['backward_delivery_money'] : 0;
         if ($backMoney > 0) {
-            $docProps['BackwardDeliveryData'] = array(array(
-                'PayerType'        => 'Recipient',
-                'CargoType'        => 'Money',
-                'RedeliveryString' => (string)(int)round($backMoney),
-            ));
+            if (!empty($sender['use_payment_control'])) {
+                $docProps['AfterpaymentOnGoodsCost'] = (string)(int)round($backMoney);
+            } else {
+                $docProps['BackwardDeliveryData'] = array(array(
+                    'PayerType'        => 'Recipient',
+                    'CargoType'        => 'Money',
+                    'RedeliveryString' => (string)(int)round($backMoney),
+                ));
+            }
         }
 
         // OptionsSeat (per-seat dimensions)
@@ -143,7 +173,7 @@ class TtnService
             'city_sender_ref'          => isset($params['city_sender_ref'])     ? $params['city_sender_ref']     : null,
             'city_recipient_desc'      => isset($params['city_recipient_desc']) ? $params['city_recipient_desc'] : null,
             'city_recipient_ref'       => isset($params['city_recipient_ref'])  ? $params['city_recipient_ref']  : null,
-            'recipient_np_ref'         => $npRecipientRef ?: null,
+            'recipient_np_ref'         => $npContactRef ?: null,
             'recipient_address'        => $npAddressRef,
             'recipient_address_desc'   => isset($params['recipient_address_desc']) ? $params['recipient_address_desc'] : null,
             'recipients_phone'         => $params['recipient_phone'],
@@ -187,6 +217,69 @@ class TtnService
         }
 
         return array('ok' => true, 'ttn_id' => $ttnId, 'int_doc_number' => $dbData['int_doc_number'], 'np_doc' => $npDoc);
+    }
+
+    /**
+     * Спроба автоматично прив'язати ТТН до заказу.
+     * Алгоритм: телефон отримувача → контрагент → відкриті закази → збіг по сумі.
+     * Прив'язує тільки якщо знайдено рівно 1 збіг.
+     *
+     * @param  int    $ttnId  ID запису в ttn_novaposhta
+     * @param  string $phone  Телефон отримувача (будь-який формат)
+     * @param  float  $sum    Сума ТТН (backward_delivery_money або cost)
+     * @return int|null  order_id якщо прив'язано, null якщо ні
+     */
+    public static function autoMatchOrder($ttnId, $phone, $sum)
+    {
+        if (!$ttnId || !$phone || $sum <= 0) return null;
+
+        // Нормалізуємо: беремо останні 9 цифр
+        $digits = preg_replace('/\D/', '', $phone);
+        if (strlen($digits) < 7) return null;
+        $last9 = substr($digits, -9);
+
+        $sumEsc  = (float)$sum;
+        $last9Esc = \Database::escape('Papir', $last9);
+
+        $finalStatuses = "'completed','cancelled'";
+
+        $r = \Database::fetchAll('Papir',
+            "SELECT co.id AS order_id, co.number, co.sum_total
+             FROM counterparty_person cpd
+             JOIN counterparty cp ON cp.id = cpd.counterparty_id AND cp.status = 1
+             JOIN customerorder co ON co.counterparty_id = cp.id
+             WHERE RIGHT(REGEXP_REPLACE(cpd.phone, '[^0-9]', ''), 9) = '{$last9Esc}'
+               AND co.status NOT IN ({$finalStatuses})
+               AND co.deleted_at IS NULL
+               AND ABS(co.sum_total - {$sumEsc}) < 1
+             ORDER BY co.id DESC
+             LIMIT 3"
+        );
+
+        if (!$r['ok'] || count($r['rows']) !== 1) return null;
+
+        $orderId = (int)$r['rows'][0]['order_id'];
+
+        // Записуємо customerorder_id
+        \Database::update('Papir', 'ttn_novaposhta',
+            array('customerorder_id' => $orderId),
+            array('id' => $ttnId)
+        );
+
+        // Створюємо document_link
+        \Database::query('Papir',
+            "DELETE FROM document_link
+             WHERE from_type='ttn_np' AND from_id={$ttnId} AND to_type='customerorder'"
+        );
+        \Database::insert('Papir', 'document_link', array(
+            'from_type' => 'ttn_np',
+            'from_id'   => $ttnId,
+            'to_type'   => 'customerorder',
+            'to_id'     => $orderId,
+            'link_type' => 'shipment',
+        ));
+
+        return $orderId;
     }
 
     /**
@@ -409,12 +502,9 @@ class TtnService
 
         $isOrg = (!empty($params['recipient_type']) && $params['recipient_type'] === 'Organization');
 
-        $cityRef = isset($params['city_recipient_ref']) ? $params['city_recipient_ref'] : '';
-
         if ($isOrg) {
             $cpProps = array(
                 'CounterpartyProperty' => 'Recipient',
-                'CityRef'              => $cityRef,
                 'CounterpartyType'     => 'Organization',
                 'CounterpartyFullName' => isset($params['recipient_full_name']) ? $params['recipient_full_name'] : '',
                 'EDRPOU'               => isset($params['recipient_edrpou'])    ? $params['recipient_edrpou']    : '',
@@ -423,7 +513,6 @@ class TtnService
         } else {
             $cpProps = array(
                 'CounterpartyProperty' => 'Recipient',
-                'CityRef'              => $cityRef,
                 'CounterpartyType'     => 'PrivatePerson',
                 'FirstName'            => isset($params['recipient_first_name'])  ? $params['recipient_first_name']  : '',
                 'MiddleName'           => isset($params['recipient_middle_name']) ? $params['recipient_middle_name'] : '',
@@ -432,17 +521,22 @@ class TtnService
             );
         }
 
-        $r = $np->call('Counterparty', 'save', $cpProps);
+        $r = $np->call('CounterpartyGeneral', 'save', $cpProps);
         if (!$r['ok']) return array('ok' => false, 'error' => 'Cannot create recipient: ' . $r['error']);
 
         $npData = isset($r['data'][0]) ? $r['data'][0] : array();
-        $npRef  = isset($npData['Ref']) ? $npData['Ref'] : '';
+        // data[0].Ref = generic PrivatePerson ref (same for all, used in Recipient field)
+        // data[0].ContactPerson.data[0].Ref = unique contact person ref (used in ContactRecipient)
+        $npRef     = isset($npData['Ref']) ? $npData['Ref'] : '';
+        $npContact = isset($npData['ContactPerson']['data'][0]['Ref'])
+            ? $npData['ContactPerson']['data'][0]['Ref']
+            : $npRef;
         if (!$npRef) return array('ok' => false, 'error' => 'No Ref in NP counterparty response');
 
         // Cache
         NpCounterpartyRepository::upsert($npData, $senderRef, $counterpartyId ?: null);
 
-        return array('ok' => true, 'ref' => $npRef);
+        return array('ok' => true, 'ref' => $npRef, 'contact_ref' => $npContact);
     }
 
     /**
@@ -495,18 +589,20 @@ class TtnService
     }
 
     /**
-     * Normalize phone to 0XXXXXXXXX (10 digits, NP format).
+     * Normalize phone to 380XXXXXXXXX (12 digits, NP API format).
      */
     public static function normalizePhone($phone)
     {
-        $digits = preg_replace('/\D/', '', $phone);
-        if (strlen($digits) === 12 && substr($digits, 0, 2) === '38') {
-            $digits = substr($digits, 2);
-        }
+        $digits = preg_replace('/\D/', '', (string)$phone);
+        // 8XXXXXXXXX → 38XXXXXXXXX
         if (strlen($digits) === 11 && $digits[0] === '8') {
-            $digits = substr($digits, 1);
+            $digits = '3' . $digits;
         }
-        return $digits;
+        // 0XXXXXXXXX → 380XXXXXXXXX
+        if (strlen($digits) === 10 && $digits[0] === '0') {
+            $digits = '38' . $digits;
+        }
+        return $digits; // 380XXXXXXXXX
     }
 
     private static function parseNpDate($dateStr)

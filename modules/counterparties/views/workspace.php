@@ -20,6 +20,10 @@ $wsEmployees = ($rEmps['ok'] && !empty($rEmps['rows'])) ? $rEmps['rows'] : array
 $rDMs = Database::fetchAll('Papir',
     "SELECT id, code, name_uk, has_ttn FROM delivery_method WHERE status=1 ORDER BY sort_order");
 $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : array();
+
+$rPMs = Database::fetchAll('Papir',
+    "SELECT id, code, name_uk FROM payment_method WHERE status=1 ORDER BY sort_order");
+$wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : array();
 ?>
 <style>
 /* ── Workspace layout ───────────────────────────────────────────────────────── */
@@ -376,15 +380,16 @@ $wsDeliveryMethods = ($rDMs['ok'] && !empty($rDMs['rows'])) ? $rDMs['rows'] : ar
 /* Status badges */
 .ws-sbadge { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
 .ws-traffic-badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 10px; white-space: nowrap; }
-.wsb-draft    { background: #f3f4f6; color: #6b7280; }
-.wsb-new      { background: #fef3c7; color: #92400e; }
-.wsb-confirmed{ background: #ede9fe; color: #5b21b6; }
-.wsb-progress { background: #e0f2fe; color: #075985; }
-.wsb-waiting  { background: #fef9c3; color: #854d0e; }
-.wsb-paid     { background: #dcfce7; color: #15803d; }
-.wsb-shipped  { background: #e0f2fe; color: #075985; }
-.wsb-done     { background: #dcfce7; color: #15803d; }
-.wsb-cancelled{ background: #fee2e2; color: #991b1b; }
+.wsb-draft     { background: #f0f4f8; color: #6b7280; }
+.wsb-new       { background: #e8f0fa; color: #2563c4; }
+.wsb-confirmed { background: #ede9fe; color: #5b21b6; }
+.wsb-progress  { background: #fae8ff; color: #7e22ce; }
+.wsb-waiting   { background: #fff4e5; color: #b26a00; }
+.wsb-paid      { background: #ccfbf1; color: #0f766e; }
+.wsb-partship  { background: #ede9fe; color: #5b21b6; }
+.wsb-shipped   { background: #edfdf3; color: #1a7f3c; }
+.wsb-done      { background: #edfdf3; color: #15803d; }
+.wsb-cancelled { background: #fff0f0; color: #c0392b; }
 
 /* Placeholder tabs */
 .ws-placeholder { flex: 1; display: flex; align-items: center; justify-content: center; color: #d1d5db; font-size: 13px; }
@@ -1111,12 +1116,23 @@ var WS = {
     searchInp.addEventListener('input', function() {
       searchClear.classList.toggle('hidden', searchInp.value === '');
       clearTimeout(searchTimer);
-      searchTimer = setTimeout(function() { self.cpPage = 1; self.renderInbox(); }, 200);
+      var delay = searchInp.value.trim() === '' ? 0 : 300;
+      searchTimer = setTimeout(function() {
+        self.cpPage = 1;
+        var q = searchInp.value.trim();
+        if (q === '') {
+          self.inboxData = self.inboxDataBase || self.inboxData;
+          self.renderInbox();
+        } else {
+          self.searchInbox(q);
+        }
+      }, delay);
     });
     searchClear.addEventListener('click', function() {
       searchInp.value = '';
       searchClear.classList.add('hidden');
       self.cpPage = 1;
+      self.inboxData = self.inboxDataBase || self.inboxData;
       self.renderInbox();
       searchInp.focus();
     });
@@ -1156,6 +1172,27 @@ var WS = {
       .then(function(r){ return r.json(); })
       .then(function(d) {
         if (d.ok) {
+          self.inboxDataBase = d; // кеш top-300 для восстановления после поиска
+          var q = document.getElementById('wsSearch') ? document.getElementById('wsSearch').value.trim() : '';
+          if (q) {
+            // Активний пошук — не перебиваємо поточні результати, тихо оновлюємо базу
+            return;
+          }
+          self.inboxData = d;
+          self.renderInbox();
+        }
+      });
+  },
+
+  searchInbox: function(q) {
+    var self = this;
+    var body = document.getElementById('wsInboxBody');
+    body.innerHTML = '<div class="ws-inbox-loading">Пошук…</div>';
+    fetch('/counterparties/api/get_inbox?mode=' + this.mode + '&q=' + encodeURIComponent(q))
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (d.ok) {
+          // не перезаписываем inboxDataBase — только активный набор
           self.inboxData = d;
           self.renderInbox();
         }
@@ -1202,16 +1239,12 @@ var WS = {
     var leads = this.inboxData.leads;
     var cps   = this.inboxData.counterparties;
 
+    // Leads фільтруємо клієнтськи (їх мало); CPs вже відфільтровані сервером
     if (query) {
       leads = leads.filter(function(l) {
         return (l.display_name && l.display_name.toLowerCase().indexOf(query) !== -1)
             || (l.phone && l.phone.indexOf(query) !== -1)
             || (l.email && l.email.toLowerCase().indexOf(query) !== -1);
-      });
-      cps = cps.filter(function(c) {
-        return c.name.toLowerCase().indexOf(query) !== -1
-            || (c.phone && c.phone.indexOf(query) !== -1)
-            || (c.email && c.email.toLowerCase().indexOf(query) !== -1);
       });
     }
 
@@ -1265,16 +1298,12 @@ var WS = {
     var leads = this.inboxData.leads;
     var cps   = this.inboxData.counterparties;
 
+    // Leads фільтруємо клієнтськи (їх мало); CPs вже відфільтровані сервером
     if (query) {
       leads = leads.filter(function(l) {
         return (l.display_name && l.display_name.toLowerCase().indexOf(query) !== -1)
             || (l.phone && l.phone.indexOf(query) !== -1)
             || (l.email && l.email.toLowerCase().indexOf(query) !== -1);
-      });
-      cps = cps.filter(function(c) {
-        return c.name.toLowerCase().indexOf(query) !== -1
-            || (c.phone && c.phone.indexOf(query) !== -1)
-            || (c.email && c.email.toLowerCase().indexOf(query) !== -1);
       });
     }
 
@@ -1498,11 +1527,15 @@ var WS = {
   },
 
   renderCpCardOrder: function(c) {
-    var initials = this.initials(c.name);
-    var avClass  = 'ws-card-av ' + (c.type || 'person');
-    var badge    = '<span class="ws-sbadge ' + this.orderBadgeClass(c.last_order_status) + '">' + this.orderStatusLabel(c.last_order_status) + '</span>';
-    var sum      = c.last_order_sum ? Math.round(c.last_order_sum).toLocaleString('uk') + '\u00a0₴' : '';
-    var orderNum = c.last_order_number ? '#' + c.last_order_number : '';
+    var initials   = this.initials(c.name);
+    var avClass    = 'ws-card-av ' + (c.type || 'person');
+    var sum        = c.last_order_sum ? Math.round(c.last_order_sum).toLocaleString('uk') + '\u00a0₴' : '';
+    var taskBadge  = this.renderTaskBadge(c);
+    var urgState   = this.computeTaskScore(c) > 80 ? 'critical'
+                   : this.computeTaskScore(c) > 40 ? 'high'
+                   : this.computeTaskScore(c) > 10 ? 'medium'
+                   : null;
+    var urgDot     = this.renderUrgencyDot(urgState);
     var sel = (this.kind === 'counterparty' && this.itemId === c.id) ? ' selected' : '';
     return '<div class="ws-card' + sel + '" data-kind="counterparty" data-id="' + c.id + '" data-channel="' + (c.last_msg_channel || 'viber') + '">'
       + '<div class="' + avClass + '">' + this.esc(initials) + '</div>'
@@ -1511,9 +1544,9 @@ var WS = {
       + '<span class="ws-card-name">' + this.esc(c.name) + '</span>'
       + (sum ? '<span class="ws-card-time" style="color:#7c3aed;font-weight:700">' + this.esc(sum) + '</span>' : '')
       + '</div>'
-      + '<div style="display:flex;gap:5px;align-items:center;margin-top:2px">'
-      + (orderNum ? '<span class="ws-card-sub" style="font-weight:600">' + this.esc(orderNum) + '</span>' : '')
-      + badge
+      + '<div style="display:flex;gap:5px;align-items:center;margin-top:3px">'
+      + urgDot
+      + taskBadge
       + '</div>'
       + '</div>'
       + '</div>';
@@ -1732,9 +1765,10 @@ var WS = {
 
     // Status color helper
     var statusColors = {
-      'new':'badge-blue','confirmed':'badge-blue','in_progress':'badge-blue',
-      'waiting_payment':'badge-orange','paid':'badge-green','shipped':'badge-green',
-      'completed':'badge-gray','cancelled':'badge-red','draft':'badge-gray'
+      draft:'badge-gray', new:'badge-blue', confirmed:'badge-indigo',
+      in_progress:'badge-purple', waiting_payment:'badge-orange',
+      paid:'badge-teal', partially_shipped:'badge-indigo',
+      shipped:'badge-green', completed:'badge-green', cancelled:'badge-red'
     };
 
     // Active order card
@@ -1761,20 +1795,31 @@ var WS = {
     var bottomGrid = '<div class="ws-ctx-bottom-grid" id="wsBottomGrid">';
 
     // Col 1: Previous orders
+    var ORD_ST_LBL = { draft:'Черн.', new:'Нове', confirmed:'Підтв.', in_progress:'Вик.',
+      waiting_payment:'Оч.опл', paid:'Оплач.', partially_shipped:'Ч.відпр',
+      shipped:'Відпр.', completed:'Готово', cancelled:'Скас.' };
+    var ORD_ST_CSS = { new:'st-new', confirmed:'st-new', in_progress:'st-new',
+      paid:'st-paid', partially_shipped:'st-shipped', shipped:'st-shipped',
+      completed:'st-completed', cancelled:'st-cancelled' };
     bottomGrid += '<div class="ws-bottom-col" id="wsBottomOrders">'
-      + '<div class="ws-bottom-col-hd">Замовлення'
+      + '<div class="ws-bottom-col-hd">'
+      + '<span class="ws-bottom-col-hd-title">Замовлення'
       + (otherOrders.length ? ' <span class="ws-bottom-cnt">' + otherOrders.length + '</span>' : '')
+      + '</span>'
+      + '<span class="ws-bottom-col-hd-sum">Сума</span>'
+      + '<span class="ws-bottom-col-hd-st">Статус</span>'
       + '</div>';
     if (otherOrders.length === 0) {
       bottomGrid += '<div class="ws-bottom-empty">Попередніх немає</div>';
     } else {
       otherOrders.forEach(function(o) {
-        var date = o.moment ? o.moment.substring(0, 10).split('-').reverse().join('.') : '';
-        var sum  = o.sum_total > 0 ? '₴' + Math.round(o.sum_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') : '—';
+        var sum   = o.sum_total > 0 ? '₴' + Math.round(o.sum_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') : '—';
+        var stLbl = ORD_ST_LBL[o.status] || o.status || '';
+        var stCls = 'ws-bottom-row-st ' + (ORD_ST_CSS[o.status] || '');
         bottomGrid += '<div class="ws-bottom-row ws-bottom-order-row" data-order-id="' + o.id + '">'
           + '<span class="ws-bottom-row-num">' + self.esc(o.number || ('#' + o.id)) + '</span>'
-          + '<span class="ws-bottom-row-date">' + date + '</span>'
           + '<span class="ws-bottom-row-sum">' + sum + '</span>'
+          + '<span class="' + stCls + '">' + stLbl + '</span>'
           + '</div>';
       });
     }
@@ -1782,13 +1827,13 @@ var WS = {
 
     // Col 2: Demands/shipments — populated by renderBottomGrid after flow loads
     bottomGrid += '<div class="ws-bottom-col ws-bottom-col-sep" id="wsBottomDemands">'
-      + '<div class="ws-bottom-col-hd">Відвантаження</div>'
+      + '<div class="ws-bottom-col-hd"><span class="ws-bottom-col-hd-title">Відвантаження</span><span class="ws-bottom-col-hd-sum">Сума</span><span class="ws-bottom-col-hd-st">Статус</span></div>'
       + '<div class="ws-bottom-empty">…</div>'
       + '</div>';
 
     // Col 3: TTNs — populated by renderBottomGrid after flow loads
     bottomGrid += '<div class="ws-bottom-col ws-bottom-col-sep" id="wsBottomTtns">'
-      + '<div class="ws-bottom-col-hd">Відправки</div>'
+      + '<div class="ws-bottom-col-hd"><span class="ws-bottom-col-hd-title">Відправки</span><span class="ws-bottom-col-hd-sum" style="grid-column:2/span 2;text-align:left">Статус</span></div>'
       + '<div class="ws-bottom-empty">…</div>'
       + '</div>';
 
@@ -2057,20 +2102,29 @@ var WS = {
     var demandsEl = document.getElementById('wsBottomDemands');
     if (demandsEl) {
       var demands = d.demands || [];
-      var html = '<div class="ws-bottom-col-hd">Відвантаження'
+      var DEM_ST_LBL = { new:'Нове', confirmed:'Підтв.', processing:'Вик.',
+        shipped:'Відвант.', done:'Готово', cancelled:'Скас.' };
+      var DEM_ST_CSS = { new:'st-new', confirmed:'st-new', processing:'st-new',
+        shipped:'st-shipped', done:'st-completed', cancelled:'st-cancelled' };
+      var html = '<div class="ws-bottom-col-hd">'
+        + '<span class="ws-bottom-col-hd-title">Відвантаження'
         + (demands.length ? ' <span class="ws-bottom-cnt">' + demands.length + '</span>' : '')
+        + '</span>'
+        + '<span class="ws-bottom-col-hd-sum">Сума</span>'
+        + '<span class="ws-bottom-col-hd-st">Статус</span>'
         + '</div>';
       if (demands.length === 0) {
         html += '<div class="ws-bottom-empty">Немає</div>';
       } else {
         demands.forEach(function(dem) {
-          var date = dem.moment ? dem.moment.substring(0, 10).split('-').reverse().join('.') : '';
-          var sum  = parseFloat(dem.sum_total) > 0
+          var sum   = parseFloat(dem.sum_total) > 0
             ? '₴' + Math.round(dem.sum_total).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0') : '—';
+          var stLbl = DEM_ST_LBL[dem.status] || dem.status || '';
+          var stCls = 'ws-bottom-row-st ' + (DEM_ST_CSS[dem.status] || '');
           html += '<div class="ws-bottom-row ws-bottom-demand-row" data-demand-id="' + dem.id + '">'
             + '<span class="ws-bottom-row-num">#' + self.esc(dem.number || ('d' + dem.id)) + '</span>'
-            + '<span class="ws-bottom-row-date">' + date + '</span>'
             + '<span class="ws-bottom-row-sum">' + sum + '</span>'
+            + '<span class="' + stCls + '">' + stLbl + '</span>'
             + '</div>';
         });
       }
@@ -2096,16 +2150,28 @@ var WS = {
       });
       allTtns.sort(function(a, b) { return (a.moment || '').localeCompare(b.moment || ''); });
 
-      var html = '<div class="ws-bottom-col-hd">Відправки'
+      var TTN_ST_CSS_MAP = {
+        'Доставлено': 'st-delivered',
+        'Вручено': 'st-delivered',
+        'Повернуто': 'st-cancelled',
+        'Відмовлено': 'st-cancelled'
+      };
+      var html = '<div class="ws-bottom-col-hd">'
+        + '<span class="ws-bottom-col-hd-title">Відправки'
         + (allTtns.length ? ' <span class="ws-bottom-cnt">' + allTtns.length + '</span>' : '')
+        + '</span>'
+        + '<span class="ws-bottom-col-hd-sum" style="grid-column:2/span 2;text-align:left">Статус</span>'
         + '</div>';
       if (allTtns.length === 0) {
         html += '<div class="ws-bottom-empty">Немає</div>';
       } else {
         allTtns.forEach(function(t, idx) {
+          var stRaw = t.status || '—';
+          var stCls = 'ws-bottom-row-st';
+          for (var k in TTN_ST_CSS_MAP) { if (stRaw.indexOf(k) === 0) { stCls += ' ' + TTN_ST_CSS_MAP[k]; break; } }
           html += '<div class="ws-bottom-row ws-bottom-ttn-row" data-ttn-idx="' + idx + '">'
-            + '<span class="ws-bottom-row-num">' + self.esc(t.num || '—') + '</span>'
-            + '<span class="ws-bottom-row-status">' + self.esc(t.status || '—') + '</span>'
+            + '<span class="ws-bottom-row-num">' + self.esc(t.num ? String(t.num).slice(-8) : '—') + '</span>'
+            + '<span class="' + stCls + '" style="grid-column:2/span 2;text-align:left">' + self.esc(stRaw) + '</span>'
             + '</div>';
         });
       }
@@ -2854,6 +2920,7 @@ var WS = {
     var WS_ORGS             = <?php echo json_encode(array_values($wsOrgs)); ?>;
     var WS_EMPLOYEES        = <?php echo json_encode(array_values($wsEmployees)); ?>;
     var WS_DELIVERY_METHODS = <?php echo json_encode(array_values($wsDeliveryMethods)); ?>;
+    var WS_PAYMENT_METHODS  = <?php echo json_encode(array_values($wsPaymentMethods)); ?>;
 
     // Build org select HTML
     var orgOpts = '<option value="">— організація —</option>';
@@ -2978,12 +3045,20 @@ var WS = {
       dmOpts += '<option value="' + dm.id + '"' + sel + '>' + self.esc(dm.name_uk) + '</option>';
     });
 
-    // ── Meta row — inside edit zone (org, vat badge, employee, delivery method) ──
+    // Build payment method select HTML
+    var pmOpts = '<option value="">— оплата —</option>';
+    WS_PAYMENT_METHODS.forEach(function(pm) {
+      var sel = (order.payment_method_id && parseInt(order.payment_method_id) === parseInt(pm.id)) ? ' selected' : '';
+      pmOpts += '<option value="' + pm.id + '"' + sel + '>' + self.esc(pm.name_uk) + '</option>';
+    });
+
+    // ── Meta row — inside edit zone (org, vat badge, employee, delivery method, payment method) ──
     var metaRowHtml = '<div class="ws-of-meta-row">'
       + '<select class="ws-of-meta-sel ws-of-org-sel" id="wsOfOrgSel" title="Організація (продавець)">' + orgOpts + '</select>'
       + (orgIsVat ? '<span class="ws-of-vat-badge" id="wsOfVatBadge">ПДВ</span>' : '<span class="ws-of-vat-badge ws-of-vat-none" id="wsOfVatBadge">без ПДВ</span>')
       + '<select class="ws-of-meta-sel ws-of-emp-sel" id="wsOfEmpSel" title="Відповідальний">' + empOpts + '</select>'
       + '<select class="ws-of-meta-sel ws-of-deliv-sel" id="wsOfDelivSel" title="Спосіб доставки">' + dmOpts + '</select>'
+      + '<select class="ws-of-meta-sel ws-of-pay-sel" id="wsOfPaySel" title="Спосіб оплати">' + pmOpts + '</select>'
       + '</div>';
 
     // ── Items table (editable) ────────────────────────────────────────────────
@@ -3307,6 +3382,62 @@ var WS = {
         });
       });
     }
+
+    // ── Payment method selector — saves immediately (separate API) ────────────
+    var paySel = el.querySelector('#wsOfPaySel');
+    if (paySel) {
+      paySel.addEventListener('change', function() {
+        var pmId = paySel.value ? parseInt(paySel.value) : 0;
+        fetch('/counterparties/api/save_payment_method', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+          body: 'order_id=' + orderId + '&payment_method_id=' + pmId
+        }).then(function(r){ return r.json(); }).then(function(res) {
+          if (!res.ok) { showToast('Помилка збереження способу оплати', true); return; }
+          if (self._flowData && self._flowData.order) {
+            var pm = WS_PAYMENT_METHODS.filter(function(x){ return parseInt(x.id) === pmId; })[0];
+            self._flowData.order.payment_method_id   = pmId || null;
+            self._flowData.order.payment_method_code = pm ? pm.code    : null;
+            self._flowData.order.payment_method_name = pm ? pm.name_uk : null;
+          }
+          if (self._orderState && self._orderState.order) {
+            self._orderState.order.payment_method_id = pmId || null;
+          }
+        });
+      });
+    }
+
+    self._applySelectColors(el);
+  },
+
+  _applySelectColors: function(el) {
+    var delivColors = {
+      '1': '#6b7280', // pickup — gray
+      '2': '#ea580c', // courier — orange
+      '3': '#0f766e', // novaposhta — teal
+      '4': '#0891b2', // ukrposhta — cyan
+    };
+    var payColors = {
+      '1': '#1d4ed8', // bank_company — blue
+      '2': '#4f46e5', // bank_personal — indigo
+      '3': '#16a34a', // cash — green
+      '4': '#ea580c', // cash_on_delivery — orange
+      '5': '#7c3aed', // online — purple
+    };
+    var delivSel = el.querySelector('#wsOfDelivSel');
+    var paySel   = el.querySelector('#wsOfPaySel');
+    if (delivSel) {
+      delivSel.style.color = delivColors[delivSel.value] || '#9ca3af';
+      delivSel.addEventListener('change', function() {
+        delivSel.style.color = delivColors[delivSel.value] || '#9ca3af';
+      });
+    }
+    if (paySel) {
+      paySel.style.color = payColors[paySel.value] || '#9ca3af';
+      paySel.addEventListener('change', function() {
+        paySel.style.color = payColors[paySel.value] || '#9ca3af';
+      });
+    }
   },
 
   _footTotalsHtml: function(disc, vat, total) {
@@ -3458,18 +3589,26 @@ var WS = {
     // Also read current selectors (user may have changed without triggering state sync)
     var orgSel = document.getElementById('wsOfOrgSel');
     var empSel = document.getElementById('wsOfEmpSel');
+    var paySel   = document.getElementById('wsOfPaySel');
+    var delivSel = document.getElementById('wsOfDelivSel');
     if (orgSel && orgSel.value) orgId = parseInt(orgSel.value);
     if (empSel)                 empId = empSel.value ? parseInt(empSel.value) : '';
+    var pmId = ord.payment_method_id != null ? parseInt(ord.payment_method_id) : '';
+    if (paySel) pmId = paySel.value ? parseInt(paySel.value) : '';
+    var dmId = ord.delivery_method_id != null ? parseInt(ord.delivery_method_id) : '';
+    if (delivSel) dmId = delivSel.value ? parseInt(delivSel.value) : '';
     fetch('/counterparties/api/save_order', {
       method: 'POST',
       headers: {'Content-Type':'application/x-www-form-urlencoded'},
-      body: 'order_id='           + encodeURIComponent(orderId)
-          + '&version='           + encodeURIComponent(version)
-          + '&description='       + encodeURIComponent(description)
-          + '&status='            + encodeURIComponent(status)
-          + '&organization_id='   + encodeURIComponent(orgId)
-          + '&manager_employee_id='+ encodeURIComponent(empId)
-          + '&items='             + encodeURIComponent(JSON.stringify(items))
+      body: 'order_id='             + encodeURIComponent(orderId)
+          + '&version='             + encodeURIComponent(version)
+          + '&description='         + encodeURIComponent(description)
+          + '&status='              + encodeURIComponent(status)
+          + '&organization_id='     + encodeURIComponent(orgId)
+          + '&manager_employee_id=' + encodeURIComponent(empId)
+          + '&payment_method_id='   + encodeURIComponent(pmId)
+          + '&delivery_method_id='  + encodeURIComponent(dmId)
+          + '&items='               + encodeURIComponent(JSON.stringify(items))
     }).then(function(r){ return r.json(); }).then(function(res) {
       if (res.conflict) {
         if (confirm('Замовлення було змінено іншим користувачем.\nОновити та втратити свої зміни?')) {
@@ -5216,7 +5355,8 @@ var WS = {
     var map = {
       draft: 'wsb-draft', new: 'wsb-new', confirmed: 'wsb-confirmed',
       in_progress: 'wsb-progress', waiting_payment: 'wsb-waiting',
-      paid: 'wsb-paid', shipped: 'wsb-shipped', completed: 'wsb-done',
+      paid: 'wsb-paid', partially_shipped: 'wsb-partship',
+      shipped: 'wsb-shipped', completed: 'wsb-done',
       cancelled: 'wsb-cancelled'
     };
     return map[s] || 'wsb-draft';
@@ -6042,35 +6182,46 @@ function showToast(msg, isError) {
 .ws-ctx-active-order-sum { font-weight: 700; color: #7c3aed; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
 /* ── 3-column bottom grid ─────────────────────────────────────────────────── */
 .ws-ctx-bottom-grid {
-    flex: 1; min-height: 140px; display: grid;
+    flex: 1; min-height: 0; display: grid;
     grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr;
     border-top: 2px solid #e5e7eb; background: #fff; overflow: hidden;
 }
-.ws-bottom-col { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; }
+.ws-bottom-col { display: flex; flex-direction: column; overflow-y: auto; min-height: 0; height: 100%; }
 .ws-bottom-col-sep { border-left: 1px solid #f3f4f6; }
 .ws-bottom-col-hd {
-    display: flex; align-items: center; gap: 4px;
+    display: grid; grid-template-columns: 1fr 40px 54px;
+    align-items: center; gap: 3px;
     padding: 4px 8px 3px; font-size: 9px; font-weight: 700;
     text-transform: uppercase; letter-spacing: .4px; color: #9ca3af;
-    background: #fff; flex-shrink: 0; border-bottom: 1px solid #f3f4f6;
+    background: #fff; position: sticky; top: 0; z-index: 1;
+    border-bottom: 1px solid #f3f4f6;
 }
+.ws-bottom-col-hd-title { display: flex; align-items: center; gap: 4px; }
+.ws-bottom-col-hd-sum   { text-align: right; }
+.ws-bottom-col-hd-st    { text-align: right; }
 .ws-bottom-cnt {
     background: #f3f4f6; border-radius: 8px; font-size: 9px;
     padding: 0 4px; color: #6b7280; font-weight: 400;
     text-transform: none; letter-spacing: 0;
 }
 .ws-bottom-row {
-    display: flex; align-items: center; gap: 4px;
+    display: grid; grid-template-columns: 1fr 40px 54px;
+    align-items: center; gap: 3px;
     padding: 3px 8px; font-size: 10px; cursor: pointer;
     border-bottom: 1px solid #f9fafb; transition: background .1s;
-    overflow: hidden;
+    min-width: 0;
 }
 .ws-bottom-row:hover { background: #f5f3ff; }
 .ws-bottom-row.active { background: #ede9fe; }
-.ws-bottom-row-num    { font-weight: 600; color: #111827; white-space: nowrap; flex-shrink: 0; }
-.ws-bottom-row-date   { color: #9ca3af; font-size: 9px; white-space: nowrap; flex-shrink: 0; }
-.ws-bottom-row-sum    { font-weight: 600; color: #7c3aed; white-space: nowrap; margin-left: auto; flex-shrink: 0; }
-.ws-bottom-row-status { color: #6b7280; font-size: 9px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-bottom-row-num  { font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ws-bottom-row-sum  { font-weight: 600; color: #7c3aed; white-space: nowrap; text-align: right; font-size: 9px; }
+.ws-bottom-row-st   { font-size: 9px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.ws-bottom-row-st.st-new       { color: #2563eb; }
+.ws-bottom-row-st.st-paid      { color: #16a34a; }
+.ws-bottom-row-st.st-shipped   { color: #0f766e; }
+.ws-bottom-row-st.st-completed { color: #6b7280; }
+.ws-bottom-row-st.st-cancelled { color: #dc2626; }
+.ws-bottom-row-st.st-delivered { color: #16a34a; }
 .ws-bottom-empty { font-size: 10px; color: #d1d5db; padding: 6px 8px; }
 /* legacy */
 .ws-ctx-order-history-cnt {
@@ -6316,7 +6467,8 @@ function showToast(msg, isError) {
 .ws-of-editing .ws-of-meta-sel:focus { outline:none; border-color:#a78bfa; }
 .ws-of-org-sel { font-style:italic; font-weight:700; font-size:12px !important; color:#1e3a5f !important; max-width:200px; }
 .ws-of-emp-sel { max-width:150px; }
-.ws-of-deliv-sel { max-width:130px; color:#0f766e; }
+.ws-of-deliv-sel { max-width:130px; }
+.ws-of-pay-sel  { max-width:150px; }
 .ws-of-vat-badge { font-size:10px; font-weight:700; padding:2px 7px; border-radius:10px; background:#d1fae5; color:#065f46; flex-shrink:0; white-space:nowrap; }
 .ws-of-vat-none { background:#f3f4f6; color:#9ca3af; }
 /* Search input disabled state */

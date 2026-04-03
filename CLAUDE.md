@@ -273,8 +273,8 @@ Database::escape($db, $value)
 | `product_image_site`         | Привязка фото к сайтам: image_id, site_id=1(off)/2(mff), sort_order |
 | `organization`               | Наши юрлица-продавцы: id, id_ms (UUID МойСклад), name, inn, okpo, iban, bank_name, mfo, director_name, logo_path, stamp_path, signature_path |
 | `organization_bank_account`  | Счета организаций: organization_id, iban, bank_name, mfo, is_default |
-| `ttn_novaposhta`             | ТТН Нової пошти: Ref, Number, sender_ref, state_id/state_name/state_define, recipient, phone, city, address, weight, cost, estimated_delivery, deletion_mark |
-| `np_sender`                  | Відправники НП: Ref (NP UUID), Description, api_key, organization_id→organization, is_default |
+| `ttn_novaposhta`             | ТТН Нової пошти: Ref, Number, sender_ref, state_id/state_name/state_define, recipient, phone, city, address, weight, cost, estimated_delivery, deletion_mark, additional_information (→ NP AdditionalInformation) |
+| `np_sender`                  | Відправники НП: Ref (NP UUID), Description, api_key, organization_id→organization, is_default, use_payment_control (0=готівка/Money, 1=NovaPay/AfterpaymentOnGoodsCost), default_description (опис відправлення за замовч.) |
 | `np_sender_address`          | Адреси відправників НП: sender_ref→np_sender.Ref, Ref (NP address UUID), CityRef, is_default |
 | `np_scan_sheets`             | Реєстри НП: Ref, Number, DateTime, Count, sender_ref, status ('open'/'closed') |
 | `Counterparties_np`          | Кеш одержувачів НП: Ref, Description, phone, sender_ref, counterparty_id→counterparty.id |
@@ -505,7 +505,9 @@ Database::update('Papir', 'product_papir',
 
 10. **`image_audit.php --fix-broken`** — проверяет файлы только по off-пути (`/var/www/menufold/data/www/officetorg.com.ua/image/`). **Не применять к mff** — mff сервер отдельный, его файлы недоступны локально.
 
-11. **Изменение статуса заказа — запись в `customerorder_history`**: При **любом** изменении статуса заказа (ручном или автоматическом) нужно писать запись в `customerorder_history` с `event_type='status_change'`, `field_name='status'`, `old_value`, `new_value`, и **`is_auto=1`** если изменение автоматическое (без участия пользователя), **`is_auto=0`** если ручное. Это поле отображается в пайплайне заказа как бейджик «авто» под шагом. Ручное изменение через UI уже логируется в `save_order_status.php` (is_auto=0). Автоматические изменения (cron, интеграции, триггеры) обязаны писать is_auto=1.
+11. **`/counterparties/api/save_order` — универсальный эндпоинт сохранения заказа.** Принимает полный набор полей заголовка: `organization_id`, `manager_employee_id`, `delivery_method_id`, `payment_method_id`, `status`, `description`, `counterparty_id`, `contact_person_id`, `organization_bank_account_id`, `contract_id`, `project_id`, `sales_channel`, `currency_code`, `store_id`, `planned_shipment_at`, `applicable` + `items` (JSON-массив с поддержкой `_deleted`/новых/существующих строк). Используется и из workspace, и из `/customerorder/edit`. Оптимистичная блокировка через `version`.
+
+11a. **Изменение статуса заказа — запись в `customerorder_history`**: При **любом** изменении статуса заказа (ручном или автоматическом) нужно писать запись в `customerorder_history` с `event_type='status_change'`, `field_name='status'`, `old_value`, `new_value`, и **`is_auto=1`** если изменение автоматическое (без участия пользователя), **`is_auto=0`** если ручное. Это поле отображается в пайплайне заказа как бейджик «авто» под шагом. Ручное изменение через UI уже логируется в `save_order_status.php` (is_auto=0). Автоматические изменения (cron, интеграции, триггеры) обязаны писать is_auto=1.
 
 12. **Два отдельных сервера**:
     - `officetorg.com.ua` (off) — на ЭТОМ сервере. Файлы изображений: `/var/www/menufold/data/www/officetorg.com.ua/image/`. Папка `menufold` в пути — историческое название, не связано с menufolder.com.ua.
@@ -626,6 +628,40 @@ modules/novaposhta/
 **Фінальні статуси трекінгу** (більше не відстежуємо): `state_define` IN (9=доставлено, 10=повернено, 106=скасовано).
 
 **Форма створення ТТН** відкривається в `wsDetailZone` workspace.php під замовленням. Префіл: парсимо номер замовлення (напр. "98267OFF") → oc_order.order_id=98267 (site=off) → беремо telephone/shipping_firstname/shipping_lastname з oc_order.
+
+#### НП API: CounterpartyGeneral.save + Recipient/ContactRecipient
+
+⚠️ **Критично важливий момент**, з'ясований на практиці:
+
+`CounterpartyGeneral.save` для `PrivatePerson` повертає:
+```json
+{
+  "data": [{
+    "Ref": "fc5a82d2-...",          ← ЗАГАЛЬНИЙ реф "Приватна особа" для цього акаунту/відправника
+    "Description": "Приватна особа",
+    "CounterpartyType": "PrivatePerson",
+    "ContactPerson": {
+      "data": [{
+        "Ref": "ea7b1e1b-...",      ← УНІКАЛЬНИЙ реф конкретної людини
+        "LastName": "...", "FirstName": "..."
+      }]
+    }
+  }]
+}
+```
+
+- `data[0].Ref` — **однаковий** для ВСІХ приватних осіб цього відправника. Це "категорійний" реф типу контрагента.
+- `data[0].ContactPerson.data[0].Ref` — унікальний реф конкретної людини (дедуплікується за телефоном).
+
+В `InternetDocument.save/update`:
+- `Recipient` = `data[0].Ref` (загальний — однаковий для всіх фізосіб)
+- `ContactRecipient` = `data[0].ContactPerson.data[0].Ref` (унікальний — ідентифікує конкретну людину)
+- `ttn_novaposhta.recipient_np_ref` в БД зберігати = `ContactPerson.data[0].Ref` (унікальний)
+
+**Формат телефону для НП API:** завжди `380XXXXXXXXX` (12 цифр). `TtnService::normalizePhone()` повертає саме цей формат.
+
+**⚠️ Не використовувати `Counterparty.save`** — правильна модель: `CounterpartyGeneral.save`.
+**⚠️ Не передавати `CityRef`** в `CounterpartyGeneral.save` для PrivatePerson (не потрібно і відсутнє в документації НП).
 
 ---
 
@@ -1485,6 +1521,79 @@ if (this._restoreEditMode) { this._restoreEditMode = false; enterEditMode(); las
 - [ ] `_cancelEdit`: restore из `_original`, renderForm
 - [ ] `_restoreEditMode` если форма перерисовывается в режиме редактирования
 - [ ] Dirty-флаг на 💾 при любом `input`
+
+---
+
+## Стандарт кольорів статусів документів
+
+**Єдине джерело правди: `modules/shared/StatusColors.php`**
+
+Всі кольори та лейбли статусів документів визначаються **тільки** в `StatusColors.php`. Не додавати локальні масиви `$statusLabels`/`$statusColors` у view-файли — використовувати `StatusColors`.
+
+### PHP-використання
+
+```php
+require_once __DIR__ . '/../../shared/StatusColors.php';
+
+// HTML badge
+$cls = StatusColors::badge('customerorder', $status);   // 'badge-indigo'
+$lbl = StatusColors::label('customerorder', $status);   // 'Підтверджено'
+echo "<span class=\"badge {$cls}\">{$lbl}</span>";
+
+// SVG/JS hex
+$hex = StatusColors::hex('customerorder', $status);     // '#6366f1'
+
+// Повна карта для view (заміна локального масиву)
+$_coMap     = StatusColors::all('customerorder');
+$statusLabels = array(); $statusColors = array();
+foreach ($_coMap as $_s => $_e) { $statusLabels[$_s] = $_e[0]; $statusColors[$_s] = $_e[1]; }
+```
+
+### JS-використання (в <script> тегах через PHP)
+
+```php
+var STATUS_COLOR = <?= StatusColors::jsonHex('customerorder') ?>;
+var STATUS_LABEL = <?= StatusColors::jsonLabels('customerorder') ?>;
+```
+
+### Доступні типи документів
+
+| Тип | Ключ у StatusColors |
+|-----|---------------------|
+| Замовлення покупця | `'customerorder'` |
+| Відвантаження | `'demand'` |
+| ТТН Нова Пошта | `'ttn_np'` |
+| Фінанси (каса, банк) | `'finance'` → `'paymentin'`/`'cashin'` теж працюють |
+
+### CSS badge-класи (в ui.css)
+
+| Клас | Колір |
+|------|-------|
+| `badge-gray` | #9ca3af — neutral/draft |
+| `badge-blue` | #2563c4 — new/active |
+| `badge-indigo` | #5b21b6 — confirmed/partial |
+| `badge-purple` | #7e22ce — in progress |
+| `badge-orange` | #b26a00 — waiting/warning |
+| `badge-teal` | #0f766e — paid/done step |
+| `badge-green` | #1a7f3c — completed/shipped |
+| `badge-red` | #c0392b — cancelled/error |
+
+### Статуси замовлення (`customerorder`) та їх кольори
+
+| Статус | Лейбл | Badge | Hex |
+|--------|-------|-------|-----|
+| draft | Чернетка | badge-gray | #9ca3af |
+| new | Нове | badge-blue | #3b82f6 |
+| confirmed | Підтверджено | badge-indigo | #6366f1 |
+| in_progress | В роботі | badge-purple | #8b5cf6 |
+| waiting_payment | Очік. оплати | badge-orange | #f59e0b |
+| paid | Оплачено | badge-teal | #0d9488 |
+| partially_shipped | Частк. відвантаж. | badge-indigo | #6366f1 |
+| shipped | Відвантажено | badge-green | #16a34a |
+| completed | Виконано | badge-green | #15803d |
+| cancelled | Скасовано | badge-red | #ef4444 |
+
+> ⚠️ **Правило**: Якщо додаєш новий статус або новий тип документа — додавай ТІЛЬКИ в `StatusColors.php`. Ніяких локальних масивів у view-файлах.
 
 ---
 

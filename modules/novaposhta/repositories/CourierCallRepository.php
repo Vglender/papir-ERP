@@ -95,7 +95,9 @@ class CourierCallRepository
     {
         $r = \Database::fetchAll('Papir',
             "SELECT cct.*, t.state_name, t.cost, t.weight AS ttn_weight,
-                    t.recipient, t.phone, t.city
+                    t.recipient_contact_person AS recipient,
+                    t.recipients_phone AS phone,
+                    t.city_recipient_desc AS city
              FROM np_courier_call_ttns cct
              LEFT JOIN ttn_novaposhta t ON t.id = cct.ttn_id
              WHERE cct.courier_call_id = " . (int)$callId . "

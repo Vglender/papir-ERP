@@ -20,6 +20,22 @@ $description      = isset($_POST['description'])      ? trim($_POST['description
 $status           = isset($_POST['status'])           ? trim($_POST['status'])            : null;
 $organizationId   = isset($_POST['organization_id'])  ? (int)$_POST['organization_id']    : null;
 $managerEmployeeId= isset($_POST['manager_employee_id']) ? (int)$_POST['manager_employee_id'] : null;
+$paymentMethodId  = isset($_POST['payment_method_id']) && $_POST['payment_method_id'] !== ''
+                    ? (int)$_POST['payment_method_id'] : null;
+$deliveryMethodId = isset($_POST['delivery_method_id']) && $_POST['delivery_method_id'] !== ''
+                    ? (int)$_POST['delivery_method_id'] : null;
+
+// Extra header fields from the standalone edit page
+$counterpartyId       = isset($_POST['counterparty_id'])              && $_POST['counterparty_id'] !== ''              ? (int)$_POST['counterparty_id']              : null;
+$contactPersonId      = isset($_POST['contact_person_id'])            && $_POST['contact_person_id'] !== ''            ? (int)$_POST['contact_person_id']            : null;
+$orgBankAccountId     = isset($_POST['organization_bank_account_id']) && $_POST['organization_bank_account_id'] !== '' ? (int)$_POST['organization_bank_account_id'] : null;
+$contractId           = isset($_POST['contract_id'])                  && $_POST['contract_id'] !== ''                  ? (int)$_POST['contract_id']                  : null;
+$projectId            = isset($_POST['project_id'])                   && $_POST['project_id'] !== ''                   ? (int)$_POST['project_id']                   : null;
+$salesChannel         = isset($_POST['sales_channel'])       ? trim($_POST['sales_channel'])       : null;
+$currencyCode         = isset($_POST['currency_code'])        ? trim($_POST['currency_code'])        : null;
+$storeId              = isset($_POST['store_id'])             && $_POST['store_id'] !== ''             ? (int)$_POST['store_id'] : null;
+$plannedShipmentAt    = isset($_POST['planned_shipment_at'])  && $_POST['planned_shipment_at'] !== '' ? trim($_POST['planned_shipment_at']) : null;
+$applicable           = isset($_POST['applicable'])           ? (int)$_POST['applicable']           : null;
 
 if ($orderId <= 0) {
     echo json_encode(array('ok' => false, 'error' => 'order_id required'));
@@ -61,6 +77,18 @@ try {
     if ($description !== null) $headerData['description'] = $description;
     if ($organizationId !== null && $organizationId > 0) $headerData['organization_id'] = $organizationId;
     if ($managerEmployeeId !== null) $headerData['manager_employee_id'] = $managerEmployeeId > 0 ? $managerEmployeeId : null;
+    if ($paymentMethodId  !== null) $headerData['payment_method_id']  = $paymentMethodId  > 0 ? $paymentMethodId  : null;
+    if ($deliveryMethodId !== null) $headerData['delivery_method_id'] = $deliveryMethodId > 0 ? $deliveryMethodId : null;
+    if ($counterpartyId   !== null) $headerData['counterparty_id']               = $counterpartyId   > 0 ? $counterpartyId   : null;
+    if ($contactPersonId  !== null) $headerData['contact_person_id']             = $contactPersonId  > 0 ? $contactPersonId  : null;
+    if ($orgBankAccountId !== null) $headerData['organization_bank_account_id']  = $orgBankAccountId > 0 ? $orgBankAccountId : null;
+    if ($contractId       !== null) $headerData['contract_id']                   = $contractId       > 0 ? $contractId       : null;
+    if ($projectId        !== null) $headerData['project_id']                    = $projectId        > 0 ? $projectId        : null;
+    if ($salesChannel  !== null && $salesChannel  !== '') $headerData['sales_channel']  = $salesChannel;
+    if ($currencyCode  !== null && $currencyCode  !== '') $headerData['currency_code']   = $currencyCode;
+    if ($storeId       !== null) $headerData['store_id']          = $storeId > 0 ? $storeId : null;
+    if ($plannedShipmentAt !== null) $headerData['planned_shipment_at'] = $plannedShipmentAt;
+    if ($applicable    !== null) $headerData['applicable']        = $applicable;
     if ($status !== null) {
         $allowed = array('draft','new','confirmed','in_progress','waiting_payment','paid',
                          'partially_shipped','shipped','completed','cancelled');
@@ -93,7 +121,7 @@ try {
         $discAmt    = round($gross * $disc / 100, 2);
         $sumRow     = round($gross - $discAmt, 2);
         $vatAmt     = $vatRate > 0 ? round($sumRow - $sumRow / (1 + $vatRate / 100), 2) : 0;
-        $sumWithout = round($sumRow - $vatAmt, 2);
+        $sumWithout = $gross;
 
         $fields = array(
             'quantity'             => $qty,
@@ -136,24 +164,13 @@ try {
         }
     }
 
-    // Recalculate totals
-    $rTotals = \Database::fetchRow('Papir',
-        "SELECT COALESCE(SUM(sum_row),0) AS sum_items,
-                COALESCE(SUM(discount_amount),0) AS sum_discount,
-                COALESCE(SUM(vat_amount),0) AS sum_vat
-         FROM customerorder_item WHERE customerorder_id={$orderId}");
-    if (!$rTotals['ok']) throw new Exception('Totals calc failed');
-
-    $t = $rTotals['row'];
+    // sum_items / sum_discount / sum_vat / sum_total оновлюються автоматично
+    // тригерами trg_co_item_after_insert/update/delete на customerorder_item
     $newVersion = $currentVersion + 1;
 
-    $rFinal = \Database::update('Papir', 'customerorder', array(
-        'sum_items'    => $t['sum_items'],
-        'sum_discount' => $t['sum_discount'],
-        'sum_vat'      => $t['sum_vat'],
-        'sum_total'    => $t['sum_items'],
-        'version'      => $newVersion,
-    ), array('id' => $orderId));
+    $rFinal = \Database::update('Papir', 'customerorder',
+        array('version' => $newVersion),
+        array('id' => $orderId));
     if (!$rFinal['ok']) throw new Exception('Final update failed');
 
     \Database::commit('Papir');
@@ -164,11 +181,18 @@ try {
                 co.sum_items, co.sum_discount, co.sum_vat, co.sum_total,
                 co.moment, co.description, co.applicable, co.sales_channel,
                 co.organization_id, co.manager_employee_id,
+                co.delivery_method_id, dm.code AS delivery_method_code,
+                dm.name_uk AS delivery_method_name, dm.has_ttn AS delivery_method_has_ttn,
+                co.payment_method_id, pm.code AS payment_method_code, pm.name_uk AS payment_method_name,
                 o.name AS org_name, o.vat_number AS org_vat_number,
-                e.full_name AS manager_name
+                e.full_name AS manager_name,
+                co.counterparty_id, co.contact_person_id, co.organization_bank_account_id,
+                co.contract_id, co.project_id, co.currency_code, co.store_id, co.planned_shipment_at
          FROM customerorder co
-         LEFT JOIN organization o ON o.id = co.organization_id
-         LEFT JOIN employee e ON e.id = co.manager_employee_id
+         LEFT JOIN organization o    ON o.id  = co.organization_id
+         LEFT JOIN employee e        ON e.id  = co.manager_employee_id
+         LEFT JOIN delivery_method dm ON dm.id = co.delivery_method_id
+         LEFT JOIN payment_method pm  ON pm.id = co.payment_method_id
          WHERE co.id={$orderId} LIMIT 1");
 
     $rI = \Database::fetchAll('Papir',

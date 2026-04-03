@@ -44,6 +44,10 @@ class FinanceBankRepository
             foreach ($chips as $chip) {
                 $chip = trim($chip);
                 if ($chip === '') continue;
+                if (preg_match('/^\d+$/', $chip)) {
+                    $chipConds[] = 'fb.id = ' . (int)$chip;
+                    continue;
+                }
                 $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
                 $tokens = array_filter($tokens, function($t) { return $t !== ''; });
                 $parts  = array();

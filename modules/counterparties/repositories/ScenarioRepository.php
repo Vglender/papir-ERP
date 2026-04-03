@@ -9,7 +9,10 @@ class ScenarioRepository
     public static function getAllScenarios()
     {
         $r = Database::fetchAll('Papir',
-            "SELECT id, name, description, status, created_at FROM cp_scenarios ORDER BY name ASC"
+            "SELECT s.id, s.name, s.description, s.status, s.created_at,
+                    (SELECT COUNT(*) FROM cp_scenario_steps ss WHERE ss.scenario_id = s.id) AS step_count,
+                    (SELECT COUNT(*) FROM cp_triggers t WHERE t.scenario_id = s.id AND t.status=1) AS trigger_count
+             FROM cp_scenarios s ORDER BY s.name ASC"
         );
         return $r['ok'] ? $r['rows'] : array();
     }
@@ -125,27 +128,23 @@ class ScenarioRepository
         $event      = Database::escape('Papir', $data['event_type']);
         $scenarioId = (int)$data['scenario_id'];
         $delay      = max(0, (int)(isset($data['delay_minutes']) ? $data['delay_minutes'] : 0));
-        $condKey    = Database::escape('Papir', isset($data['condition_key'])   ? $data['condition_key']   : '');
-        $condOp     = Database::escape('Papir', isset($data['condition_op'])    ? $data['condition_op']    : '');
-        $condVal    = Database::escape('Papir', isset($data['condition_value']) ? $data['condition_value'] : '');
-        $condKeyQ   = $condKey ? "'{$condKey}'" : 'NULL';
-        $condOpQ    = $condOp  ? "'{$condOp}'"  : 'NULL';
-        $condValQ   = $condVal ? "'{$condVal}'"  : 'NULL';
         $status     = isset($data['status']) ? (int)(bool)$data['status'] : 1;
+
+        // JSON conditions (новый формат)
+        $condRaw  = isset($data['conditions']) ? trim($data['conditions']) : '';
+        $condJson = Database::escape('Papir', $condRaw);
+        $condQ    = $condRaw ? "'{$condJson}'" : 'NULL';
 
         if ($id) {
             Database::query('Papir',
                 "UPDATE cp_triggers SET name='{$name}', event_type='{$event}', scenario_id={$scenarioId},
-                 delay_minutes={$delay}, condition_key={$condKeyQ}, condition_op={$condOpQ},
-                 condition_value={$condValQ}, status={$status} WHERE id={$id}"
+                 delay_minutes={$delay}, conditions={$condQ}, status={$status} WHERE id={$id}"
             );
             return $id;
         }
         Database::query('Papir',
-            "INSERT INTO cp_triggers (name, event_type, scenario_id, delay_minutes,
-             condition_key, condition_op, condition_value)
-             VALUES ('{$name}', '{$event}', {$scenarioId}, {$delay},
-                     {$condKeyQ}, {$condOpQ}, {$condValQ})"
+            "INSERT INTO cp_triggers (name, event_type, scenario_id, delay_minutes, conditions)
+             VALUES ('{$name}', '{$event}', {$scenarioId}, {$delay}, {$condQ})"
         );
         $r = Database::fetchRow('Papir', "SELECT LAST_INSERT_ID() AS id");
         return ($r['ok'] && $r['row']) ? (int)$r['row']['id'] : 0;

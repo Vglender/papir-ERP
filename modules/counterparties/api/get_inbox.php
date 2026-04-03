@@ -8,6 +8,7 @@ require_once __DIR__ . '/../counterparties_bootstrap.php';
 
 $mode = isset($_GET['mode']) ? trim($_GET['mode']) : 'chat';
 if (!in_array($mode, array('chat', 'orders'))) $mode = 'chat';
+$q = isset($_GET['q']) ? trim($_GET['q']) : '';
 
 $leadRepo = new LeadRepository();
 $cpRepo   = new CounterpartyRepository();
@@ -46,7 +47,7 @@ $activeStatusesSql = "'" . implode("','", $activeStatuses) . "'";
 // - c.unread_count is denormalized → no GROUP BY subquery on cp_messages
 // - LATERAL join for last order → 300 indexed lookups instead of full 113k-row scan
 // - person-type filter uses idx_counterparty_type to avoid NOT EXISTS correlated subquery
-$sql = "SELECT
+$sqlBase = "SELECT
             c.id, c.type, c.name, c.status AS cp_status,
             COALESCE(cc.phone, cp.phone) AS phone,
             COALESCE(cc.email, cp.email) AS email,
@@ -90,9 +91,21 @@ $sql = "SELECT
           AND (
               c.type IN ('company','fop','department','other')
               OR (c.type = 'person' AND cr_excl.id IS NULL)
-          )
-        ORDER BY c.last_activity_at DESC
-        LIMIT 300";
+          )";
+
+if ($q !== '') {
+    $qEsc = Database::escape('Papir', $q);
+    $sql = $sqlBase
+        . " AND (
+              c.name LIKE '%{$qEsc}%'
+              OR COALESCE(cc.phone, cp.phone) LIKE '%{$qEsc}%'
+              OR COALESCE(cc.email, cp.email) LIKE '%{$qEsc}%'
+           )
+           ORDER BY c.last_activity_at DESC
+           LIMIT 100";
+} else {
+    $sql = $sqlBase . " ORDER BY c.last_activity_at DESC LIMIT 300";
+}
 
 $r = Database::fetchAll('Papir', $sql);
 $counterparties = array();

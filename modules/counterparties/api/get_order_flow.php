@@ -24,13 +24,17 @@ $rOrder = \Database::fetchRow('Papir',
             dm.code    AS delivery_method_code,
             dm.name_uk AS delivery_method_name,
             dm.has_ttn AS delivery_method_has_ttn,
+            co.payment_method_id,
+            pm.code    AS payment_method_code,
+            pm.name_uk AS payment_method_name,
             o.name  AS org_name,
             o.vat_number AS org_vat_number,
             e.full_name AS manager_name
      FROM customerorder co
-     LEFT JOIN organization o   ON o.id  = co.organization_id
-     LEFT JOIN employee e       ON e.id  = co.manager_employee_id
+     LEFT JOIN organization o    ON o.id  = co.organization_id
+     LEFT JOIN employee e        ON e.id  = co.manager_employee_id
      LEFT JOIN delivery_method dm ON dm.id = co.delivery_method_id
+     LEFT JOIN payment_method pm  ON pm.id = co.payment_method_id
      WHERE co.id = {$orderId} AND co.deleted_at IS NULL LIMIT 1");
 
 if (!$rOrder['ok'] || empty($rOrder['row'])) {

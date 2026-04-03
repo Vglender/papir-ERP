@@ -12,6 +12,7 @@ class CustomerOrderController
     public function index($request = array())
     {
         $filters = array(
+            'search' => isset($request['search']) ? trim($request['search']) : null,
             'id' => isset($request['id']) ? $request['id'] : null,
             'number' => isset($request['number']) ? $request['number'] : null,
             'status' => isset($request['status']) ? $request['status'] : null,

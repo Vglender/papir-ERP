@@ -29,29 +29,30 @@ $np   = new \Papir\Crm\NovaPoshta($apiKey);
 $log  = array();
 
 // ── Step 1: Refresh sender (Counterparty) info ────────────────────────────
+// getCounterparties returns organization-level counterparties (Ref = org ref).
+// np_sender.Ref = contact person ref; np_sender.Counterparty = org ref.
+// These are different — match by EDRPOU or CounterpartyFullName, or just take
+// the first result (each API key belongs to exactly one organization).
 $r = $np->call('Counterparty', 'getCounterparties', array(
     'CounterpartyProperty' => 'Sender',
     'Page' => 1,
 ));
 if ($r['ok'] && !empty($r['data'])) {
-    foreach ($r['data'] as $cp) {
-        if (isset($cp['Ref']) && $cp['Ref'] === $senderRef) {
-            $upd = array();
-            if (!empty($cp['Description']))          $upd['Description']          = $cp['Description'];
-            if (!empty($cp['FirstName']))             $upd['FirstName']            = $cp['FirstName'];
-            if (!empty($cp['LastName']))              $upd['LastName']             = $cp['LastName'];
-            if (!empty($cp['MiddleName']))            $upd['MiddleName']           = $cp['MiddleName'];
-            if (!empty($cp['CounterpartyFullName']))  $upd['CounterpartyFullName'] = $cp['CounterpartyFullName'];
-            if (!empty($cp['EDRPOU']))                $upd['EDRPOU']               = $cp['EDRPOU'];
-            if (!empty($cp['CounterpartyType']))      $upd['CounterpartyType']     = $cp['CounterpartyType'];
-            if (!empty($cp['City']))                  $upd['City']                 = $cp['City'];
-            if (!empty($upd)) {
-                \Database::update('Papir', 'np_sender', $upd, array('Ref' => $senderRef));
-            }
-            $log[] = 'Counterparty info updated';
-            break;
-        }
+    // Take the first (and usually only) organization counterparty for this API key
+    $cp  = $r['data'][0];
+    $upd = array();
+    // Counterparty = org ref returned by getCounterparties (use as Sender in InternetDocument)
+    if (!empty($cp['Ref']))               $upd['Counterparty']      = $cp['Ref'];
+    if (!empty($cp['Description']))       $upd['CounterpartyFullName'] = $cp['Description'];
+    if (!empty($cp['FirstName']))         $upd['FirstName']          = $cp['FirstName'];
+    if (!empty($cp['LastName']))          $upd['LastName']           = $cp['LastName'];
+    if (!empty($cp['MiddleName']))        $upd['MiddleName']         = $cp['MiddleName'];
+    if (!empty($cp['EDRPOU']))            $upd['EDRPOU']             = $cp['EDRPOU'];
+    if (!empty($cp['CounterpartyType'])) $upd['CounterpartyType']   = $cp['CounterpartyType'];
+    if (!empty($upd)) {
+        \Database::update('Papir', 'np_sender', $upd, array('Ref' => $senderRef));
     }
+    $log[] = 'Counterparty org ref updated: ' . (isset($cp['Ref']) ? $cp['Ref'] : '?');
 } else {
     $log[] = 'Counterparty fetch skipped: ' . ($r['error'] ?: 'no data');
 }

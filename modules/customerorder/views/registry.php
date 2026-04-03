@@ -1,504 +1,260 @@
 <?php
-/**
- * Ожидает:
- * $result = [
- *   'ok'    => bool,
- *   'rows'  => array,
- *   'count' => int,
- *   'page'  => int,
- *   'limit' => int,
- *   'error' => string
- * ]
- *
- * Пример:
- * require_once __DIR__ . '/../customerorder_bootstrap.php';
- * $repository = new CustomerOrderRepository();
- * $service = new CustomerOrderService($repository);
- * $controller = new CustomerOrderController($service);
- * $result = $controller->index($_GET);
- */
-
-if (!isset($result)) {
-    $result = array(
-        'ok' => false,
-        'error' => 'Переменная $result не передана в registry.php',
-        'rows' => array(),
-        'count' => 0,
-        'page' => 1,
-        'limit' => 50,
-    );
-}
-
-$filters = array(
-    'id' => isset($_GET['id']) ? $_GET['id'] : '',
-    'number' => isset($_GET['number']) ? $_GET['number'] : '',
-    'status' => isset($_GET['status']) ? $_GET['status'] : '',
-    'payment_status' => isset($_GET['payment_status']) ? $_GET['payment_status'] : '',
-    'shipment_status' => isset($_GET['shipment_status']) ? $_GET['shipment_status'] : '',
-    'manager_employee_id' => isset($_GET['manager_employee_id']) ? $_GET['manager_employee_id'] : '',
-    'date_from' => isset($_GET['date_from']) ? $_GET['date_from'] : '',
-    'date_to' => isset($_GET['date_to']) ? $_GET['date_to'] : '',
-    'sort_field' => isset($_GET['sort_field']) ? $_GET['sort_field'] : 'id',
-    'sort_dir' => isset($_GET['sort_dir']) ? $_GET['sort_dir'] : 'DESC',
-    'page' => isset($_GET['page']) ? (int)$_GET['page'] : 1,
-    'limit' => isset($_GET['limit']) ? (int)$_GET['limit'] : 50,
-);
-
-$rows = !empty($result['rows']) ? $result['rows'] : array();
-$total = !empty($result['count']) ? (int)$result['count'] : 0;
-$page = !empty($result['page']) ? (int)$result['page'] : 1;
-$limit = !empty($result['limit']) ? (int)$result['limit'] : 50;
-$totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
-
-function h($value)
-{
-    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-}
-
-function build_registry_url($params = array())
-{
-    $query = $_GET;
-
-    foreach ($params as $key => $value) {
-        if ($value === null) {
-            unset($query[$key]);
-        } else {
-            $query[$key] = $value;
-        }
-    }
-
-    return '?' . http_build_query($query);
-}
-
-function sort_link($field, $currentField, $currentDir)
-{
-    $newDir = 'ASC';
-
-    if ($currentField === $field && strtoupper($currentDir) === 'ASC') {
-        $newDir = 'DESC';
-    }
-
-    return build_registry_url(array(
-        'sort_field' => $field,
-        'sort_dir' => $newDir,
-        'page' => 1,
-    ));
-}
-
-function status_badge_class($status)
-{
-    $map = array(
-        'draft' => 'bg-secondary',
-        'new' => 'bg-primary',
-        'confirmed' => 'bg-info',
-        'in_progress' => 'bg-warning text-dark',
-        'waiting_payment' => 'bg-warning text-dark',
-        'paid' => 'bg-success',
-        'partially_shipped' => 'bg-info',
-        'shipped' => 'bg-success',
-        'completed' => 'bg-success',
-        'cancelled' => 'bg-danger',
-
-        'not_paid' => 'bg-secondary',
-        'partially_paid' => 'bg-warning text-dark',
-        'overdue' => 'bg-danger',
-        'refund' => 'bg-dark',
-
-        'not_shipped' => 'bg-secondary',
-        'reserved' => 'bg-warning text-dark',
-        'delivered' => 'bg-success',
-        'returned' => 'bg-danger',
-    );
-
-    return isset($map[$status]) ? $map[$status] : 'bg-secondary';
-}
-?>
-<?php
 $title     = 'Замовлення';
 $activeNav = 'sales';
 $subNav    = 'orders';
 require_once __DIR__ . '/../../shared/layout.php';
+
+if (!isset($result)) {
+    $result = array('ok' => false, 'error' => 'result not set', 'rows' => array(), 'count' => 0, 'page' => 1, 'limit' => 50);
+}
+
+$rows       = !empty($result['rows'])  ? $result['rows']        : array();
+$total      = !empty($result['count']) ? (int)$result['count']  : 0;
+$page       = !empty($result['page'])  ? (int)$result['page']   : 1;
+$limit      = !empty($result['limit']) ? (int)$result['limit']  : 50;
+$totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
+
+$search       = isset($_GET['search'])   ? $_GET['search']   : '';
+$statusFilter = isset($_GET['status']) && is_array($_GET['status']) ? $_GET['status'] : array();
+$dateFrom     = isset($_GET['date_from']) ? $_GET['date_from'] : '';
+$dateTo       = isset($_GET['date_to'])   ? $_GET['date_to']   : '';
+
+require_once __DIR__ . '/../../shared/StatusColors.php';
+$_coMap     = StatusColors::all('customerorder');
+$statusLabels = array();
+$statusColors = array();
+foreach ($_coMap as $_s => $_e) { $statusLabels[$_s] = $_e[0]; $statusColors[$_s] = $_e[1]; }
+$payLabels = array(
+    'not_paid'       => 'Не оплачено',
+    'partially_paid' => 'Частково',
+    'paid'           => 'Оплачено',
+    'overdue'        => 'Прострочено',
+    'refund'         => 'Повернення',
+);
+$payColors = array(
+    'not_paid'       => 'badge-gray',
+    'partially_paid' => 'badge-orange',
+    'paid'           => 'badge-green',
+    'overdue'        => 'badge-red',
+    'refund'         => 'badge-red',
+);
+$shipLabels = array(
+    'not_shipped'       => 'Не відвантажено',
+    'reserved'          => 'Зарезервовано',
+    'partially_shipped' => 'Частково',
+    'shipped'           => 'Відвантажено',
+    'delivered'         => 'Доставлено',
+    'returned'          => 'Повернено',
+);
+$shipColors = array(
+    'not_shipped'       => 'badge-gray',
+    'reserved'          => 'badge-orange',
+    'partially_shipped' => 'badge-blue',
+    'shipped'           => 'badge-green',
+    'delivered'         => 'badge-green',
+    'returned'          => 'badge-red',
+);
+
+function co_url($extra = array()) {
+    $q = array_merge($_GET, $extra);
+    foreach ($q as $k => $v) {
+        if ($v === '' || $v === null) unset($q[$k]);
+    }
+    $qs = http_build_query($q);
+    return '/customerorder' . ($qs ? '?' . $qs : '');
+}
 ?>
 <style>
-        .co-registry-wrap {
-            padding: 20px;
-        }
+.co-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.co-toolbar h1 { margin:0; font-size:18px; font-weight:700; flex-shrink:0; }
+.co-search-wrap { flex:1; min-width:160px; }
+.co-toolbar .btn        { height:34px; padding:0 12px; }
+.co-toolbar .chip-input { min-height:34px; max-height:34px; overflow:hidden; }
+.co-filter-dates { display:flex; align-items:center; gap:6px; }
+.co-filter-dates input[type=date] { height:28px; font-size:13px; padding:0 6px; border:1px solid #d1d5db; border-radius:5px; }
+.co-num-link { color:#1d4ed8; text-decoration:none; font-weight:600; }
+.co-num-link:hover { text-decoration:underline; }
+</style>
 
-        .page-title {
-            margin: 0 0 16px 0;
-            font-size: 24px;
-        }
+<div class="page-wrap">
 
-        .card {
-            background: #fff;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
+    <form method="get" action="/customerorder" id="coForm">
+        <input type="hidden" name="page" value="1">
 
-        .filters-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        .field label {
-            display: block;
-            margin-bottom: 4px;
-            font-weight: bold;
-            font-size: 12px;
-        }
-
-        .field input,
-        .field select {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            background: #fff;
-        }
-
-        .actions-row {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 14px;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 9px 14px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            background: #fff;
-            color: #222;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .btn-primary {
-            background: #0d6efd;
-            border-color: #0d6efd;
-            color: #fff;
-        }
-
-        .btn-success {
-            background: #198754;
-            border-color: #198754;
-            color: #fff;
-        }
-
-        .summary {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            margin-bottom: 8px;
-        }
-
-        .summary-item {
-            font-size: 13px;
-            color: #555;
-        }
-
-        .table-wrap {
-            overflow-x: auto;
-        }
-
-        table.registry {
-            width: 100%;
-            border-collapse: collapse;
-            background: #fff;
-        }
-
-        table.registry th,
-        table.registry td {
-            border-bottom: 1px solid #e5e5e5;
-            padding: 10px 8px;
-            text-align: left;
-            vertical-align: top;
-            white-space: nowrap;
-        }
-
-        table.registry th a {
-            color: #222;
-            text-decoration: none;
-        }
-
-        table.registry tr:hover {
-            background: #fafafa;
-        }
-
-        .badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 12px;
-            line-height: 1;
-            color: #fff;
-        }
-
-        .bg-primary { background: #0d6efd; }
-        .bg-secondary { background: #6c757d; }
-        .bg-success { background: #198754; }
-        .bg-danger { background: #dc3545; }
-        .bg-warning { background: #ffc107; color: #222; }
-        .bg-info { background: #0dcaf0; color: #222; }
-        .bg-dark { background: #212529; }
-
-        .text-muted {
-            color: #777;
-        }
-
-        .text-end {
-            text-align: right;
-        }
-
-        .error-box {
-            background: #fff3f3;
-            border: 1px solid #f1b5b5;
-            color: #8a1f1f;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 16px;
-        }
-
-        .empty-box {
-            padding: 20px;
-            text-align: center;
-            color: #666;
-        }
-
-        .pagination {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 16px;
-        }
-
-        .pagination a,
-        .pagination span {
-            display: inline-block;
-            padding: 8px 12px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            text-decoration: none;
-            color: #222;
-            background: #fff;
-        }
-
-        .pagination .active {
-            background: #0d6efd;
-            border-color: #0d6efd;
-            color: #fff;
-        }
-
-        .small {
-            font-size: 12px;
-        }
-    </style>
-
-<div class="co-registry-wrap">
-<h1 class="page-title">Реестр заказов</h1>
-
-<?php if (!$result['ok']): ?>
-    <div class="error-box">
-        <strong>Ошибка:</strong> <?= h(isset($result['error']) ? $result['error'] : 'Неизвестная ошибка') ?>
-    </div>
-<?php endif; ?>
-
-<div class="card">
-    <form method="get">
-        <div class="filters-grid">
-            <div class="field">
-                <label for="id">ID</label>
-                <input type="text" name="id" id="id" value="<?= h($filters['id']) ?>">
-            </div>
-
-            <div class="field">
-                <label for="number">Номер</label>
-                <input type="text" name="number" id="number" value="<?= h($filters['number']) ?>">
-            </div>
-
-            <div class="field">
-                <label for="status">Статус</label>
-                <select name="status" id="status">
-                    <option value="">-- все --</option>
-                    <?php
-                    $statuses = array('draft','new','confirmed','in_progress','waiting_payment','paid','partially_shipped','shipped','completed','cancelled');
-                    foreach ($statuses as $status):
-                    ?>
-                        <option value="<?= h($status) ?>" <?= $filters['status'] === $status ? 'selected' : '' ?>>
-                            <?= h($status) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="field">
-                <label for="payment_status">Оплата</label>
-                <select name="payment_status" id="payment_status">
-                    <option value="">-- все --</option>
-                    <?php
-                    $paymentStatuses = array('not_paid','partially_paid','paid','overdue','refund');
-                    foreach ($paymentStatuses as $status):
-                    ?>
-                        <option value="<?= h($status) ?>" <?= $filters['payment_status'] === $status ? 'selected' : '' ?>>
-                            <?= h($status) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="field">
-                <label for="shipment_status">Отгрузка</label>
-                <select name="shipment_status" id="shipment_status">
-                    <option value="">-- все --</option>
-                    <?php
-                    $shipmentStatuses = array('not_shipped','reserved','partially_shipped','shipped','delivered','returned');
-                    foreach ($shipmentStatuses as $status):
-                    ?>
-                        <option value="<?= h($status) ?>" <?= $filters['shipment_status'] === $status ? 'selected' : '' ?>>
-                            <?= h($status) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-
-            <div class="field">
-                <label for="manager_employee_id">ID менеджера</label>
-                <input type="text" name="manager_employee_id" id="manager_employee_id" value="<?= h($filters['manager_employee_id']) ?>">
-            </div>
-
-            <div class="field">
-                <label for="date_from">Дата от</label>
-                <input type="date" name="date_from" id="date_from" value="<?= h($filters['date_from']) ?>">
-            </div>
-
-            <div class="field">
-                <label for="date_to">Дата до</label>
-                <input type="date" name="date_to" id="date_to" value="<?= h($filters['date_to']) ?>">
-            </div>
-
-            <div class="field">
-                <label for="limit">Лимит</label>
-                <select name="limit" id="limit">
-                    <?php foreach (array(20, 50, 100, 200) as $opt): ?>
-                        <option value="<?= $opt ?>" <?= (int)$filters['limit'] === $opt ? 'selected' : '' ?>><?= $opt ?></option>
-                    <?php endforeach; ?>
-                </select>
+        <!-- Toolbar -->
+        <div class="co-toolbar">
+            <h1>Замовлення</h1>
+            <a href="/customerorder/edit" class="btn btn-primary">+ Нове замовлення</a>
+            <div class="co-search-wrap">
+                <div class="chip-input" id="coChipBox">
+                    <input type="text" class="chip-typer" id="coChipTyper"
+                           placeholder="ID, номер, контрагент…" autocomplete="off">
+                    <div class="chip-actions">
+                        <button type="button" class="chip-act-btn chip-act-clear hidden" id="coChipClear" title="Очистити">&#x2715;</button>
+                        <button type="submit" class="chip-act-btn chip-act-submit" title="Пошук">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="6.5" cy="6.5" r="4.5" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="search" id="coSearchHidden" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>">
             </div>
         </div>
 
-        <div class="actions-row">
-            <button type="submit" class="btn btn-primary">Применить фильтры</button>
-            <a href="registry.php" class="btn">Сбросить</a>
-            <a href="/customerorder/edit" class="btn btn-success">+ Новый заказ</a>
+        <!-- Filter bar -->
+        <div class="filter-bar">
+            <div class="filter-bar-group">
+                <span class="filter-bar-label">Статус</span>
+                <?php foreach ($statusLabels as $sv => $sl): ?>
+                <label class="filter-pill <?php echo in_array($sv, $statusFilter) ? 'active' : ''; ?>">
+                    <input type="checkbox" name="status[]" value="<?php echo $sv; ?>"
+                           <?php echo in_array($sv, $statusFilter) ? 'checked' : ''; ?>
+                           onchange="this.form.submit()"> <?php echo $sl; ?>
+                </label>
+                <?php endforeach; ?>
+            </div>
+            <div class="filter-bar-sep"></div>
+            <div class="filter-bar-group co-filter-dates">
+                <span class="filter-bar-label">Дата</span>
+                <input type="date" name="date_from" value="<?php echo htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8'); ?>" onchange="this.form.submit()">
+                <span class="text-muted">—</span>
+                <input type="date" name="date_to" value="<?php echo htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8'); ?>" onchange="this.form.submit()">
+            </div>
+            <button type="button" class="filter-bar-gear" title="Налаштування">
+                <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" stroke="currentColor" stroke-width="1.4"/><path d="M13.3 6.4l-.8-.5a5 5 0 0 0 0-1.8l.8-.5a.7.7 0 0 0 .2-.9l-.8-1.4a.7.7 0 0 0-.9-.3l-.8.5a5 5 0 0 0-1.6-.9V.7A.7.7 0 0 0 8.7 0H7.3a.7.7 0 0 0-.7.7v.9a5 5 0 0 0-1.6.9l-.8-.5a.7.7 0 0 0-.9.3L2.5 3.7a.7.7 0 0 0 .2.9l.8.5a5 5 0 0 0 0 1.8l-.8.5a.7.7 0 0 0-.2.9l.8 1.4c.2.3.6.4.9.3l.8-.5a5 5 0 0 0 1.6.9v.9c0 .4.3.7.7.7h1.4c.4 0 .7-.3.7-.7v-.9a5 5 0 0 0 1.6-.9l.8.5c.3.1.7 0 .9-.3l.8-1.4a.7.7 0 0 0-.2-.9Z" stroke="currentColor" stroke-width="1.3"/></svg>
+            </button>
         </div>
     </form>
-</div>
 
-<div class="card">
-    <div class="summary">
-        <div class="summary-item"><strong>Всего заказов:</strong> <?= (int)$total ?></div>
-        <div class="summary-item"><strong>Страница:</strong> <?= (int)$page ?> / <?= max(1, (int)$totalPages) ?></div>
-        <div class="summary-item"><strong>Лимит:</strong> <?= (int)$limit ?></div>
+    <!-- Count -->
+    <div style="font-size:13px;color:#6b7280;margin-bottom:8px;">
+        Знайдено: <strong><?php echo number_format($total); ?></strong>
     </div>
 
-    <div class="table-wrap">
-        <table class="registry">
-            <thead>
+    <!-- Table -->
+    <table class="crm-table">
+        <thead>
             <tr>
-                <th><a href="<?= h(sort_link('id', $filters['sort_field'], $filters['sort_dir'])) ?>">ID</a></th>
-                <th><a href="<?= h(sort_link('number', $filters['sort_field'], $filters['sort_dir'])) ?>">Номер</a></th>
-                <th><a href="<?= h(sort_link('moment', $filters['sort_field'], $filters['sort_dir'])) ?>">Дата</a></th>
-                <th>Статус</th>
-                <th>Оплата</th>
-                <th>Отгрузка</th>
-                <th class="text-end"><a href="<?= h(sort_link('sum_total', $filters['sort_field'], $filters['sort_dir'])) ?>">Сумма</a></th>
-                <th>Строк</th>
-                <th>Организация</th>
-                <th>Склад</th>
+                <th style="width:60px">ID</th>
+                <th>Номер</th>
+                <th>Дата</th>
+                <th>Контрагент</th>
+                <th style="width:130px">Статус</th>
+                <th style="width:110px">Оплата</th>
+                <th style="width:130px">Відвантаження</th>
+                <th style="text-align:right">Сума</th>
+                <th style="width:60px">Рядки</th>
+                <th>Організація</th>
                 <th>Менеджер</th>
-                <th><a href="<?= h(sort_link('updated_at', $filters['sort_field'], $filters['sort_dir'])) ?>">Обновлён</a></th>
-                <th>Действия</th>
             </tr>
-            </thead>
-            <tbody>
-            <?php if (!$rows): ?>
-                <tr>
-                    <td colspan="13" class="empty-box">
-                        Заказы пока не найдены.
-                    </td>
-                </tr>
-            <?php else: ?>
-                <?php foreach ($rows as $row): ?>
-                    <tr>
-                        <td><?= (int)$row['id'] ?></td>
-                        <td>
-                            <strong><?= h($row['number']) ?></strong><br>
-                            <span class="text-muted small"><?= h($row['external_code']) ?></span>
-                        </td>
-                        <td><?= h($row['moment']) ?></td>
-                        <td>
-                            <span class="badge <?= h(status_badge_class($row['status'])) ?>">
-                                <?= h($row['status']) ?>
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge <?= h(status_badge_class($row['payment_status'])) ?>">
-                                <?= h($row['payment_status']) ?>
-                            </span>
-                        </td>
-                        <td>
-                            <span class="badge <?= h(status_badge_class($row['shipment_status'])) ?>">
-                                <?= h($row['shipment_status']) ?>
-                            </span>
-                        </td>
-                        <td class="text-end">
-                            <?= number_format((float)$row['sum_total'], 2, '.', ' ') ?>
-                            <div class="small text-muted"><?= h($row['currency_code']) ?></div>
-                        </td>
-                        <td><?= (int)$row['items_count'] ?></td>
-                        <td><?= h($row['organization_name']) ?></td>
-                        <td><?= h($row['store_name']) ?></td>
-                        <td><?= h($row['manager_name']) ?></td>
-                        <td><?= h($row['updated_at']) ?></td>
-                        <td>
-                           <a class="btn" href="/customerorder/edit?id=<?= (int)$row['id'] ?>">Открыть</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <?php if ($totalPages > 1): ?>
-        <div class="pagination">
-            <?php if ($page > 1): ?>
-                <a href="<?= h(build_registry_url(array('page' => $page - 1))) ?>">&laquo; Назад</a>
-            <?php endif; ?>
-
+        </thead>
+        <tbody>
+        <?php if (empty($rows)): ?>
+            <tr><td colspan="11" style="text-align:center;color:#9ca3af;padding:32px 0;">Записів не знайдено</td></tr>
+        <?php else: ?>
+            <?php foreach ($rows as $row): ?>
             <?php
-            $startPage = max(1, $page - 3);
-            $endPage = min($totalPages, $page + 3);
-
-            for ($p = $startPage; $p <= $endPage; $p++):
+                $st  = isset($row['status'])         ? $row['status']         : '';
+                $pay = isset($row['payment_status'])  ? $row['payment_status'] : '';
+                $shp = isset($row['shipment_status']) ? $row['shipment_status']: '';
             ?>
-                <?php if ($p == $page): ?>
-                    <span class="active"><?= $p ?></span>
-                <?php else: ?>
-                    <a href="<?= h(build_registry_url(array('page' => $p))) ?>"><?= $p ?></a>
-                <?php endif; ?>
-            <?php endfor; ?>
+            <tr style="cursor:pointer" onclick="window.location='/customerorder/edit?id=<?php echo (int)$row['id']; ?>'">
+                <td class="text-muted fs-12"><?php echo (int)$row['id']; ?></td>
+                <td>
+                    <a class="co-num-link" href="/customerorder/edit?id=<?php echo (int)$row['id']; ?>" onclick="event.stopPropagation()">
+                        <?php echo htmlspecialchars($row['number'] ?: '—', ENT_QUOTES, 'UTF-8'); ?>
+                    </a>
+                </td>
+                <td class="nowrap fs-12"><?php echo $row['moment'] ? substr($row['moment'], 0, 10) : '—'; ?></td>
+                <td><?php echo htmlspecialchars($row['counterparty_name'] ?: '—', ENT_QUOTES, 'UTF-8'); ?></td>
+                <td>
+                    <?php if ($st): ?>
+                    <span class="badge <?php echo isset($statusColors[$st]) ? $statusColors[$st] : 'badge-gray'; ?>">
+                        <?php echo isset($statusLabels[$st]) ? $statusLabels[$st] : $st; ?>
+                    </span>
+                    <?php endif; ?>
+                </td>
+                <td>
+                    <?php if ($pay): ?>
+                    <span class="badge <?php echo isset($payColors[$pay]) ? $payColors[$pay] : 'badge-gray'; ?>" style="font-size:11px">
+                        <?php echo isset($payLabels[$pay]) ? $payLabels[$pay] : $pay; ?>
+                    </span>
+                    <?php endif; ?>
+                </td>
+                <td>
+                    <?php if ($shp): ?>
+                    <span class="badge <?php echo isset($shipColors[$shp]) ? $shipColors[$shp] : 'badge-gray'; ?>" style="font-size:11px">
+                        <?php echo isset($shipLabels[$shp]) ? $shipLabels[$shp] : $shp; ?>
+                    </span>
+                    <?php endif; ?>
+                </td>
+                <td style="text-align:right" class="nowrap">
+                    <?php echo number_format((float)$row['sum_total'], 2, '.', ' '); ?>
+                </td>
+                <td class="text-muted fs-12" style="text-align:center"><?php echo (int)$row['items_count']; ?></td>
+                <td class="fs-12"><?php echo htmlspecialchars($row['organization_name'] ?: '—', ENT_QUOTES, 'UTF-8'); ?></td>
+                <td class="fs-12"><?php echo htmlspecialchars($row['manager_name'] ?: '—', ENT_QUOTES, 'UTF-8'); ?></td>
+            </tr>
+            <?php endforeach; ?>
+        <?php endif; ?>
+        </tbody>
+    </table>
 
-            <?php if ($page < $totalPages): ?>
-                <a href="<?= h(build_registry_url(array('page' => $page + 1))) ?>">Вперёд &raquo;</a>
+    <!-- Pagination -->
+    <?php if ($totalPages > 1): ?>
+    <div class="pagination" style="margin-top:16px;">
+        <?php if ($page > 1): ?>
+            <a href="<?php echo co_url(array('page' => $page - 1)); ?>">&laquo;</a>
+        <?php endif; ?>
+        <?php
+        $pStart = max(1, $page - 3);
+        $pEnd   = min($totalPages, $page + 3);
+        for ($p = $pStart; $p <= $pEnd; $p++):
+        ?>
+            <?php if ($p == $page): ?>
+                <span class="current"><?php echo $p; ?></span>
+            <?php else: ?>
+                <a href="<?php echo co_url(array('page' => $p)); ?>"><?php echo $p; ?></a>
             <?php endif; ?>
-        </div>
+        <?php endfor; ?>
+        <?php if ($page < $totalPages): ?>
+            <a href="<?php echo co_url(array('page' => $page + 1)); ?>">&raquo;</a>
+        <?php endif; ?>
+    </div>
     <?php endif; ?>
+
 </div>
-</div><!-- /co-registry-wrap -->
+
+<script src="/modules/shared/chip-search.js?v=<?php echo @filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
+<script>
+(function () {
+    ChipSearch.init('coChipBox', 'coChipTyper', 'coSearchHidden',
+        document.getElementById('coForm'), {noComma: false});
+
+    var clearBtn = document.getElementById('coChipClear');
+    var chipBox  = document.getElementById('coChipBox');
+    var typer    = document.getElementById('coChipTyper');
+    var hidden   = document.getElementById('coSearchHidden');
+    var form     = document.getElementById('coForm');
+
+    function updateClearBtn() {
+        var hasChips = chipBox.querySelectorAll('.chip').length > 0;
+        var hasText  = typer.value.trim() !== '';
+        if (hasChips || hasText) { clearBtn.classList.remove('hidden'); }
+        else                     { clearBtn.classList.add('hidden'); }
+    }
+    var observer = new MutationObserver(updateClearBtn);
+    observer.observe(chipBox, { childList: true });
+    typer.addEventListener('input', updateClearBtn);
+
+    clearBtn.addEventListener('click', function () {
+        chipBox.querySelectorAll('.chip').forEach(function(c) { c.remove(); });
+        typer.value = ''; hidden.value = '';
+        clearBtn.classList.add('hidden');
+        var pi = form.querySelector('input[name="page"]'); if (pi) pi.value = 1;
+        form.submit();
+    });
+    updateClearBtn();
+}());
+</script>
+
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

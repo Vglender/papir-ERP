@@ -33,9 +33,26 @@ if ($orderId > 0) {
     $orderNum = $orderId;
 }
 
+// Оновлюємо customerorder_id в ttn_novaposhta
 \Database::update('Papir', 'ttn_novaposhta',
     array('customerorder_id' => $orderId > 0 ? $orderId : null),
     array('id' => $ttnId)
 );
+
+// Видаляємо попередній document_link якщо є
+\Database::query('Papir',
+    "DELETE FROM document_link WHERE from_type='ttn_np' AND from_id={$ttnId} AND to_type='customerorder'"
+);
+
+// Створюємо новий document_link (якщо прив'язуємо до заказу)
+if ($orderId > 0) {
+    \Database::insert('Papir', 'document_link', array(
+        'from_type' => 'ttn_np',
+        'from_id'   => $ttnId,
+        'to_type'   => 'customerorder',
+        'to_id'     => $orderId,
+        'link_type' => 'shipment',
+    ));
+}
 
 echo json_encode(array('ok' => true, 'order_id' => $orderNum));

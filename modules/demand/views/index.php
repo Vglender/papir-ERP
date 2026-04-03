@@ -2,24 +2,11 @@
 // Variables from index.php: $rows, $total, $totalPages, $page, $limit,
 //   $search, $orgId, $status, $dateFrom, $dateTo, $orgs, $filters
 
-$statusLabels = array(
-    'new'        => 'Нове',
-    'assembling' => 'Збирання',
-    'assembled'  => 'Зібрано',
-    'shipped'    => 'Відвантажено',
-    'arrived'    => 'Прибуло',
-    'transfer'   => 'Транзит',
-    'robot'      => 'Робот',
-);
-$statusColors = array(
-    'new'        => 'badge-gray',
-    'assembling' => 'badge-orange',
-    'assembled'  => 'badge-blue',
-    'shipped'    => 'badge-green',
-    'arrived'    => 'badge-green',
-    'transfer'   => 'badge-blue',
-    'robot'      => 'badge-orange',
-);
+require_once __DIR__ . '/../../shared/StatusColors.php';
+$_dmMap     = StatusColors::all('demand');
+$statusLabels = array();
+$statusColors = array();
+foreach ($_dmMap as $_s => $_e) { $statusLabels[$_s] = $_e[0]; $statusColors[$_s] = $_e[1]; }
 $syncColors = array(
     'synced'  => 'badge-green',
     'new'     => 'badge-gray',

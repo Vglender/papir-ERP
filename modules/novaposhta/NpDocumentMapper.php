@@ -109,6 +109,7 @@ class NpDocumentMapper
             'phone_sender'              => !empty($doc['SendersPhone'])             ? $doc['SendersPhone']               : null,
             'cost'                      => isset($doc['Cost'])      && $doc['Cost']      !== '' ? (float)$doc['Cost']      : null,
             'cost_on_site'              => isset($doc['CostOnSite']) && $doc['CostOnSite'] !== '' ? (float)$doc['CostOnSite'] : null,
+            'declared_value'            => isset($doc['Cost'])      && $doc['Cost']      !== '' ? (int)$doc['Cost']          : null,
             'backward_delivery_money'   => $cod,
             'afterpayment_on_goods_cost'=> $cod,
             'weight'                    => isset($doc['Weight'])      && $doc['Weight']      !== '' ? (float)$doc['Weight']      : null,
@@ -119,6 +120,7 @@ class NpDocumentMapper
             'sender_ref'                => $senderRef,
             'scan_sheet_ref'            => $scanSheetRef,
             'car_call'                  => !empty($doc['CarCall']) ? $doc['CarCall'] : null,
+            'additional_information'    => !empty($doc['AdditionalInformation']) ? $doc['AdditionalInformation'] : null,
             'deletion_mark'             => (isset($doc['DeletionMark']) && $doc['DeletionMark'] == '1') ? 1 : 0,
             'updated_at'                => date('Y-m-d H:i:s'),
         );
@@ -150,6 +152,7 @@ class NpDocumentMapper
             'phone_sender'             => $mapped['phone_sender'],
             'cost'                     => $mapped['cost'],
             'cost_on_site'             => $mapped['cost_on_site'],
+            'declared_value'           => $mapped['declared_value'],
             'backward_delivery_money'  => $mapped['backward_delivery_money'],
             'afterpayment_on_goods_cost'=> $mapped['afterpayment_on_goods_cost'],
             'weight'                   => $mapped['weight'],

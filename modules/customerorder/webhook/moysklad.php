@@ -11,6 +11,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../database/database.php';
 require_once __DIR__ . '/../../moysklad/moysklad_api.php';
 require_once __DIR__ . '/../../moysklad/src/WebhookCpHelper.php';
+require_once __DIR__ . '/../MsAttributesParser.php';
 
 function mswhk_order_log($msg) {
     @file_put_contents('/var/www/papir/storage/ms_webhook_customerorder.log',
@@ -61,7 +62,7 @@ foreach ($body['events'] as $event) {
         continue;
     }
 
-    $docRaw = $ms->query($href . '?expand=agent,organization,state,owner,positions.assortment');
+    $docRaw = $ms->query($href . '?expand=agent,organization,state,owner,positions.assortment,attributes');
     $doc    = json_decode(json_encode($docRaw), true);
 
     if (empty($doc) || !empty($doc['errors'])) {
@@ -161,6 +162,18 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         $shipmentStatus = 'shipped';
     }
 
+    // Атрибути: спосіб доставки та оплати
+    // МС повертає attributes як plain array (не {rows:[...]}), тому перевіряємо обидва варіанти
+    $attrParser = new MsAttributesParser();
+    if (!empty($doc['attributes']['rows']) && is_array($doc['attributes']['rows'])) {
+        $attrs = $doc['attributes']['rows'];
+    } elseif (!empty($doc['attributes']) && is_array($doc['attributes'])) {
+        $attrs = $doc['attributes'];
+    } else {
+        $attrs = array();
+    }
+    $parsedAttrs = $attrParser->parse($attrs);
+
     $data = array(
         'id_ms'           => $msId,
         'number'          => $number,
@@ -169,7 +182,6 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         'source'          => 'moysklad',
         'sync_state'      => 'synced',
         'external_code'   => $extCode,
-        'sum_total'       => $sumTotal,
         'sum_paid'        => $sumPaid,
         'sum_shipped'     => $sumShipped,
         'sum_reserved'    => $sumReserved,
@@ -177,6 +189,9 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         'payment_status'  => $paymentStatus,
         'shipment_status' => $shipmentStatus,
     );
+
+    if ($parsedAttrs['delivery_method_id'] !== null) $data['delivery_method_id'] = $parsedAttrs['delivery_method_id'];
+    if ($parsedAttrs['payment_method_id']  !== null) $data['payment_method_id']  = $parsedAttrs['payment_method_id'];
 
     if ($counterpartyId    !== null) $data['counterparty_id']     = $counterpartyId;
     if ($organizationId    !== null) $data['organization_id']     = $organizationId;
@@ -217,6 +232,15 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         mswhk_order_log('Inserted order id=' . $localId . ' ms=' . $msId);
     }
 
+    // Обновить last_activity_at контрагента — чтобы заказ поднял его в инбоксе
+    if ($counterpartyId !== null && $moment !== null) {
+        Database::query('Papir',
+            "UPDATE counterparty
+             SET last_activity_at = GREATEST(COALESCE(last_activity_at, '1970-01-01 00:00:00'), '" . Database::escape('Papir', $moment) . "')
+             WHERE id = {$counterpartyId}"
+        );
+    }
+
     mswhk_order_sync_items($localId, $doc, $ms);
 }
 
@@ -236,11 +260,11 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
     if (empty($positions)) return;
 
     $existingItems = Database::fetchAll('Papir',
-        "SELECT id, product_ms_id FROM customerorder_item WHERE customerorder_id = {$localId}");
-    $existingByMsId = array();
+        "SELECT id, position_ms_id FROM customerorder_item WHERE customerorder_id = {$localId}");
+    $existingByPositionMsId = array();
     if ($existingItems['ok']) {
         foreach ($existingItems['rows'] as $ei) {
-            if ($ei['product_ms_id']) $existingByMsId[$ei['product_ms_id']] = (int)$ei['id'];
+            if ($ei['position_ms_id']) $existingByPositionMsId[$ei['position_ms_id']] = (int)$ei['id'];
         }
     }
 
@@ -248,6 +272,7 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
     $seenItemIds = array();
 
     foreach ($positions as $pos) {
+        $positionMsId = isset($pos['id']) ? (string)$pos['id'] : '';
         $qty         = isset($pos['quantity']) ? (float)$pos['quantity']               : 0.0;
         $price       = isset($pos['price'])    ? round((float)$pos['price'] / 100, 4)  : 0.0;
         $discountPct = isset($pos['discount']) ? (float)$pos['discount']               : 0.0;
@@ -281,6 +306,7 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
             'customerorder_id'     => $localId,
             'line_no'              => $lineNo,
             'product_id'           => $productId,
+            'position_ms_id'       => $positionMsId ?: null,
             'product_ms_id'        => $productMsId ?: null,
             'product_name'         => mb_substr($productName, 0, 255, 'UTF-8'),
             'sku'                  => mb_substr($sku, 0, 64, 'UTF-8'),
@@ -294,8 +320,8 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
             'sum_row'              => $sumRow,
         );
 
-        if ($productMsId !== '' && isset($existingByMsId[$productMsId])) {
-            $itemId = $existingByMsId[$productMsId];
+        if ($positionMsId !== '' && isset($existingByPositionMsId[$positionMsId])) {
+            $itemId = $existingByPositionMsId[$positionMsId];
             Database::update('Papir', 'customerorder_item', $itemData, array('id' => $itemId));
             $seenItemIds[] = $itemId;
         } else {
@@ -312,19 +338,8 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
             "DELETE FROM customerorder_item WHERE customerorder_id = {$localId} AND id NOT IN ({$inClause})");
     }
 
-    // Пересчитать суммы заказа
-    $r = Database::fetchRow('Papir',
-        "SELECT SUM(sum_without_discount) AS sum_items,
-                SUM(discount_amount)      AS sum_discount,
-                SUM(vat_amount)           AS sum_vat
-         FROM customerorder_item WHERE customerorder_id = {$localId}");
-    if ($r['ok'] && $r['row']) {
-        Database::update('Papir', 'customerorder', array(
-            'sum_items'    => round((float)$r['row']['sum_items'],    2),
-            'sum_discount' => round((float)$r['row']['sum_discount'], 2),
-            'sum_vat'      => round((float)$r['row']['sum_vat'],      2),
-        ), array('id' => $localId));
-    }
+    // sum_items / sum_discount / sum_vat / sum_total оновлюються автоматично
+    // тригерами trg_co_item_after_insert/update/delete на customerorder_item
 }
 
 function mswhk_order_delete($msId, array &$errors)

@@ -43,12 +43,22 @@ class TriggerEngine
     // ── Condition evaluator ───────────────────────────────────────────────────
 
     /**
-     * Простая оценка условия: condition_key, condition_op, condition_value.
-     * Ключи вида: "order.payment_type", "order.status", "order.sum_total".
-     * Если условия нет — триггер всегда срабатывает.
+     * Оценивает условия триггера/шага.
+     * Приоритет: JSON `conditions` (массив с logic AND/OR) > простое condition_key/op/value.
+     * Если условий нет — всегда true.
      */
     private static function evaluateCondition($trigger, $context)
     {
+        // JSON multi-conditions (новый формат)
+        $condJson = isset($trigger['conditions']) ? trim((string)$trigger['conditions']) : '';
+        if ($condJson !== '' && $condJson !== 'null') {
+            $cond = json_decode($condJson, true);
+            if (is_array($cond) && !empty($cond['rules'])) {
+                return self::evaluateJsonConditions($cond, $context);
+            }
+        }
+
+        // Legacy: одно условие
         $key = isset($trigger['condition_key']) ? $trigger['condition_key'] : null;
         if (!$key) return true;
 
@@ -59,6 +69,33 @@ class TriggerEngine
         $val = isset($trigger['condition_value']) ? $trigger['condition_value'] : '';
 
         return self::compare($actual, $op, $val);
+    }
+
+    /**
+     * Оценивает JSON-условия формата:
+     * {"logic":"AND","rules":[{"key":"order.payment_method_id","op":"in","value":[1,3]},…]}
+     */
+    private static function evaluateJsonConditions($cond, $context)
+    {
+        $logic = (isset($cond['logic']) && strtoupper($cond['logic']) === 'OR') ? 'OR' : 'AND';
+        $rules = $cond['rules'];
+
+        foreach ($rules as $rule) {
+            $key = isset($rule['key']) ? $rule['key'] : '';
+            if (!$key) continue;
+
+            $actual   = self::resolveKey($key, $context);
+            $op       = isset($rule['op'])    ? $rule['op']    : '=';
+            $expected = isset($rule['value']) ? $rule['value'] : '';
+
+            // Для in/not_in expected может быть массивом или строкой
+            $result = self::compare($actual, $op, $expected);
+
+            if ($logic === 'OR'  && $result)  return true;
+            if ($logic === 'AND' && !$result) return false;
+        }
+
+        return $logic === 'AND'; // AND: все прошли → true; OR: ни одного → false
     }
 
     private static function resolveKey($key, $context)
@@ -82,18 +119,34 @@ class TriggerEngine
     private static function compare($actual, $op, $expected)
     {
         $a = strtolower((string)$actual);
-        $e = strtolower((string)$expected);
 
         switch ($op) {
-            case '=':      return $a === $e;
-            case '!=':     return $a !== $e;
-            case '>':      return (float)$actual >  (float)$expected;
-            case '<':      return (float)$actual <  (float)$expected;
+            case '=':   return $a === strtolower((string)$expected);
+            case '!=':  return $a !== strtolower((string)$expected);
+            case '>':   return (float)$actual >  (float)$expected;
+            case '<':   return (float)$actual <  (float)$expected;
+            case '>=':  return (float)$actual >= (float)$expected;
+            case '<=':  return (float)$actual <= (float)$expected;
+            case 'contains':
+                return mb_strpos(
+                    mb_strtolower((string)$actual, 'UTF-8'),
+                    mb_strtolower((string)$expected, 'UTF-8'),
+                    0, 'UTF-8'
+                ) !== false;
             case 'in':
-                $vals = array_map('trim', explode(',', $e));
+                // expected может быть PHP-массивом (из JSON) или строкой "a,b,c"
+                if (is_array($expected)) {
+                    $vals = array_map(function($v) { return strtolower((string)$v); }, $expected);
+                } else {
+                    $vals = array_map('trim', explode(',', strtolower((string)$expected)));
+                }
                 return in_array($a, $vals);
             case 'not_in':
-                $vals = array_map('trim', explode(',', $e));
+                if (is_array($expected)) {
+                    $vals = array_map(function($v) { return strtolower((string)$v); }, $expected);
+                } else {
+                    $vals = array_map('trim', explode(',', strtolower((string)$expected)));
+                }
                 return !in_array($a, $vals);
         }
         return false;

@@ -174,7 +174,7 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
 .ttn-act-btn { background:none; border:none; cursor:pointer; padding:2px 6px; color:#6b7280; font-size:15px; line-height:1; border-radius:3px; }
 .ttn-act-btn:hover { background:#f3f4f6; color:#111; }
 .ttn-actions-drop {
-    position:absolute; right:0; top:100%; z-index:300;
+    position:fixed; z-index:1200;
     background:#fff; border:1px solid #d1d5db;
     border-radius:6px; box-shadow:0 4px 16px rgba(0,0,0,.13);
     min-width:176px; display:none; white-space:nowrap; overflow:hidden;
@@ -357,7 +357,7 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         <th style="width:32px"></th>
       </tr>
     </thead>
-    <tbody>
+    <tbody id="ttnTableBody">
     <?php if (empty($rows)): ?>
       <tr><td colspan="12" style="text-align:center;color:#9ca3af;padding:32px">ТТН не знайдено</td></tr>
     <?php else: ?>
@@ -458,24 +458,26 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
   </table>
 
   <!-- Pagination -->
+  <div id="ttnPagination">
   <?php if ($totalPages > 1): ?>
   <div class="pagination">
     <?php if ($page > 1): ?>
-      <a href="<?php echo npTtnPageUrl($page-1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>">&laquo;</a>
+      <a href="<?php echo npTtnPageUrl($page-1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>" data-page="<?php echo $page-1; ?>">&laquo;</a>
     <?php endif; ?>
     <?php for ($p = max(1, $page-3); $p <= min($totalPages, $page+3); $p++): ?>
       <?php if ($p === $page): ?>
         <span class="cur"><?php echo $p; ?></span>
       <?php else: ?>
-        <a href="<?php echo npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>"><?php echo $p; ?></a>
+        <a href="<?php echo npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>" data-page="<?php echo $p; ?>"><?php echo $p; ?></a>
       <?php endif; ?>
     <?php endfor; ?>
     <?php if ($page < $totalPages): ?>
-      <a href="<?php echo npTtnPageUrl($page+1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>">&raquo;</a>
+      <a href="<?php echo npTtnPageUrl($page+1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>" data-page="<?php echo $page+1; ?>">&raquo;</a>
     <?php endif; ?>
     <span class="dots"><?php echo number_format($total, 0, '.', ' '); ?> ТТН</span>
   </div>
   <?php endif; ?>
+  </div>
 
 </div>
 
@@ -490,16 +492,89 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
 
 <script src="/modules/shared/chip-search.js?v=<?php echo $chipSearchJs; ?>"></script>
 <script>
-ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma: true});
-
+// ── Live search ──────────────────────────────────────────────────────────────
 (function () {
     var clearBtn = document.getElementById('ttnChipClear');
     var chipBox  = document.getElementById('ttnChipBox');
     var typer    = document.getElementById('ttnChipTyper');
     var hidden   = document.getElementById('ttnSearchHidden');
     var form     = document.getElementById('ttnFilterForm');
-    if (!clearBtn || !chipBox || !typer || !hidden) return;
+    var tbody    = document.getElementById('ttnTableBody');
+    var pagDiv   = document.getElementById('ttnPagination');
+    if (!tbody || !pagDiv) return;
 
+    var _debTimer = null;
+
+    // Combines committed chips (hidden.value) + typer text into one search string
+    function getSearchValue() {
+        var chips = hidden ? hidden.value.trim() : '';
+        var text  = typer  ? typer.value.trim()  : '';
+        if (chips && text) return chips + '|||' + text;
+        return chips || text;
+    }
+
+    function buildApiParams(page) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('page', page || 1);
+        var sv = getSearchValue();
+        if (sv) { url.searchParams.set('search', sv); }
+        else    { url.searchParams.delete('search'); }
+        return url.searchParams.toString();
+    }
+
+    function updateUrl(page) {
+        var url = new URL(window.location.href);
+        url.searchParams.set('page', page || 1);
+        var chips = hidden ? hidden.value.trim() : '';
+        if (chips) { url.searchParams.set('search', chips); }
+        else       { url.searchParams.delete('search'); }
+        history.pushState(null, '', url.toString());
+    }
+
+    function loadTable(page) {
+        var params = buildApiParams(page || 1);
+        tbody.innerHTML = '<tr><td colspan="12" style="text-align:center;padding:32px;color:#9ca3af">Завантаження…</td></tr>';
+        fetch('/novaposhta/api/get_ttn_table?' + params)
+            .then(function(r){ return r.json(); })
+            .then(function(res) {
+                if (!res.ok) return;
+                tbody.innerHTML = res.rows_html;
+                pagDiv.innerHTML = res.pagination_html
+                    ? '<div class="pagination">' + res.pagination_html + '</div>'
+                    : '';
+                updateUrl(page || 1);
+            });
+    }
+
+    // Override form.submit — ChipSearch вызывает его при Enter в пустом typer
+    if (form) form.submit = function() { loadTable(1); };
+    // ChipSearch ПЕРВЫМ добавляет submit-listener для flush typer→hidden
+    ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', form, {noComma: true});
+    // Наш listener ПОСЛЕ ChipSearch — e.preventDefault() + loadTable
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            loadTable(1);
+        });
+    }
+
+    // Chip add/remove → immediate search (hidden.value already updated by ChipSearch)
+    new MutationObserver(function() {
+        clearTimeout(_debTimer);
+        loadTable(1);
+    }).observe(chipBox, { childList: true });
+
+    // Typer input → debounce 300ms (search includes uncommitted text)
+    // Не запускаємо пошук якщо введено 1-2 символи — надто коротко для будь-якого поля
+    // (14 цифр = ТТН, 9-13 = телефон, 3+ = ім'я/місто)
+    typer.addEventListener('input', function() {
+        clearTimeout(_debTimer);
+        var val = getSearchValue();
+        if (val.length > 0 && val.length < 3) return; // чекаємо ще символів
+        _debTimer = setTimeout(function() { loadTable(1); }, 300);
+    });
+
+    // Clear button
     function updateClear() {
         var has = chipBox.querySelectorAll('.chip').length > 0 || typer.value.trim() !== '';
         clearBtn.classList.toggle('hidden', !has);
@@ -509,14 +584,23 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
 
     clearBtn.addEventListener('click', function () {
         chipBox.querySelectorAll('.chip').forEach(function(c){ c.remove(); });
-        typer.value = '';
+        typer.value  = '';
         hidden.value = '';
         clearBtn.classList.add('hidden');
-        var pi = form.querySelector('input[name="page"]');
-        if (pi) pi.value = 1;
-        form.submit();
+        loadTable(1);
     });
     updateClear();
+
+    // Pagination click delegation
+    pagDiv.addEventListener('click', function(e) {
+        var a = e.target.closest('a[data-page]');
+        if (!a) return;
+        e.preventDefault();
+        loadTable(parseInt(a.dataset.page, 10));
+    });
+
+    // Expose for external callers (delete/track refresh)
+    window._ttnLoadTable = loadTable;
 }());
 
 // ── Sender select ────────────────────────────────────────────────────────
@@ -578,7 +662,9 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
             var msg = 'Синхронізовано: +' + res.inserted + ' нових, ' + res.updated + ' оновлено';
             if (res.errors && res.errors.length) msg += ' ⚠ ' + res.errors.join('; ');
             showToast(msg);
-            if (res.inserted > 0) setTimeout(function () { window.location.reload(); }, 800);
+            if (res.inserted > 0) setTimeout(function () {
+                if (window._ttnLoadTable) { window._ttnLoadTable(1); } else { window.location.reload(); }
+            }, 800);
         })
         .catch(function () {
             btn.disabled = false;
@@ -638,18 +724,14 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         });
     }
 
-    function bindEmpty(cell) {
-        var span = cell.querySelector('.ttn-order-empty');
-        if (span) span.addEventListener('click', function () { openOrderInput(cell); });
-    }
-    function bindLink(cell) {
-        var link = cell.querySelector('.ttn-order-link');
-        if (link) link.addEventListener('dblclick', function (e) { e.preventDefault(); openOrderInput(cell); });
-    }
-
-    document.querySelectorAll('.ttn-order-cell').forEach(function (cell) {
-        bindEmpty(cell);
-        bindLink(cell);
+    // Event delegation — works for dynamically injected rows
+    document.addEventListener('click', function(e) {
+        var span = e.target.closest('.ttn-order-empty');
+        if (span) { openOrderInput(span.closest('.ttn-order-cell')); }
+    });
+    document.addEventListener('dblclick', function(e) {
+        var link = e.target.closest('.ttn-order-link');
+        if (link) { e.preventDefault(); openOrderInput(link.closest('.ttn-order-cell')); }
     });
 }());
 
@@ -682,8 +764,9 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         checkAll.checked = (n > 0 && n === all.length);
     }
 
-    document.querySelectorAll('.ttn-row-check').forEach(function (cb) {
-        cb.addEventListener('change', updateBulkBar);
+    // Event delegation for row checkboxes — works after AJAX tbody reload
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('ttn-row-check')) updateBulkBar();
     });
 
     if (checkAll) {
@@ -779,10 +862,10 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
                 } else {
                     showToast('Видалено ' + (res.deleted ? res.deleted.length : 0) + ' ТТН');
                 }
-                // Якщо рядків у таблиці більше нема — перезавантажити сторінку
+                // Якщо рядків у таблиці більше нема — оновити через AJAX
                 var remaining = document.querySelectorAll('tbody .ttn-row-check').length;
-                if (remaining === 0) {
-                    window.location.reload();
+                if (remaining === 0 && window._ttnLoadTable) {
+                    window._ttnLoadTable(1);
                     return;
                 }
                 document.querySelectorAll('.ttn-row-check').forEach(function (cb) { cb.checked = false; });
@@ -815,58 +898,63 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
             if (!drop) return;
             if (drop === openDrop) { closeAll(); return; }
             closeAll();
+            var rect = actBtn.getBoundingClientRect();
+            drop.style.top  = (rect.bottom + 2) + 'px';
+            drop.style.left = '';
+            drop.style.right = '';
             drop.classList.add('open');
+            // Перевіряємо чи не виходить за правий край
+            var dropRect = drop.getBoundingClientRect();
+            if (dropRect.right > window.innerWidth - 4) {
+                drop.style.left = (rect.right - dropRect.width) + 'px';
+            } else {
+                drop.style.left = rect.left + 'px';
+            }
             openDrop = drop;
             return;
         }
         // Click outside
         if (!e.target.closest('.ttn-actions-drop')) closeAll();
-    });
 
-    // ── Delete ──
-    document.querySelectorAll('.ttn-act-delete').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
+        // ── Delete ──
+        var delBtn = e.target.closest('.ttn-act-delete');
+        if (delBtn) {
             e.stopPropagation();
             closeAll();
-            var tr   = btn.closest('tr');
+            var tr    = delBtn.closest('tr');
             var ttnId = tr ? tr.dataset.ttnId : null;
             if (!ttnId) return;
             if (!confirm('Видалити ТТН? Вона буде видалена в НП (якщо API дозволяє) і у нас.')) return;
 
-            btn.disabled = true;
+            delBtn.disabled = true;
             fetch('/novaposhta/api/delete_ttn', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                 body: 'ttn_id=' + ttnId
             })
-            .then(function (r) { return r.json(); })
-            .then(function (res) {
-                btn.disabled = false;
-                if (!res.ok) {
-                    alert('Не вдалося видалити:\n' + (res.error || 'Невідома помилка'));
-                    return;
-                }
+            .then(function(r){ return r.json(); })
+            .then(function(res) {
+                delBtn.disabled = false;
+                if (!res.ok) { alert('Не вдалося видалити:\n' + (res.error || 'Невідома помилка')); return; }
                 showToast('ТТН видалено');
                 if (tr) tr.remove();
             })
-            .catch(function () {
-                btn.disabled = false;
-                alert('Мережева помилка при видаленні');
-            });
-        });
-    });
+            .catch(function() { delBtn.disabled = false; alert('Мережева помилка при видаленні'); });
+            return;
+        }
 
-    // ── Print sticker ──
-    document.querySelectorAll('.ttn-act-print').forEach(function (btn) {
-        btn.addEventListener('click', function (e) {
+        // ── Print sticker ──
+        var printBtn = e.target.closest('.ttn-act-print');
+        if (printBtn) {
             e.stopPropagation();
             closeAll();
-            var tr    = btn.closest('tr');
-            var ttnId = tr ? tr.dataset.ttnId : null;
-            var fmt   = btn.dataset.format;
-            if (!ttnId) return;
-            window.open('/novaposhta/api/print_ttn_sticker?ttn_id=' + ttnId + '&format=' + encodeURIComponent(fmt), '_blank');
-        });
+            var tr2   = printBtn.closest('tr');
+            var ttnId2 = tr2 ? tr2.dataset.ttnId : null;
+            var fmt   = printBtn.dataset.format;
+            if (!ttnId2) return;
+            window.open('/novaposhta/api/print_ttn_sticker?ttn_id=' + ttnId2 + '&format=' + encodeURIComponent(fmt), '_blank');
+            return;
+        }
     });
 }());
 </script>
@@ -1032,11 +1120,9 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
                 '<select class="ttn-ef" id="ef_payment">' +
                 opt('Cash','Готівка',t.payment_method) + opt('NonCash','Безготівка',t.payment_method) +
                 '</select></div>';
-            html += '<div class="ttn-rf"><div class="ttn-rf-label">↩ Накладений платіж, грн</div>' +
-                '<div style="display:flex;align-items:center;gap:6px">' +
-                '<input type="number" class="ttn-ef ttn-ef-md" id="ef_cod" min="0" value="' + h(parseFloat(t.backward_delivery_money)||0) + '">' +
-                '<label class="ttn-cod-link"><input type="checkbox" id="ef_cod_link"> = від оцінки</label>' +
-                '</div></div>';
+            html += '<div class="ttn-rf"><div class="ttn-rf-label">↩ Контроль оплати, грн</div>' +
+                '<input type="number" class="ttn-ef ttn-ef-md" id="ef_cod" min="0" step="1" value="' + h(parseFloat(t.backward_delivery_money)||0) + '">' +
+                '<div id="ef_cod_hint" style="font-size:11px;color:#6b7280;margin-top:2px"></div></div>';
         } else {
             html += '<div class="ttn-rf"><div class="ttn-rf-label">Платник за доставку</div><div class="ttn-rf-val">' + h(PAYER[t.payer_type]||dash(t.payer_type)) + '</div></div>';
             html += '<div class="ttn-rf"><div class="ttn-rf-label">Форма оплати за доставку</div><div class="ttn-rf-val">' + h(PAYMENT[t.payment_method]||dash(t.payment_method)) + '</div></div>';
@@ -1055,18 +1141,33 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         html += '<div></div>';
         html += '</div>'; // specs
 
-        // Extra: internal number + additional info
+        // Extra: description + additional info + declared value
         html += '<div class="ttn-extra">';
-        html += '<div class="ttn-rf"><div class="ttn-rf-label">Внутрішній номер відправлення</div><div class="ttn-rf-val">' +
-            (t.customerorder_id ? '<a href="/customerorder/edit?id=' + h(t.customerorder_id) + '" target="_blank" style="color:#2563eb">#' + h(t.customerorder_id) + '</a>' : '—') + '</div></div>';
-        html += '<div class="ttn-rf"><div class="ttn-rf-label">Додаткова інформація про відправлення</div><div class="ttn-rf-val">';
         if (_editing) {
-            html += '<input type="text" class="ttn-ef" id="ef_desc" value="' + h(t.description||'') + '" maxlength="200" placeholder="Опис вантажу…">';
-            html += '<div style="margin-top:6px"><input type="number" class="ttn-ef ttn-ef-md" id="ef_declared" min="1" placeholder="Оголошена вартість" value="' + h(parseInt(t.declared_value)||1) + '"> <span style="font-size:12px;color:#6b7280">грн</span></div>';
+            // Опис відправлення (Description)
+            html += '<div class="ttn-rf"><div class="ttn-rf-label">Опис відправлення</div><div class="ttn-rf-val">';
+            html += '<input type="text" class="ttn-ef" id="ef_desc" value="' + h(t.description||'') + '" maxlength="200" placeholder="Товар">';
+            html += '</div></div>';
+            // Оголошена вартість
+            html += '<div class="ttn-rf"><div class="ttn-rf-label">Оголошена вартість, грн</div><div class="ttn-rf-val">';
+            html += '<input type="number" class="ttn-ef ttn-ef-md" id="ef_declared" min="1" step="1" value="' + h(parseInt(t.declared_value)||1) + '">';
+            html += '<div id="ef_declared_hint" style="font-size:11px;color:#6b7280;margin-top:2px"></div>';
+            html += '</div></div>';
+            // Додаткова інформація (AdditionalInformation)
+            html += '<div class="ttn-rf" style="grid-column:1/-1"><div class="ttn-rf-label">Додаткова інформація про відправлення</div><div class="ttn-rf-val">';
+            html += '<input type="text" class="ttn-ef" id="ef_add_info" value="' + h(t.additional_information||'') + '" maxlength="500" placeholder="Інформація про позиції замовлення…">';
+            html += '</div></div>';
         } else {
-            html += h(dash(t.description));
+            // View mode
+            html += '<div class="ttn-rf"><div class="ttn-rf-label">Опис відправлення</div><div class="ttn-rf-val">' + h(dash(t.description)) + '</div></div>';
+            html += '<div class="ttn-rf"><div class="ttn-rf-label">Оголошена вартість</div><div class="ttn-rf-val">' + (t.declared_value ? h(t.declared_value) + ' грн' : '—') + '</div></div>';
+            if (t.additional_information) {
+                html += '<div class="ttn-rf" style="grid-column:1/-1"><div class="ttn-rf-label">Додаткова інформація</div><div class="ttn-rf-val">' + h(t.additional_information) + '</div></div>';
+            }
+            if (t.customerorder_id) {
+                html += '<div class="ttn-rf"><div class="ttn-rf-label">Замовлення</div><div class="ttn-rf-val"><a href="/customerorder/edit?id=' + h(t.customerorder_id) + '" target="_blank" style="color:#2563eb">#' + h(t.customerorder_id) + '</a></div></div>';
+            }
         }
-        html += '</div></div>';
         html += '</div>'; // extra
 
         // Footer
@@ -1106,7 +1207,7 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
 
         box.innerHTML = html;
         bindEvents();
-        if (_editing) { bindCitySearch(); bindWhSearch(); }
+        if (_editing) { bindCitySearch(); bindWhSearch(); bindPhoneSearch(); }
         // Note: bindSeatsTable() is called inside bindEvents() when _editing=true
     }
 
@@ -1179,8 +1280,12 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         html += '</div>';
         // Hidden middle name — still sent (empty) so server doesn't break
         html += '<input type="hidden" id="ef_mid" value="">';
-        // Телефон
-        html += '<div style="margin-bottom:6px"><div class="ttn-rf-label">Телефон</div><input type="text" class="ttn-ef" id="ef_phone" value="' + h(t.recipients_phone||'') + '"></div>';
+        // Телефон + живий пошук контрагента
+        html += '<div style="margin-bottom:6px"><div class="ttn-rf-label">Телефон</div>';
+        html += '<div class="ttn-search-wrap">';
+        html += '<input type="text" class="ttn-ef" id="ef_phone" value="' + h(t.recipients_phone||'') + '" placeholder="+380…" autocomplete="off">';
+        html += '<div class="ttn-search-dd" id="ef_phone_dd" style="display:none"></div>';
+        html += '</div></div>';
         // Місто
         html += '<div style="margin-bottom:6px"><div class="ttn-rf-label">Місто</div><div class="ttn-search-wrap">';
         html += '<input type="text" class="ttn-ef" id="ef_city_text" value="' + h(t.city_recipient_desc||'') + '" placeholder="Пошук міста…" autocomplete="off">';
@@ -1220,18 +1325,43 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         var saveBtn = document.getElementById('ttnActSave');
         if (saveBtn) saveBtn.addEventListener('click', doSave);
 
-        // COD ↔ declared value sync
-        var codInp   = document.getElementById('ef_cod');
-        var codLink  = document.getElementById('ef_cod_link');
-        var declInp  = document.getElementById('ef_declared');
-        if (codInp && codLink && declInp) {
-            codLink.addEventListener('change', function() {
-                if (codLink.checked) codInp.value = declInp.value;
-            });
-            declInp.addEventListener('input', function() {
-                if (codLink && codLink.checked) codInp.value = declInp.value;
+        // #1: Оголошена вартість >= Контроль оплати (авто-підняття + підказки)
+        var codInp  = document.getElementById('ef_cod');
+        var declInp = document.getElementById('ef_declared');
+        var codHint  = document.getElementById('ef_cod_hint');
+        var declHint = document.getElementById('ef_declared_hint');
+
+        function updateCodDeclHints() {
+            if (!codInp || !declInp) return;
+            var cod  = parseFloat(codInp.value)  || 0;
+            var decl = parseFloat(declInp.value) || 0;
+            if (cod > 0 && decl < cod) {
+                // Auto-raise declared
+                declInp.value = Math.ceil(cod);
+                decl = Math.ceil(cod);
+                if (declHint) { declHint.textContent = '↑ Підвищено до суми контролю оплати'; declHint.style.color = '#f59e0b'; }
+            } else {
+                if (declHint) { declHint.textContent = cod > 0 ? 'мін. ' + Math.ceil(cod) + ' грн (= контроль оплати)' : ''; }
+            }
+            if (codHint) {
+                codHint.textContent = cod > 0 ? 'Оголошена вартість: ' + decl + ' грн' : '';
+            }
+        }
+
+        if (codInp)  { codInp.addEventListener('input',  updateCodDeclHints); }
+        if (declInp) {
+            declInp.addEventListener('blur', function() {
+                var cod  = parseFloat(codInp ? codInp.value : 0) || 0;
+                var decl = parseFloat(declInp.value) || 0;
+                if (cod > 0 && decl < cod) {
+                    declInp.value = Math.ceil(cod);
+                    if (declHint) { declHint.textContent = 'мін. ' + Math.ceil(cod) + ' грн'; declHint.style.color = '#6b7280'; }
+                }
+                if (codHint) { codHint.textContent = cod > 0 ? 'Оголошена вартість: ' + (parseFloat(declInp.value)||0) + ' грн' : ''; }
             });
         }
+        // Ініціальний стан підказок
+        updateCodDeclHints();
 
         // Seats table
         if (_editing) bindSeatsTable();
@@ -1428,6 +1558,55 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         _openDd = null;
     }
 
+    function bindPhoneSearch() {
+        var inp = document.getElementById('ef_phone');
+        var dd  = document.getElementById('ef_phone_dd');
+        if (!inp || !dd) return;
+        var _phoneTimer = null;
+
+        inp.addEventListener('input', function() {
+            clearTimeout(_phoneTimer);
+            var q = inp.value.trim();
+            if (q.length < 3) { hideDd(dd); return; }
+            _phoneTimer = setTimeout(function() {
+                fetch('/counterparties/api/search?q=' + encodeURIComponent(q) + '&type=person')
+                .then(function(r){ return r.json(); })
+                .then(function(res) {
+                    dd.innerHTML = '';
+                    if (!res.ok || !res.items || !res.items.length) { hideDd(dd); return; }
+                    res.items.slice(0, 8).forEach(function(cp) {
+                        var el = document.createElement('div');
+                        el.className = 'ttn-search-opt';
+                        var phone = cp.phone || '';
+                        el.textContent = cp.name + (phone ? ' · ' + phone : '');
+                        el.addEventListener('click', function() {
+                            // Заповнюємо ім'я
+                            var parts = (cp.name || '').trim().split(/\s+/);
+                            var lastEl  = document.getElementById('ef_last');
+                            var firstEl = document.getElementById('ef_first');
+                            if (lastEl  && parts[0]) lastEl.value  = parts[0];
+                            if (firstEl && parts[1]) firstEl.value = parts[1];
+                            // Нормалізуємо телефон з БД
+                            if (phone) {
+                                var digits = phone.replace(/\D/g,'');
+                                // 380XXXXXXXXX → 0XXXXXXXXX
+                                if (digits.length === 12 && digits.substr(0,2)==='38') digits = digits.substr(2);
+                                // 8XXXXXXXXX → 0XXXXXXXXX
+                                else if (digits.length === 11 && digits.charAt(0)==='8') digits = digits.substr(1);
+                                inp.value = digits.length >= 10 ? digits : phone;
+                            }
+                            hideDd(dd);
+                            inp.focus();
+                        });
+                        dd.appendChild(el);
+                    });
+                    showDd(inp, dd);
+                })
+                .catch(function(){});
+            }, 350);
+        });
+    }
+
     function bindCitySearch() {
         var inp   = document.getElementById('ef_city_text');
         var ref   = document.getElementById('ef_city_ref');
@@ -1511,7 +1690,8 @@ ChipSearch.init('ttnChipBox', 'ttnChipTyper', 'ttnSearchHidden', null, {noComma:
         if (btn) { btn.disabled=true; btn.textContent='…'; }
         var p = 'ttn_id='+_ttn.id;
         function f(id, name) { var el=document.getElementById(id); if(el) p+='&'+name+'='+encodeURIComponent(el.value); }
-        f('ef_desc',    'description');    f('ef_declared', 'declared_value');
+        f('ef_desc',     'description');   f('ef_declared',  'declared_value');
+        f('ef_add_info', 'additional_information');
         f('ef_payer',   'payer_type');     f('ef_payment',  'payment_method');
         f('ef_cod',     'backward_delivery_money');
         f('ef_last',    'recipient_last_name');   f('ef_first', 'recipient_first_name');

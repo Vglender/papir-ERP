@@ -13,6 +13,32 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
     $where = array();
     $where[] = 'co.`deleted_at` IS NULL';
 
+    if (!empty($filters['search'])) {
+        $rawChips = preg_split('/\s*,\s*/', trim($filters['search']));
+        $chipConds = array();
+        foreach ($rawChips as $chip) {
+            $chip = trim($chip);
+            if ($chip === '') continue;
+            if (preg_match('/^\d+$/', $chip)) {
+                $chipConds[] = 'co.`id` = ' . (int)$chip;
+            } else {
+                $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+                $tokenParts = array();
+                foreach ($tokens as $token) {
+                    if ($token === '') continue;
+                    $t = Database::escape($this->dbName, $token);
+                    $tokenParts[] = "(LOWER(co.`number`) LIKE '%{$t}%' OR LOWER(COALESCE(c.`name`,'')) LIKE '%{$t}%')";
+                }
+                if (!empty($tokenParts)) {
+                    $chipConds[] = '(' . implode(' AND ', $tokenParts) . ')';
+                }
+            }
+        }
+        if (!empty($chipConds)) {
+            $where[] = '(' . implode(' OR ', $chipConds) . ')';
+        }
+    }
+
     if (!empty($filters['id'])) {
         $where[] = 'co.`id` = ' . (int)$filters['id'];
     }
@@ -23,8 +49,18 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
     }
 
     if (!empty($filters['status'])) {
-        $status = Database::escape($this->dbName, $filters['status']);
-        $where[] = "co.`status` = '{$status}'";
+        if (is_array($filters['status'])) {
+            $sts = array();
+            foreach ($filters['status'] as $sv) {
+                $sts[] = "'" . Database::escape($this->dbName, $sv) . "'";
+            }
+            if (!empty($sts)) {
+                $where[] = 'co.`status` IN (' . implode(',', $sts) . ')';
+            }
+        } else {
+            $status = Database::escape($this->dbName, $filters['status']);
+            $where[] = "co.`status` = '{$status}'";
+        }
     }
 
     if (!empty($filters['payment_status'])) {
@@ -216,49 +252,88 @@ public function searchProducts($query, $limit = 15)
 	public function countList($filters = array())
 	{
 		$where = array();
-		$where[] = '`deleted_at` IS NULL';
+		$where[] = 'co.`deleted_at` IS NULL';
+
+		if (!empty($filters['search'])) {
+			$rawChips = preg_split('/\s*,\s*/', trim($filters['search']));
+			$chipConds = array();
+			foreach ($rawChips as $chip) {
+				$chip = trim($chip);
+				if ($chip === '') continue;
+				if (preg_match('/^\d+$/', $chip)) {
+					$chipConds[] = 'co.`id` = ' . (int)$chip;
+				} else {
+					$tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
+					$tokenParts = array();
+					foreach ($tokens as $token) {
+						if ($token === '') continue;
+						$t = Database::escape($this->dbName, $token);
+						$tokenParts[] = "(LOWER(co.`number`) LIKE '%{$t}%' OR LOWER(COALESCE(c.`name`,'')) LIKE '%{$t}%')";
+					}
+					if (!empty($tokenParts)) {
+						$chipConds[] = '(' . implode(' AND ', $tokenParts) . ')';
+					}
+				}
+			}
+			if (!empty($chipConds)) {
+				$where[] = '(' . implode(' OR ', $chipConds) . ')';
+			}
+		}
 
 		if (!empty($filters['id'])) {
-			$where[] = '`id` = ' . (int)$filters['id'];
+			$where[] = 'co.`id` = ' . (int)$filters['id'];
 		}
 
 		if (!empty($filters['number'])) {
 			$number = Database::escape($this->dbName, $filters['number']);
-			$where[] = "`number` LIKE '%{$number}%'";
+			$where[] = "co.`number` LIKE '%{$number}%'";
 		}
 
 		if (!empty($filters['status'])) {
-			$status = Database::escape($this->dbName, $filters['status']);
-			$where[] = "`status` = '{$status}'";
+			if (is_array($filters['status'])) {
+				$sts = array();
+				foreach ($filters['status'] as $sv) {
+					$sts[] = "'" . Database::escape($this->dbName, $sv) . "'";
+				}
+				if (!empty($sts)) {
+					$where[] = 'co.`status` IN (' . implode(',', $sts) . ')';
+				}
+			} else {
+				$s = Database::escape($this->dbName, $filters['status']);
+				$where[] = "co.`status` = '{$s}'";
+			}
 		}
 
 		if (!empty($filters['payment_status'])) {
 			$paymentStatus = Database::escape($this->dbName, $filters['payment_status']);
-			$where[] = "`payment_status` = '{$paymentStatus}'";
+			$where[] = "co.`payment_status` = '{$paymentStatus}'";
 		}
 
 		if (!empty($filters['shipment_status'])) {
 			$shipmentStatus = Database::escape($this->dbName, $filters['shipment_status']);
-			$where[] = "`shipment_status` = '{$shipmentStatus}'";
+			$where[] = "co.`shipment_status` = '{$shipmentStatus}'";
 		}
 
 		if (!empty($filters['manager_employee_id'])) {
-			$where[] = '`manager_employee_id` = ' . (int)$filters['manager_employee_id'];
+			$where[] = 'co.`manager_employee_id` = ' . (int)$filters['manager_employee_id'];
 		}
 
 		if (!empty($filters['date_from'])) {
 			$dateFrom = Database::escape($this->dbName, $filters['date_from']);
-			$where[] = "`moment` >= '{$dateFrom} 00:00:00'";
+			$where[] = "co.`moment` >= '{$dateFrom} 00:00:00'";
 		}
 
 		if (!empty($filters['date_to'])) {
 			$dateTo = Database::escape($this->dbName, $filters['date_to']);
-			$where[] = "`moment` <= '{$dateTo} 23:59:59'";
+			$where[] = "co.`moment` <= '{$dateTo} 23:59:59'";
 		}
 
 		$whereSql = implode(' AND ', $where);
 
-		$sql = "SELECT COUNT(*) AS total FROM `customerorder` WHERE {$whereSql}";
+		$sql = "SELECT COUNT(*) AS total
+			FROM `customerorder` co
+			LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`
+			WHERE {$whereSql}";
 		
 		$result = Database::fetchValue($this->dbName, $sql, 'total');
 		
@@ -330,10 +405,19 @@ public function searchProducts($query, $limit = 15)
         $orderId = (int)$orderId;
 
         $sql = "
-            SELECT *
-            FROM `customerorder_item`
-            WHERE `customerorder_id` = {$orderId}
-            ORDER BY `line_no` ASC, `id` ASC
+            SELECT ci.*,
+                COALESCE(
+                    NULLIF(ci.`product_name`, ''),
+                    pd2.`name`,
+                    pd1.`name`
+                ) AS product_name
+            FROM `customerorder_item` ci
+            LEFT JOIN `product_description` pd2
+                ON pd2.`product_id` = ci.`product_id` AND pd2.`language_id` = 2
+            LEFT JOIN `product_description` pd1
+                ON pd1.`product_id` = ci.`product_id` AND pd1.`language_id` = 1
+            WHERE ci.`customerorder_id` = {$orderId}
+            ORDER BY ci.`line_no` ASC, ci.`id` ASC
         ";
 
         return Database::fetchAll($this->dbName, $sql);

@@ -116,10 +116,11 @@ function mswhk_cp_do_insert($type, $name, $idMs, $createdAt, $updatedAt)
     $idMsVal = $idMs ? "'" . Database::escape('Papir', $idMs) . "'" : 'NULL';
     $nameVal = "'" . Database::escape('Papir', mb_substr($name, 0, 255, 'UTF-8')) . "'";
     $r = Database::query('Papir',
-        "INSERT INTO counterparty (uuid, id_ms, type, status, name, source, created_at, updated_at)
+        "INSERT INTO counterparty (uuid, id_ms, type, status, name, source, created_at, updated_at, last_activity_at)
          VALUES ('{$uuid}', {$idMsVal}, '" . Database::escape('Papir', $type) . "', 1, {$nameVal}, 'moysklad',
                  '" . Database::escape('Papir', $createdAt) . "',
-                 '" . Database::escape('Papir', $updatedAt) . "')"
+                 '" . Database::escape('Papir', $updatedAt) . "',
+                 '" . Database::escape('Papir', $createdAt) . "')"
     );
     if (!$r['ok']) return null;
     $r2 = Database::fetchRow('Papir', "SELECT LAST_INSERT_ID() as id");

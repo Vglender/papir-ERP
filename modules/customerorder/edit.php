@@ -3,6 +3,7 @@
 
 require_once __DIR__ . '/customerorder_bootstrap.php';
 require_once __DIR__ . '/customerorder_helpers.php'; // Исправлено! добавил /
+require_once __DIR__ . '/../shared/StatusColors.php';
 
 $repository = new CustomerOrderRepository();
 $service = new CustomerOrderService($repository);
@@ -42,11 +43,23 @@ $employees = $employees['ok'] ? $employees['rows'] : array();
 $contracts = Database::fetchAll('Papir', "SELECT `id`, `number`, `title` FROM `contract` WHERE `status` = 'active' ORDER BY `number` ASC");
 $contracts = $contracts['ok'] ? $contracts['rows'] : array();
 
-$counterparties = Database::fetchAll('Papir', "SELECT `id`, `name` FROM `counterparty` WHERE `status` = 1 AND `type` IN ('company', 'fop') ORDER BY `name` ASC");
-$counterparties = $counterparties['ok'] ? $counterparties['rows'] : array();
+$projects = Database::fetchAll('Papir', "SELECT `id`, `name` FROM `project` WHERE `status` = 1 ORDER BY `name` ASC");
+$projects = $projects['ok'] ? $projects['rows'] : array();
 
-$contactPersons = Database::fetchAll('Papir', "SELECT `id`, `name` FROM `counterparty` WHERE `status` = 1 AND `type` = 'person' ORDER BY `name` ASC");
-$contactPersons = $contactPersons['ok'] ? $contactPersons['rows'] : array();
+// Counterparty and contact person are loaded via picker (search API), not full list.
+// For existing orders we just need the current counterparty name to display.
+$counterpartyName    = '';
+$contactPersonName   = '';
+if (!empty($result['order']['counterparty_id'])) {
+    $rCp = Database::fetchRow('Papir',
+        "SELECT id, name FROM counterparty WHERE id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
+    if ($rCp['ok'] && !empty($rCp['row'])) $counterpartyName = $rCp['row']['name'];
+}
+if (!empty($result['order']['contact_person_id'])) {
+    $rPerson = Database::fetchRow('Papir',
+        "SELECT id, name FROM counterparty WHERE id = " . (int)$result['order']['contact_person_id'] . " LIMIT 1");
+    if ($rPerson['ok'] && !empty($rPerson['row'])) $contactPersonName = $rPerson['row']['name'];
+}
 
 // ИСПОЛЬЗУЕМ HELPER для банковских счетов
 $organizationBankAccounts = getOrganizationBankAccounts(
@@ -66,6 +79,14 @@ $salesChannels = array(
     array('code' => 'marketplace', 'name' => 'Маркетплейс'),
     array('code' => 'api', 'name' => 'API'),
 );
+
+$rDMs = Database::fetchAll('Papir',
+    "SELECT id, code, name_uk, has_ttn FROM delivery_method WHERE status=1 ORDER BY sort_order");
+$deliveryMethods = $rDMs['ok'] ? $rDMs['rows'] : array();
+
+$rPMs = Database::fetchAll('Papir',
+    "SELECT id, code, name_uk FROM payment_method WHERE status=1 ORDER BY sort_order");
+$paymentMethods = $rPMs['ok'] ? $rPMs['rows'] : array();
 
 if (!isset($organizationBankAccounts)) {
     $organizationBankAccounts = array();
@@ -124,6 +145,15 @@ if ($id > 0 && !empty($result['order']['number'])) {
         }
     }
 }
+
+// Доступні переходи для створення документів із замовлення
+$rTrans = Database::fetchAll('Papir',
+    "SELECT dtt.`to_type`, dtt.`link_type`, dtt.`description`, dt.`name_uk`
+     FROM `document_type_transition` dtt
+     JOIN `document_type` dt ON dt.`code` = dtt.`to_type`
+     WHERE dtt.`from_type` = 'customerorder'
+     ORDER BY dt.`sort_order`");
+$docTransitions = ($rTrans['ok'] && !empty($rTrans['rows'])) ? $rTrans['rows'] : array();
 
 // Подключаем шаблон
 require __DIR__ . '/views/edit.php';

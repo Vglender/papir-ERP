@@ -60,6 +60,10 @@ class NovaPoshta
 
         $decoded = json_decode($response, true);
         if (!is_array($decoded)) {
+            $preview = mb_substr((string)$response, 0, 300);
+            $line = '[' . date('Y-m-d H:i:s') . '] INVALID_JSON ' . $modelName . '.' . $calledMethod
+                  . ' | raw: ' . $preview;
+            error_log($line . PHP_EOL, 3, self::LOG_FILE);
             return array('ok' => false, 'error' => 'Invalid JSON from NP API', 'data' => array(), 'warnings' => array());
         }
 
@@ -70,10 +74,62 @@ class NovaPoshta
 
         if (!$success) {
             $errMsg = !empty($errors) ? implode('; ', $errors) : 'Unknown NP API error';
+            self::logError($modelName, $calledMethod, $errMsg, $methodProperties, $warnings);
             return array('ok' => false, 'error' => $errMsg, 'data' => $data, 'warnings' => $warnings);
         }
 
+        if (!empty($warnings)) {
+            self::logWarnings($modelName, $calledMethod, $warnings);
+        }
+
         return array('ok' => true, 'data' => $data, 'warnings' => $warnings, 'error' => '');
+    }
+
+    // ── Logging ──────────────────────────────────────────────────────────────
+
+    const LOG_FILE = '/var/log/papir/np_api.log';
+
+    private static function logError($model, $method, $errMsg, $props, $warnings = array())
+    {
+        $propsLog = self::sanitizeProps($props);
+        $line = '[' . date('Y-m-d H:i:s') . '] ERROR ' . $model . '.' . $method
+              . ' | ' . $errMsg;
+        if (!empty($warnings)) {
+            $line .= ' | warnings: ' . implode('; ', $warnings);
+        }
+        $line .= ' | props: ' . json_encode($propsLog, JSON_UNESCAPED_UNICODE);
+        error_log($line . PHP_EOL, 3, self::LOG_FILE);
+    }
+
+    private static function logWarnings($model, $method, $warnings)
+    {
+        $flat = array_map(function ($w) {
+            return is_array($w) ? json_encode($w, JSON_UNESCAPED_UNICODE) : (string)$w;
+        }, $warnings);
+        $line = '[' . date('Y-m-d H:i:s') . '] WARN  ' . $model . '.' . $method
+              . ' | ' . implode('; ', $flat);
+        error_log($line . PHP_EOL, 3, self::LOG_FILE);
+    }
+
+    /**
+     * Remove bulky/unnecessary fields from props before logging.
+     * Keeps keys for context but truncates long string values.
+     */
+    private static function sanitizeProps($props)
+    {
+        if (!is_array($props)) return $props;
+        $out = array();
+        foreach ($props as $k => $v) {
+            if (is_array($v)) {
+                // Show count for arrays (e.g. OptionsSeat, BackwardDeliveryData)
+                $out[$k] = '[' . count($v) . ' items]';
+            } elseif (is_string($v) && mb_strlen($v) > 80) {
+                $out[$k] = mb_substr($v, 0, 80) . '…';
+            } else {
+                $out[$k] = $v;
+            }
+        }
+        return $out;
     }
 
     /**

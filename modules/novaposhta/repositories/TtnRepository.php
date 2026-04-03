@@ -22,13 +22,20 @@ class TtnRepository
             foreach ($chips as $chip) {
                 $chip = trim($chip);
                 if ($chip === '') continue;
-                if (preg_match('/^\d{10,}$/', $chip)) {
-                    // TTN number exact
+                if (preg_match('/^\d{14,}$/', $chip)) {
+                    // TTN number (NP always 14 digits) — exact
                     $e = \Database::escape('Papir', $chip);
                     $chipConds[] = "t.int_doc_number = '{$e}'";
+                } elseif (preg_match('/^\d{9,13}$/', $chip)) {
+                    // Phone number (9-13 digits) — search by last 9 digits for format-agnostic match
+                    $last9 = \Database::escape('Papir', substr($chip, -9));
+                    $chipConds[] = "REPLACE(REPLACE(REPLACE(t.recipients_phone,' ',''),'-',''),'(','') LIKE '%{$last9}%'";
                 } elseif (preg_match('/^\d+$/', $chip)) {
-                    // order ID
-                    $chipConds[] = "t.customerorder_id = " . (int)$chip;
+                    // Short number — order ID OR partial TTN/phone match
+                    $e = \Database::escape('Papir', $chip);
+                    $chipConds[] = "(t.customerorder_id = " . (int)$chip . "
+                                   OR t.int_doc_number LIKE '%{$e}%'
+                                   OR REPLACE(REPLACE(t.recipients_phone,' ',''),'-','') LIKE '%{$e}%')";
                 } else {
                     $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
                     $tokens = array_filter($tokens, function($tok) { return $tok !== ''; });

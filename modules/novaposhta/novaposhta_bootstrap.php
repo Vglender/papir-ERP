@@ -3,6 +3,10 @@
  * Bootstrap for novaposhta module.
  * Include this file at the top of every controller/api in this module.
  */
+
+// Prevent PHP warnings/notices from corrupting JSON API responses
+ini_set('display_errors', 0);
+ini_set('log_errors', 1);
 require_once __DIR__ . '/../../modules/database/database.php';
 require_once __DIR__ . '/../../src/ViewHelper.php';
 require_once __DIR__ . '/NovaPoshta.php';

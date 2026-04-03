@@ -85,8 +85,17 @@ foreach ($senders as $sender) {
                 \Database::update('Papir', 'ttn_novaposhta', $upd, array('id' => (int)$existing['id']));
                 $totalUpdated++;
             } else {
-                \Database::insert('Papir', 'ttn_novaposhta', $mapped);
+                $rIns = \Database::insert('Papir', 'ttn_novaposhta', $mapped);
                 $totalInserted++;
+
+                // Спроба авто-матчингу нової ТТН до заказу
+                if ($rIns['ok'] && !empty($mapped['recipients_phone'])) {
+                    $ttnId = (int)$rIns['insert_id'];
+                    $sum = (!empty($mapped['backward_delivery_money']) && $mapped['backward_delivery_money'] > 0)
+                        ? (float)$mapped['backward_delivery_money']
+                        : (float)(isset($mapped['cost']) ? $mapped['cost'] : 0);
+                    \Papir\Crm\TtnService::autoMatchOrder($ttnId, $mapped['recipients_phone'], $sum);
+                }
             }
         }
 

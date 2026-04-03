@@ -261,6 +261,79 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
         </div>
       </div>
 
+      <!-- Courier call settings -->
+      <div class="sender-section">
+        <div class="sender-section-title">Виклик кур'єра</div>
+        <div style="display:grid;grid-template-columns:1fr 140px;gap:10px;align-items:end">
+          <div>
+            <div style="font-size:12px;color:#374151;margin-bottom:4px">Часовий інтервал</div>
+            <select class="sender-cc-interval-sel" data-ref="<?php echo ViewHelper::h($sRef); ?>"
+                    style="width:100%;font-size:13px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px">
+              <?php
+              $intervals = array(
+                'CityPickingTimeInterval1' => '08:00–09:00',
+                'CityPickingTimeInterval2' => '09:00–10:00',
+                'CityPickingTimeInterval3' => '10:00–12:00',
+                'CityPickingTimeInterval4' => '12:00–14:00',
+                'CityPickingTimeInterval5' => '13:00–14:00',
+                'CityPickingTimeInterval6' => '14:00–16:00',
+                'CityPickingTimeInterval7' => '16:00–18:00',
+                'CityPickingTimeInterval8' => '18:00–19:00',
+                'CityPickingTimeInterval9' => '19:00–20:00',
+                'CityPickingTimeInterval10' => '20:00–21:00',
+              );
+              $curInterval = $s['courier_call_interval'] ?: 'CityPickingTimeInterval7';
+              foreach ($intervals as $val => $label):
+              ?>
+                <option value="<?php echo $val; ?>" <?php echo ($curInterval === $val) ? 'selected' : ''; ?>>
+                  <?php echo $label; ?>
+                </option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+          <div>
+            <div style="font-size:12px;color:#374151;margin-bottom:4px">Плановий вагу, кг</div>
+            <input type="number" min="1" step="1"
+                   class="sender-cc-weight-inp" data-ref="<?php echo ViewHelper::h($sRef); ?>"
+                   value="<?php echo (int)($s['courier_call_planned_weight'] ?: 300); ?>"
+                   style="width:100%;font-size:13px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px">
+          </div>
+        </div>
+        <div style="margin-top:8px;display:flex;align-items:center;gap:8px">
+          <button type="button" class="btn btn-ghost btn-xs sender-cc-save-btn"
+                  data-ref="<?php echo ViewHelper::h($sRef); ?>">Зберегти</button>
+          <span class="sender-cc-saved fs-12 text-muted" data-ref="<?php echo ViewHelper::h($sRef); ?>" style="display:none">Збережено ✓</span>
+        </div>
+        <div style="margin-top:4px;font-size:11px;color:#94a3b8">
+          При перевищенні планової ваги на 10% автоматично створюється новий виклик на той самий інтервал.
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="sender-section">
+        <div class="sender-section-title">Налаштування</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#1e293b">
+          <input type="checkbox" class="sender-payment-control-cb"
+                 data-ref="<?php echo ViewHelper::h($sRef); ?>"
+                 <?php echo $s['use_payment_control'] ? 'checked' : ''; ?>>
+          <span>Контроль оплати (NovaPay)</span>
+          <span class="text-muted fs-12" style="font-weight:400">— замість наложеного платежу</span>
+        </label>
+        <div style="margin-top:5px;font-size:11px;color:#94a3b8">
+          Для організацій з договором НП/NovaPay. При вимкненому — готівковий наложений платіж.
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:12px;color:#374151;margin-bottom:4px">Опис відправлення за замовчуванням</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" class="sender-default-desc-inp" data-ref="<?php echo ViewHelper::h($sRef); ?>"
+                   value="<?php echo ViewHelper::h($s['default_description'] ?: 'Товар'); ?>"
+                   maxlength="200" placeholder="Товар"
+                   style="flex:1;font-size:13px;padding:5px 8px;border:1px solid #d1d5db;border-radius:6px;outline:none">
+            <button type="button" class="btn btn-ghost btn-xs sender-default-desc-save" data-ref="<?php echo ViewHelper::h($sRef); ?>">Зберегти</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   <?php endforeach; ?>
   </div>
@@ -825,5 +898,71 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
             .catch(function () { btn.disabled = false; });
         });
     });
+    // ── Payment control checkbox ───────────────────────────────────────────
+    document.querySelectorAll('.sender-payment-control-cb').forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            var ref = cb.dataset.ref;
+            var val = cb.checked ? 1 : 0;
+            fetch('/novaposhta/api/save_sender_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'sender_ref=' + encodeURIComponent(ref) + '&use_payment_control=' + val
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.ok) {
+                    cb.checked = !cb.checked; // revert
+                    showToast('Помилка збереження', true);
+                } else {
+                    showToast(cb.checked ? 'Контроль оплати увімкнено' : 'Наложений платіж (готівка)');
+                }
+            })
+            .catch(function () { cb.checked = !cb.checked; showToast('Помилка', true); });
+        });
+    });
+
+    // ── Courier call settings save ────────────────────────────────────────
+    document.querySelectorAll('.sender-cc-save-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var ref      = btn.dataset.ref;
+            var interval = document.querySelector('.sender-cc-interval-sel[data-ref="' + ref + '"]').value;
+            var weight   = document.querySelector('.sender-cc-weight-inp[data-ref="'   + ref + '"]').value;
+            var saved    = document.querySelector('.sender-cc-saved[data-ref="'        + ref + '"]');
+            fetch('/novaposhta/api/save_sender_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'sender_ref='                  + encodeURIComponent(ref)      +
+                      '&courier_call_interval='       + encodeURIComponent(interval) +
+                      '&courier_call_planned_weight=' + encodeURIComponent(weight)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.ok) { showToast('Помилка збереження', true); return; }
+                if (saved) { saved.style.display = 'inline'; setTimeout(function() { saved.style.display = 'none'; }, 2000); }
+            })
+            .catch(function () { showToast('Помилка', true); });
+        });
+    });
+
+    // ── Default description save ──────────────────────────────────────────
+    document.querySelectorAll('.sender-default-desc-save').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var ref = btn.dataset.ref;
+            var inp = document.querySelector('.sender-default-desc-inp[data-ref="' + ref + '"]');
+            var val = inp ? inp.value.trim() : '';
+            fetch('/novaposhta/api/save_sender_settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: 'sender_ref=' + encodeURIComponent(ref) + '&default_description=' + encodeURIComponent(val)
+            })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (!res.ok) { showToast('Помилка збереження', true); }
+                else { showToast('Збережено'); }
+            })
+            .catch(function () { showToast('Помилка', true); });
+        });
+    });
+
 }());
 </script>

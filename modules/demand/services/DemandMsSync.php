@@ -28,11 +28,14 @@ class DemandMsSync
 
         $r = Database::fetchRow('Papir',
             "SELECT d.*, o.id_ms AS org_ms, cp.id_ms AS cp_ms,
-                    co.id_ms AS order_ms
+                    co.id_ms AS order_ms,
+                    COALESCE(st.id_ms,
+                        (SELECT id_ms FROM store WHERE id = 1 LIMIT 1)) AS store_ms
              FROM demand d
              LEFT JOIN customerorder co ON co.id = d.customerorder_id
              LEFT JOIN organization o   ON o.id  = co.organization_id
              LEFT JOIN counterparty cp  ON cp.id = d.counterparty_id
+             LEFT JOIN store st         ON st.id = co.store_id
              WHERE d.id = {$demandId} AND d.deleted_at IS NULL
              LIMIT 1");
 
@@ -75,12 +78,15 @@ class DemandMsSync
             return array('ok' => false, 'error' => $errMsg);
         }
 
-        $returnedMsId = !empty($result['id']) ? (string)$result['id'] : $msId;
+        $returnedMsId = !empty($result['id'])     ? (string)$result['id']     : $msId;
+        $returnedNum  = !empty($result['name'])   ? (string)$result['name']   : null;
+
         $upd = array('sync_state' => 'synced', 'sync_error' => null);
-        if ($created && $returnedMsId) $upd['id_ms'] = $returnedMsId;
+        if ($created && $returnedMsId) $upd['id_ms']  = $returnedMsId;
+        if ($returnedNum)              $upd['number'] = $returnedNum;
         Database::update('Papir', 'demand', $upd, array('id' => $demandId));
 
-        return array('ok' => true, 'ms_id' => $returnedMsId, 'created' => $created);
+        return array('ok' => true, 'ms_id' => $returnedMsId, 'number' => $returnedNum, 'created' => $created);
     }
 
     private function buildPayload(array $demand, array $items)
@@ -90,12 +96,20 @@ class DemandMsSync
         if (empty($demand['org_ms'])) {
             return array('ok' => false, 'error' => 'organization.id_ms is empty');
         }
+        if (empty($demand['store_ms'])) {
+            return array('ok' => false, 'error' => 'store.id_ms is empty');
+        }
 
         $data = array(
             'applicable'   => !empty($demand['applicable']),
             'organization' => array('meta' => array(
                 'href'      => $entityBase . 'organization/' . $demand['org_ms'],
                 'type'      => 'organization',
+                'mediaType' => 'application/json',
+            )),
+            'store' => array('meta' => array(
+                'href'      => $entityBase . 'store/' . $demand['store_ms'],
+                'type'      => 'store',
                 'mediaType' => 'application/json',
             )),
         );
