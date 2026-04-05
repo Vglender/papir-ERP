@@ -12,6 +12,8 @@ require_once __DIR__ . '/../../database/database.php';
 require_once __DIR__ . '/../../moysklad/moysklad_api.php';
 require_once __DIR__ . '/../../moysklad/src/WebhookCpHelper.php';
 require_once __DIR__ . '/../MsAttributesParser.php';
+require_once __DIR__ . '/../../shared/DocumentHistory.php';
+require_once __DIR__ . '/../../counterparties/counterparties_bootstrap.php';
 
 function mswhk_order_log($msg) {
     @file_put_contents('/var/www/papir/storage/ms_webhook_customerorder.log',
@@ -99,6 +101,7 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
     $moment    = isset($doc['moment'])       ? substr((string)$doc['moment'], 0, 19) : null;
     $desc      = isset($doc['description'])  ? (string)$doc['description']           : null;
     $applicable = !empty($doc['applicable']) ? 1 : 0;
+    $waitCall  = ($desc !== null && mb_stripos($desc, 'Чекаю на дзвінок') !== false) ? 1 : 0;
 
     if ($msId === '') { $errors[] = 'Document missing id'; return; }
 
@@ -186,6 +189,7 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         'sum_shipped'     => $sumShipped,
         'sum_reserved'    => $sumReserved,
         'description'     => $desc,
+        'wait_call'       => $waitCall,
         'payment_status'  => $paymentStatus,
         'shipment_status' => $shipmentStatus,
     );
@@ -201,6 +205,8 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
     $existing = Database::fetchRow('Papir',
         "SELECT id, status FROM customerorder WHERE id_ms = '" . Database::escape('Papir', $msId) . "' LIMIT 1");
 
+    $isNew = false;
+
     if ($existing['ok'] && !empty($existing['row'])) {
         $localId   = (int)$existing['row']['id'];
         $oldStatus = (string)$existing['row']['status'];
@@ -208,18 +214,19 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         Database::update('Papir', 'customerorder', $data, array('id' => $localId));
 
         if ($status !== null && $status !== $oldStatus) {
-            Database::insert('Papir', 'customerorder_history', array(
-                'customerorder_id' => $localId,
-                'event_type'       => 'status_change',
-                'field_name'       => 'status',
-                'old_value'        => $oldStatus,
-                'new_value'        => $status,
-                'is_auto'          => 1,
-                'comment'          => 'webhook МС',
+            DocumentHistory::logAuto('customerorder', $localId, 'status_change', array(
+                'field_name'  => 'status',
+                'field_label' => 'Статус',
+                'old_value'   => $oldStatus,
+                'new_value'   => $status,
+                'actor_type'  => 'webhook',
+                'actor_label' => 'МС webhook',
+                'comment'     => 'webhook МС',
             ));
         }
         mswhk_order_log('Updated order id=' . $localId . ' ms=' . $msId . ' status=' . $status);
     } else {
+        $isNew = true;
         $data['uuid'] = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
             mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff),
             mt_rand(0,0x0fff)|0x4000, mt_rand(0,0x3fff)|0x8000,
@@ -230,6 +237,13 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         if (!$ins['ok']) { $errors[] = 'Insert failed for ' . $msId; return; }
         $localId = (int)$ins['insert_id'];
         mswhk_order_log('Inserted order id=' . $localId . ' ms=' . $msId);
+
+        // Fire order_created trigger
+        TriggerEngine::fire('order_created', array(
+            'order'           => array_merge($data, array('id' => $localId)),
+            'order_id'        => $localId,
+            'counterparty_id' => isset($counterpartyId) ? (int)$counterpartyId : 0,
+        ));
     }
 
     // Обновить last_activity_at контрагента — чтобы заказ поднял его в инбоксе
@@ -241,7 +255,12 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         );
     }
 
-    mswhk_order_sync_items($localId, $doc, $ms);
+    // Позиции синхронизируются из МС только при первичном импорте нового заказа.
+    // Для существующих заказов Papir является источником правды по позициям —
+    // вебхук МС обновляет только поля шапки (статус, оплаты, отгрузку).
+    if ($isNew) {
+        mswhk_order_sync_items($localId, $doc, $ms);
+    }
 }
 
 function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
@@ -260,13 +279,32 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
     if (empty($positions)) return;
 
     $existingItems = Database::fetchAll('Papir',
-        "SELECT id, position_ms_id FROM customerorder_item WHERE customerorder_id = {$localId}");
+        "SELECT id, position_ms_id, product_id, updated_at FROM customerorder_item WHERE customerorder_id = {$localId}");
     $existingByPositionMsId = array();
+    // Fallback map: items without position_ms_id, indexed by product_id (queue — for duplicate products)
+    $existingByProductId    = array();
+    // Map id → updated_at for recency check
+    $itemUpdatedAt          = array();
     if ($existingItems['ok']) {
         foreach ($existingItems['rows'] as $ei) {
-            if ($ei['position_ms_id']) $existingByPositionMsId[$ei['position_ms_id']] = (int)$ei['id'];
+            $itemUpdatedAt[(int)$ei['id']] = $ei['updated_at'];
+            if ($ei['position_ms_id']) {
+                $existingByPositionMsId[$ei['position_ms_id']] = (int)$ei['id'];
+            } elseif ($ei['product_id']) {
+                // Items saved from Papir (no position_ms_id): queue by product_id
+                if (!isset($existingByProductId[(int)$ei['product_id']])) {
+                    $existingByProductId[(int)$ei['product_id']] = array();
+                }
+                $existingByProductId[(int)$ei['product_id']][] = (int)$ei['id'];
+            }
         }
     }
+
+    // Window within which a Papir-side save is considered "fresh" (seconds).
+    // Webhook calls arriving in this window will NOT overwrite quantity/price
+    // for items that were just saved via Papir UI to prevent race-condition rollback.
+    $freshWindowSec = 30;
+    $nowTs          = time();
 
     $lineNo      = 1;
     $seenItemIds = array();
@@ -321,8 +359,33 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
         );
 
         if ($positionMsId !== '' && isset($existingByPositionMsId[$positionMsId])) {
+            // Matched by position_ms_id — standard path
             $itemId = $existingByPositionMsId[$positionMsId];
             Database::update('Papir', 'customerorder_item', $itemData, array('id' => $itemId));
+            $seenItemIds[] = $itemId;
+        } elseif ($productId !== null && isset($existingByProductId[$productId]) && !empty($existingByProductId[$productId])) {
+            // Matched by product_id — item was saved from Papir (no position_ms_id yet)
+            $itemId = array_shift($existingByProductId[$productId]);
+            // Always persist position_ms_id so future webhooks match properly
+            $itemData['position_ms_id'] = $positionMsId ?: null;
+
+            // Guard: if this item was updated very recently from Papir, skip overwriting
+            // quantity/price to avoid rolling back a user's just-saved change
+            $updatedAt = isset($itemUpdatedAt[$itemId]) ? $itemUpdatedAt[$itemId] : null;
+            if ($updatedAt && ($nowTs - strtotime($updatedAt)) < $freshWindowSec) {
+                // Only update metadata, not the values the user just set
+                $safeData = array(
+                    'line_no'        => $itemData['line_no'],
+                    'position_ms_id' => $itemData['position_ms_id'],
+                    'product_ms_id'  => $itemData['product_ms_id'],
+                    'product_name'   => $itemData['product_name'],
+                    'sku'            => $itemData['sku'],
+                );
+                Database::update('Papir', 'customerorder_item', $safeData, array('id' => $itemId));
+                mswhk_order_log('Skipped qty/price overwrite for item id=' . $itemId . ' (updated ' . $updatedAt . ', fresh window)');
+            } else {
+                Database::update('Papir', 'customerorder_item', $itemData, array('id' => $itemId));
+            }
             $seenItemIds[] = $itemId;
         } else {
             $ins = Database::insert('Papir', 'customerorder_item', $itemData);

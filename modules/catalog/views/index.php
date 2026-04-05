@@ -2092,6 +2092,7 @@ $_hasDealer    = !empty($details['discounts']['dealer_price']);
 
 	var rows = document.querySelectorAll('.js-row-click');
 	var selectedRow = document.querySelector('.selected-row');
+	if (selectedRow) { setTimeout(function() { selectedRow.scrollIntoView({block:'center', behavior:'smooth'}); }, 100); }
 
 	var index = -1;
 

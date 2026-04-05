@@ -23,9 +23,10 @@ if (!isset($currencies)) {
         array('code' => 'USD', 'name' => 'Долар'),
     );
 }
-if (!isset($salesChannels)) $salesChannels = array();
-if (!isset($contracts)) $contracts = array();
-if (!isset($projects))  $projects  = array();
+if (!isset($salesChannels))   $salesChannels   = array();
+if (!isset($contracts))       $contracts       = array();
+if (!isset($projects))        $projects        = array();
+if (!isset($initialContacts)) $initialContacts = array();
 
 $order = !empty($result['order']) ? $result['order'] : array();
 $currentCpId     = field_value($order, 'counterparty_id',   '');
@@ -48,6 +49,9 @@ function field_value($array, $key, $default = '')
 
 function selected($value, $current)
 {
+    if (is_numeric($value) && is_numeric($current)) {
+        return (float)$value == (float)$current ? 'selected' : '';
+    }
     return (string)$value === (string)$current ? 'selected' : '';
 }
 
@@ -72,19 +76,19 @@ function status_meta($type, $status)
             'cancelled' => array('label' => 'Скасовано', 'class' => 'status-red'),
         ),
         'payment' => array(
-            'not_paid' => array('label' => 'Не оплачено', 'class' => 'status-gray'),
-            'partially_paid' => array('label' => 'Частково оплачено', 'class' => 'status-yellow'),
-            'paid' => array('label' => 'Оплачено', 'class' => 'status-green'),
-            'overdue' => array('label' => 'Прострочено', 'class' => 'status-red'),
-            'refund' => array('label' => 'Повернення', 'class' => 'status-dark'),
+            'not_paid'       => array('label' => 'Не оплачено',   'class' => 'status-gray',   'badge_cls' => 'wsof-pay-none'),
+            'partially_paid' => array('label' => 'Частково',       'class' => 'status-yellow', 'badge_cls' => 'wsof-pay-partial'),
+            'paid'           => array('label' => 'Оплачено',       'class' => 'status-green',  'badge_cls' => 'wsof-pay-done'),
+            'overdue'        => array('label' => 'Прострочено',    'class' => 'status-red',    'badge_cls' => 'wsof-pay-overdue'),
+            'refund'         => array('label' => 'Повернення',     'class' => 'status-dark',   'badge_cls' => 'wsof-pay-refund'),
         ),
         'shipment' => array(
-            'not_shipped' => array('label' => 'Не відвантажено', 'class' => 'status-gray'),
-            'reserved' => array('label' => 'Зарезервовано', 'class' => 'status-yellow'),
-            'partially_shipped' => array('label' => 'Частково відвантажено', 'class' => 'status-cyan'),
-            'shipped' => array('label' => 'Відвантажено', 'class' => 'status-green'),
-            'delivered' => array('label' => 'Доставлено', 'class' => 'status-green'),
-            'returned' => array('label' => 'Повернено', 'class' => 'status-red'),
+            'not_shipped'       => array('label' => 'Не відвантажено',  'class' => 'status-gray',   'badge_cls' => 'wsof-ship-none'),
+            'reserved'          => array('label' => 'Зарезервовано',    'class' => 'status-yellow', 'badge_cls' => 'wsof-ship-reserved'),
+            'partially_shipped' => array('label' => 'Частково',         'class' => 'status-cyan',   'badge_cls' => 'wsof-ship-partial'),
+            'shipped'           => array('label' => 'Відвантажено',     'class' => 'status-green',  'badge_cls' => 'wsof-ship-done'),
+            'delivered'         => array('label' => 'Доставлено',       'class' => 'status-green',  'badge_cls' => 'wsof-ship-delivered'),
+            'returned'          => array('label' => 'Повернено',        'class' => 'status-red',    'badge_cls' => 'wsof-ship-returned'),
         ),
     );
 
@@ -93,8 +97,9 @@ function status_meta($type, $status)
     }
 
     return array(
-        'label' => $status,
-        'class' => 'status-gray',
+        'label'     => $status,
+        'class'     => 'status-gray',
+        'badge_cls' => 'wsof-pay-none',
     );
 }
 
@@ -151,16 +156,15 @@ require_once __DIR__ . '/../../shared/layout.php';
         body {
             font-family: 'Geist', system-ui, sans-serif;
             font-size: 13px;
-            margin: 0;
-            padding: 14px 16px;
             color: var(--text);
             background: var(--bg);
             line-height: 1.45;
         }
 
         .page-shell {
-            max-width: 1560px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 14px 16px;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -261,6 +265,29 @@ require_once __DIR__ . '/../../shared/layout.php';
             margin-bottom: 10px;
         }
 
+        .doc-title-links {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .doc-title-link {
+            font-size: 12px;
+            color: var(--accent);
+            text-decoration: none;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 3px 9px;
+            background: var(--surface);
+            white-space: nowrap;
+        }
+        .doc-title-link:hover {
+            background: var(--accent-bg);
+            border-color: var(--accent);
+        }
+
         .doc-number {
             font-size: 20px;
             font-weight: 600;
@@ -284,17 +311,23 @@ require_once __DIR__ . '/../../shared/layout.php';
             margin-left: 6px;
         }
 
-        /* Status pill */
-        .status-tag {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 11px;
-            border-radius: 6px;
-            font-size: 11.5px;
-            font-weight: 600;
-            letter-spacing: .2px;
-            white-space: nowrap;
+        /* Payment / shipment mini-badges */
+        .ws-of-mini-badge {
+            display: inline-flex; align-items: center;
+            font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
+            white-space: nowrap; flex-shrink: 0; user-select: none;
         }
+        .wsof-pay-none     { background: #fee2e2; color: #991b1b; }
+        .wsof-pay-partial  { background: #fef3c7; color: #92400e; }
+        .wsof-pay-done     { background: #dcfce7; color: #15803d; }
+        .wsof-pay-overdue  { background: #fee2e2; color: #7f1d1d; }
+        .wsof-pay-refund   { background: #f3e8ff; color: #6b21a8; }
+        .wsof-ship-none     { background: #f3f4f6; color: #6b7280; }
+        .wsof-ship-reserved { background: #dbeafe; color: #1e40af; }
+        .wsof-ship-partial  { background: #fef3c7; color: #92400e; }
+        .wsof-ship-done     { background: #e0f2fe; color: #0369a1; }
+        .wsof-ship-delivered{ background: #dcfce7; color: #15803d; }
+        .wsof-ship-returned { background: #fee2e2; color: #9a3412; }
 
         /* header meta row: status select + planned date */
         .doc-meta-row {
@@ -315,15 +348,18 @@ require_once __DIR__ . '/../../shared/layout.php';
             gap: 5px;
             padding: 4px 10px 4px 11px;
             border-radius: 6px;
-            border: none;
+            border: 1.5px solid currentColor;
             font-size: 11.5px;
             font-weight: 600;
             font-family: inherit;
             cursor: pointer;
             outline: none;
             white-space: nowrap;
+            box-shadow: 0 1px 3px rgba(0,0,0,.08);
+            transition: box-shadow .15s, filter .15s;
         }
-        .status-dd-btn .dd-caret { font-size: 9px; opacity: .7; }
+        .status-dd-btn:hover { box-shadow: 0 2px 6px rgba(0,0,0,.15); filter: brightness(.95); }
+        .status-dd-btn .dd-caret { font-size: 9px; opacity: .5; margin-left: 1px; }
         .status-dd-menu {
             display: none;
             position: absolute;
@@ -378,8 +414,6 @@ require_once __DIR__ . '/../../shared/layout.php';
             cursor: pointer;
         }
         .planned-date-wrap input:hover { color: var(--accent); }
-
-        .pay-status-tag { margin-left: 4px; }
 
         /* ─── FIELDS AREA ─── */
         .fields-area {
@@ -478,6 +512,7 @@ require_once __DIR__ . '/../../shared/layout.php';
             border: 1px solid var(--border);
             border-radius: 10px;
             overflow: hidden;
+            min-width: 0;
         }
 
         .tabs-bar {
@@ -596,6 +631,44 @@ require_once __DIR__ . '/../../shared/layout.php';
         }
         .prod-name-link:hover { color: var(--accent); }
 
+        /* price picker dropdown */
+        .price-cell { position: relative; }
+        .price-dd {
+            display: none;
+            position: absolute;
+            right: 0; top: calc(100% + 2px);
+            z-index: 120;
+            background: #fff;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            box-shadow: 0 4px 16px rgba(0,0,0,.12);
+            min-width: 200px;
+            padding: 4px 0;
+            font-size: 12.5px;
+        }
+        .price-dd.open { display: block; }
+        .price-dd-row {
+            display: flex;
+            align-items: center;
+            padding: 5px 12px;
+            gap: 8px;
+            white-space: nowrap;
+        }
+        .price-dd-row.selectable {
+            cursor: pointer;
+        }
+        .price-dd-row.selectable:hover { background: #f0f6ff; }
+        .price-dd-label { flex: 1; color: #374151; }
+        .price-dd-val { font-weight: 600; color: #111; font-variant-numeric: tabular-nums; }
+        .price-dd-badge {
+            font-size: 10px; padding: 1px 5px; border-radius: 3px;
+            background: #fef9c3; color: #92400e; flex-shrink: 0;
+        }
+        .price-dd-badge.act { background: #fce7f3; color: #9d174d; }
+        .price-dd-info { color: #9ca3af; font-size: 11.5px; }
+        .price-dd-sep { border: none; border-top: 1px solid #e5e7eb; margin: 3px 0; }
+        .price-dd-loading { padding: 8px 12px; color: #9ca3af; font-style: italic; }
+
         /* row action: three dots */
         .row-actions {
             position: relative;
@@ -678,9 +751,51 @@ require_once __DIR__ . '/../../shared/layout.php';
         /* ─── TOTALS INVOICE BLOCK ─── */
         .totals-invoice {
             display: flex;
-            justify-content: flex-end;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 20px;
             padding: 12px 16px 14px;
             border-top: 1px solid var(--border);
+        }
+
+        .totals-comment {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .totals-comment-label {
+            font-size: 10.5px;
+            font-weight: 500;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: .35px;
+        }
+
+        .totals-comment textarea {
+            width: 100%;
+            resize: vertical;
+            min-height: 72px;
+            font-size: 12.5px;
+            font-family: inherit;
+            color: var(--text);
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            padding: 5px 7px;
+            line-height: 1.45;
+            box-sizing: border-box;
+            outline: none;
+        }
+        .totals-comment textarea:hover {
+            border-color: var(--border);
+            background: var(--bg);
+        }
+        .totals-comment textarea:focus {
+            border-color: var(--accent);
+            background: var(--bg);
         }
 
         .totals-inner {
@@ -750,26 +865,12 @@ require_once __DIR__ . '/../../shared/layout.php';
             font-size: 13px;
         }
 
-        /* ─── HISTORY PANEL ─── */
-        #historyPanel {
-            position: fixed;
-            top: 0;
-            right: -520px;
-            width: 500px;
-            height: 100%;
-            background: var(--surface);
-            border-left: 1px solid var(--border);
-            box-shadow: -6px 0 24px rgba(0,0,0,.08);
-            transition: right .22s ease;
-            z-index: 9999;
-            overflow-y: auto;
-            padding: 20px;
-            font-family: inherit;
-        }
+        /* ─── HISTORY PANEL — видалено, замінено на history-modal ─── */
 
         /* tab content */
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        #tab-positions { overflow-x: auto; }
 
         @media (max-width: 1100px) {
             .fields-area { grid-template-columns: 1fr; }
@@ -777,6 +878,15 @@ require_once __DIR__ . '/../../shared/layout.php';
             .fields-grid { grid-template-columns: repeat(2,1fr); }
             .totals-inner { min-width: unset; grid-template-columns: 1fr 1fr; }
         }
+
+        /* ── Wait call checkbox ── */
+        .wait-call-label {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 12px; font-weight: 400; color: var(--text-muted);
+            cursor: pointer; user-select: none;
+        }
+        .wait-call-label input[type=checkbox] { cursor: pointer; accent-color: #f59e0b; }
+        .wait-call-label:has(input:checked) { color: #b45309; font-weight: 600; }
 
         /* ── Counterparty picker ── */
         .cp-picker-wrap { position: relative; display: flex; align-items: center; gap: 4px; }
@@ -789,10 +899,15 @@ require_once __DIR__ . '/../../shared/layout.php';
         .cp-picker-dd { position: absolute; top: calc(100% + 3px); left: 0; right: 0; z-index: 8000;
             background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
             box-shadow: 0 6px 18px rgba(0,0,0,.1); max-height: 240px; overflow-y: auto; }
-        .cp-picker-opt { padding: 8px 12px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--border-light); }
+        .cp-picker-opt { padding: 7px 12px; font-size: 12.5px; cursor: pointer; border-bottom: 1px solid var(--border-light); display: flex; align-items: baseline; gap: 7px; }
         .cp-picker-opt:last-child { border-bottom: none; }
         .cp-picker-opt:hover { background: var(--hover-row); }
+        .cp-picker-opt-name { flex: 1; min-width: 0; }
         .cp-picker-opt-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+        .cp-picker-type-badge { font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 3px; white-space: nowrap; flex-shrink: 0; }
+        .cp-picker-type-badge.t-company { background: #dbeafe; color: #1e40af; }
+        .cp-picker-type-badge.t-fop     { background: #fef9c3; color: #854d0e; }
+        .cp-picker-type-badge.t-person  { background: #f3f4f6; color: #374151; }
 
         /* ── dirty save button ── */
         .btn-save-dirty { box-shadow: 0 0 0 3px rgba(34,197,94,.35); }
@@ -812,6 +927,64 @@ require_once __DIR__ . '/../../shared/layout.php';
             white-space: nowrap;
         }
         .create-doc-item:hover { background: var(--hover-row); }
+
+        /* ── Shipment cards ── */
+        .shipment-card {
+            background: var(--card-bg, #fff); border: 1px solid var(--border);
+            border-radius: 8px; padding: 10px 12px; font-size: 13px;
+            display: flex; align-items: flex-start; gap: 10px;
+        }
+        .shipment-card-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+        .shipment-card-body { flex: 1; min-width: 0; }
+        .shipment-card-title {
+            font-weight: 600; font-size: 13px; color: var(--text);
+            display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+        }
+        .shipment-card-num { font-family: monospace; font-size: 12.5px; color: #374151; }
+        .shipment-card-meta { color: var(--text-muted); font-size: 12px; margin-top: 3px; line-height: 1.5; }
+        .shipment-card-acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+        .ttn-status-created    { background: #e0f2fe; color: #0369a1; }
+        .ttn-status-in_transit { background: #fef9c3; color: #854d0e; }
+        .ttn-status-delivered  { background: #dcfce7; color: #166534; }
+        .ttn-status-returned   { background: #fce7f3; color: #9d174d; }
+        .ttn-status-deleted    { background: #f3f4f6; color: #6b7280; }
+        .nd-status-pending    { background: #e0f2fe; color: #0369a1; }
+        .nd-status-sent       { background: #fef9c3; color: #854d0e; }
+        .nd-status-delivered  { background: #dcfce7; color: #166534; }
+        .nd-status-cancelled  { background: #f3f4f6; color: #6b7280; }
+
+        /* ── NP TTN form inside modal ── */
+        .np-form-section {
+            font-size: 10px; font-weight: 700; color: #6b7280;
+            text-transform: uppercase; margin: 10px 0 6px; letter-spacing: .5px;
+        }
+        .np-form-section:first-child { margin-top: 0; }
+        .np-field-label { color: #9ca3af; font-size: 11px; display: block; margin-bottom: 3px; margin-top: 8px; }
+        .np-field-label:first-child { margin-top: 0; }
+        .np-inp {
+            font-size: 12px; border: 1px solid #d1d5db; border-radius: 4px;
+            padding: 4px 7px; width: 100%; box-sizing: border-box; background: #fff;
+            height: 28px;
+        }
+        .np-inp:focus { outline: none; border-color: #6366f1; }
+        .np-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .np-ac-wrap { position: relative; }
+        .np-ac-dd {
+            position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+            border: 1px solid #d1d5db; border-radius: 4px; max-height: 160px;
+            overflow-y: auto; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+            font-size: 11px; display: none;
+        }
+        .np-ac-item {
+            padding: 5px 8px; cursor: pointer; border-bottom: 1px solid #f3f4f6;
+            line-height: 1.3;
+        }
+        .np-ac-item:hover { background: #f0f6ff; }
+        .np-ac-item .np-ac-sub { font-size: 10px; color: #9ca3af; }
+        .np-form-error {
+            display: none; color: #dc2626; font-size: 11px; margin-top: 8px;
+            padding: 6px 8px; background: #fef2f2; border-radius: 4px; line-height: 1.4;
+        }
     </style>
 <div class="page-shell">
 
@@ -857,15 +1030,16 @@ require_once __DIR__ . '/../../shared/layout.php';
                 <?php else: ?>
                 <button type="button" class="btn" disabled title="Спочатку збережіть замовлення">Друк ▾</button>
                 <?php endif; ?>
-                <button type="button" class="btn">Надіслати ▾</button>
-                <?php if (!empty($order['id_ms'])): ?>
-                <a href="https://online.moysklad.ru/app/#customerorder/edit?id=<?php echo h($order['id_ms']); ?>"
-                   target="_blank" class="btn btn-ghost btn-sm">
-                    Відкрити в МС ↗
-                </a>
+                <?php if (!empty($currentCpId)): ?>
+                <button type="button" class="btn" id="btnSendTpl" title="Надіслати клієнту">📤 Надіслати ▾</button>
+                <button type="button" class="btn" id="btnOpenChat"
+                        onclick="ChatModal.open(<?= (int)$currentCpId ?>)"
+                        title="Відкрити чат з контрагентом">💬 Чат</button>
+                <?php else: ?>
+                <button type="button" class="btn" disabled title="Спочатку оберіть контрагента">📤 Надіслати ▾</button>
                 <?php endif; ?>
                 <label class="check-label">
-                    <input type="checkbox" name="applicable" value="1" <?= checked_attr(field_value($order, 'applicable', 1)) ?>>
+                    <input type="checkbox" id="applicable" name="applicable" value="1" <?= checked_attr(field_value($order, 'applicable', 1)) ?>>
                     Проведено
                 </label>
             </div>
@@ -899,6 +1073,19 @@ require_once __DIR__ . '/../../shared/layout.php';
                     <?= h($trafficSource['label']) ?>
                     <?php if (!empty($trafficSource['utm_campaign'])): ?>
                     <span class="order-traffic-campaign"><?= h($trafficSource['utm_campaign']) ?></span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+                <?php if (!$isNew && (!empty($linkedDemands) || !empty($order['id_ms']))): ?>
+                <div class="doc-title-links">
+                    <?php foreach ($linkedDemands as $_dem): ?>
+                    <a href="/demand/edit?id=<?= (int)$_dem['id'] ?>" class="doc-title-link">
+                        Відвантаження № <?= h($_dem['number'] ?: ('#'.$_dem['id'])) ?> ↗
+                    </a>
+                    <?php endforeach; ?>
+                    <?php if (!empty($order['id_ms'])): ?>
+                    <a href="https://online.moysklad.ru/app/#customerorder/edit?id=<?= h($order['id_ms']) ?>"
+                       target="_blank" class="doc-title-link">МС ↗</a>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
@@ -943,15 +1130,11 @@ require_once __DIR__ . '/../../shared/layout.php';
                     </ul>
                 </div>
 
-                <!-- Payment status pill (read-only) -->
-                <span class="status-tag <?= h($paymentStatus['class']) ?> pay-status-tag">
-                    Оплата: <?= h($paymentStatus['label']) ?>
-                </span>
+                <!-- Payment status badge (read-only) -->
+                <span class="ws-of-mini-badge <?= h($paymentStatus['badge_cls']) ?>" title="Статус оплати">₴ <?= h($paymentStatus['label']) ?></span>
 
-                <!-- Shipment status pill -->
-                <span class="status-tag <?= h($shipmentStatus['class']) ?>">
-                    Відвантаження: <?= h($shipmentStatus['label']) ?>
-                </span>
+                <!-- Shipment status badge (read-only) -->
+                <span class="ws-of-mini-badge <?= h($shipmentStatus['badge_cls']) ?>" title="Статус відвантаження">📦 <?= h($shipmentStatus['label']) ?></span>
 
                 <!-- Planned shipment date — compact, no big field -->
                 <div class="planned-date-wrap" style="margin-left:10px;">
@@ -1018,18 +1201,22 @@ require_once __DIR__ . '/../../shared/layout.php';
                                            value="<?= h($counterpartyName) ?>"
                                            placeholder="Пошук контрагента…"
                                            autocomplete="off">
-                                    <button type="button" class="cp-picker-clear" id="cpPickerClear" title="Очистити"<?= $currentCpId ? '' : ' style="display:none"' ?>>×</button>
+                                    <button type="button" class="cp-picker-clear" id="cpPickerClear" title="Скинути контрагента"<?= $currentCpId ? '' : ' style="display:none"' ?>>×</button>
+                                    <label class="wait-call-label" title="Клієнт чекає на дзвінок від менеджера" style="margin-left:6px;flex-shrink:0">
+                                        <input type="checkbox" id="wait_call" name="wait_call" value="1"<?= !empty($order['wait_call']) ? ' checked' : '' ?>>
+                                        <span>📞</span>
+                                    </label>
                                     <div class="cp-picker-dd" id="cpPickerDd" style="display:none"></div>
                                 </div>
                             </div>
 
-                            <div class="f">
+                            <div class="f" id="contactPersonField"<?= empty($initialContacts) ? ' style="display:none"' : '' ?>>
                                 <label>Контактна особа</label>
                                 <div class="cp-picker-wrap" id="personPickerWrap">
                                     <input type="hidden" name="contact_person_id" id="contact_person_id" value="<?= h($currentPersonId) ?>">
                                     <input type="text" id="personPickerInput" class="cp-picker-input"
                                            value="<?= h($contactPersonName) ?>"
-                                           placeholder="Пошук особи…"
+                                           placeholder="Введіть ім'я…"
                                            autocomplete="off">
                                     <button type="button" class="cp-picker-clear" id="personPickerClear" title="Очистити"<?= $currentPersonId ? '' : ' style="display:none"' ?>>×</button>
                                     <div class="cp-picker-dd" id="personPickerDd" style="display:none"></div>
@@ -1188,7 +1375,7 @@ require_once __DIR__ . '/../../shared/layout.php';
                         </td>
 
                         <td>
-                            <a href="#" class="prod-name-link"><?= h(field_value($item, 'product_name')) ?></a>
+                            <?php $art = field_value($item, 'sku') ?: field_value($item, 'product_article'); $pid = (int)field_value($item, 'product_id'); if ($art): ?><a href="/catalog?selected=<?= $pid ?>" target="_blank" style="font-size:11px;color:#9ca3af;margin-right:4px"><?= h($art) ?></a><?php endif; ?><a href="/catalog?selected=<?= $pid ?>" class="prod-name-link" target="_blank"><?= h(field_value($item, 'product_name')) ?></a>
                             <input type="hidden" data-field="item_id"     value="<?= (int)$item['id'] ?>">
                             <input type="hidden" data-field="product_id"  value="<?= h(field_value($item, 'product_id')) ?>">
                             <input type="hidden" data-field="weight"      value="<?= h(field_value($item, 'weight', 0)) ?>">
@@ -1202,8 +1389,9 @@ require_once __DIR__ . '/../../shared/layout.php';
                             <input type="text" data-field="quantity" value="<?= h(field_value($item, 'quantity', 1)) ?>" style="width:72px; text-align:right;">
                         </td>
 
-                        <td class="text-r">
+                        <td class="text-r price-cell">
                             <input type="text" data-field="price" value="<?= h(field_value($item, 'price', 0)) ?>" style="width:82px; text-align:right;">
+                            <div class="price-dd"></div>
                         </td>
 
                         <td class="text-c">
@@ -1268,6 +1456,10 @@ require_once __DIR__ . '/../../shared/layout.php';
 
             <!-- Invoice-style totals -->
             <div class="totals-invoice">
+                <div class="totals-comment">
+                    <div class="totals-comment-label">Коментар</div>
+                    <textarea id="order_description" name="description" placeholder="Коментар до замовлення…"><?= h(field_value($order, 'description', '')) ?></textarea>
+                </div>
                 <div class="totals-inner">
                     <div class="totals-cell">
                         <div class="totals-cell-label">Позицій</div>
@@ -1318,9 +1510,23 @@ require_once __DIR__ . '/../../shared/layout.php';
 
         <!-- Related docs tab -->
         <div class="tab-content" id="tab-related">
+
+            <!-- ── Відправлення ── -->
+            <div id="shipments-sect" style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:2px;">
+                <div style="display:flex; align-items:center; padding:10px 14px 8px; gap:8px;">
+                    <span style="font-weight:600; font-size:13px; flex-shrink:0;">Відправлення</span>
+                    <button type="button" class="btn btn-primary btn-sm" id="newTtnNpBtn">+ ТТН НП</button>
+                    <button type="button" class="btn btn-sm"         id="newDeliveryBtn">+ Самовивіз / Кур'єр</button>
+                </div>
+                <div id="shipments-loading" style="display:none; padding:6px 14px 4px; color:#9ca3af; font-size:12px;">Завантаження…</div>
+                <div id="shipments-empty"   style="display:none; padding:4px 14px 8px; color:#9ca3af; font-size:12px;">Відправлень немає</div>
+                <div id="shipments-list"    style="padding:0 14px 2px; display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+
+            <!-- ── Пов'язані документи (граф) ── -->
             <div id="reldocs-wrap">
                 <div style="display:flex; align-items:center; padding:10px 14px 6px; gap:8px;">
-                    <button type="button" class="btn btn-primary btn-sm" id="linkDocBtn">
+                    <button type="button" class="btn btn-sm" id="linkDocBtn">
                         <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="margin-right:5px;vertical-align:middle"><path d="M6.5 9.5a3.5 3.5 0 0 0 4.95 0l2-2a3.5 3.5 0 0 0-4.95-4.95l-1.25 1.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M9.5 6.5a3.5 3.5 0 0 0-4.95 0l-2 2a3.5 3.5 0 0 0 4.95 4.95l1.25-1.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
                         Зв'язати документ
                     </button>
@@ -1409,38 +1615,61 @@ require_once __DIR__ . '/../../shared/layout.php';
     </div>
 </div>
 
-<!-- ══ HISTORY PANEL ══ -->
-<div id="historyPanel">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-        <h3 style="margin:0; font-size:16px;">Історія змін</h3>
-        <button type="button" id="historyClose" class="btn">Закрити</button>
+<!-- ══ TTN NP CREATE MODAL ══ -->
+<div class="modal-overlay" id="newTtnModal">
+    <div class="modal-box" style="width:560px; max-width:98vw;">
+        <div class="modal-head">
+            <span>Нова ТТН Нова Пошта</span>
+            <button class="modal-close" id="newTtnModalClose">&#x2715;</button>
+        </div>
+        <div class="modal-body" id="npTtnBody" style="overflow-y:auto; max-height:calc(100vh - 180px); padding:14px 16px;">
+            <div style="text-align:center; color:#9ca3af; padding:30px;">Завантаження…</div>
+        </div>
     </div>
-    <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
-        <thead>
-        <tr style="border-bottom:1px solid var(--border);">
-            <th style="padding:7px 8px; text-align:left; font-weight:500; color:var(--text-muted);">Дата</th>
-            <th style="padding:7px 8px; text-align:left; font-weight:500; color:var(--text-muted);">Подія</th>
-            <th style="padding:7px 8px; text-align:left; font-weight:500; color:var(--text-muted);">Працівник</th>
-            <th style="padding:7px 8px; text-align:left; font-weight:500; color:var(--text-muted);">Коментар</th>
-        </tr>
-        </thead>
-        <tbody>
-        <?php if (!$history): ?>
-            <tr><td colspan="4" class="empty-box">Історія поки порожня.</td></tr>
-        <?php else: ?>
-            <?php foreach ($history as $event): ?>
-                <tr style="border-bottom:1px solid var(--border-light);">
-                    <td style="padding:7px 8px;"><?= h(field_value($event, 'created_at')) ?></td>
-                    <td style="padding:7px 8px;"><?= h(field_value($event, 'event_type')) ?></td>
-                    <td style="padding:7px 8px;"><?= h(field_value($event, 'employee_name')) ?></td>
-                    <td style="padding:7px 8px;"><?= h(field_value($event, 'comment')) ?></td>
-                </tr>
-            <?php endforeach; ?>
-        <?php endif; ?>
-        </tbody>
-    </table>
 </div>
-<div id="historyOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.2); z-index:9998;"></div>
+
+<!-- ══ DELIVERY (PICKUP/COURIER) MODAL ══ -->
+<div class="modal-overlay" id="newDeliveryModal">
+    <div class="modal-box" style="width:400px; max-width:98vw;">
+        <div class="modal-head">
+            <span id="newDeliveryModalTitle">Відправлення</span>
+            <button class="modal-close" id="newDeliveryModalClose">&#x2715;</button>
+        </div>
+        <div class="modal-body" style="padding:16px;">
+            <input type="hidden" id="ndDeliveryId" value="0">
+            <div class="form-row" style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px;">Спосіб доставки</label>
+                <select id="ndMethodId" style="width:100%; height:32px; font-size:13px; padding:0 8px; border:1px solid var(--border); border-radius:6px; box-sizing:border-box;">
+                    <?php foreach ($deliveryMethods as $dm): ?>
+                    <?php if (empty($dm['has_ttn'])): ?>
+                    <option value="<?= (int)$dm['id'] ?>"><?= h($dm['name_uk']) ?></option>
+                    <?php endif; ?>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="form-row" style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px;">Статус</label>
+                <select id="ndStatus" style="width:100%; height:32px; font-size:13px; padding:0 8px; border:1px solid var(--border); border-radius:6px; box-sizing:border-box;">
+                    <option value="pending">Очікує</option>
+                    <option value="sent">Відправлено</option>
+                    <option value="delivered">Доставлено</option>
+                    <option value="cancelled">Скасовано</option>
+                </select>
+            </div>
+            <div class="form-row" style="margin-bottom:12px;">
+                <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px;">Коментар</label>
+                <textarea id="ndComment" rows="2" style="width:100%; font-size:13px; padding:6px 8px; border:1px solid var(--border); border-radius:6px; box-sizing:border-box; resize:vertical;"></textarea>
+            </div>
+            <div id="ndError" class="modal-error" style="display:none;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" id="ndSaveBtn">Зберегти</button>
+            <button type="button" class="btn" id="ndCancelBtn">Скасувати</button>
+        </div>
+    </div>
+</div>
+
+<!-- history-modal монтируется динамически через history-modal.js -->
 
 <script>
 /* ══ INIT STATE ══ */
@@ -1577,6 +1806,125 @@ function bindItemRow(tr) {
             markDirty();
         });
     }
+
+    // Price picker dropdown
+    if (pInp) {
+        var priceDd = tr.querySelector('.price-dd');
+        if (priceDd) bindPricePicker(tr, pInp, priceDd);
+    }
+}
+
+/* ══ PRICE PICKER ══ */
+var _priceCache = {};
+
+function bindPricePicker(tr, inp, dd) {
+    var _mouseInDd = false;
+
+    inp.addEventListener('focus', function() {
+        var pid = parseInt((tr.querySelector('[data-field="product_id"]') || {}).value) || 0;
+        if (!pid) return;
+        openPriceDd(pid, tr, inp, dd);
+    });
+
+    inp.addEventListener('blur', function() {
+        if (_mouseInDd) return;
+        closePriceDd(dd);
+    });
+
+    dd.addEventListener('mouseenter', function() { _mouseInDd = true; });
+    dd.addEventListener('mouseleave', function() { _mouseInDd = false; });
+}
+
+function openPriceDd(pid, tr, inp, dd) {
+    dd.innerHTML = '<div class="price-dd-loading">Завантаження…</div>';
+    dd.classList.add('open');
+
+    if (_priceCache[pid]) {
+        renderPriceDd(pid, tr, inp, dd, _priceCache[pid]);
+        return;
+    }
+
+    fetch('/customerorder/api/get_product_prices?product_id=' + pid)
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { dd.innerHTML = ''; dd.classList.remove('open'); return; }
+            _priceCache[pid] = data;
+            renderPriceDd(pid, tr, inp, dd, data);
+        })
+        .catch(function() { dd.innerHTML = ''; dd.classList.remove('open'); });
+}
+
+function closePriceDd(dd) {
+    dd.classList.remove('open');
+    dd.innerHTML = '';
+}
+
+function fmt2n(v) {
+    if (v === null || v === undefined || v === '') return null;
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+}
+
+function renderPriceDd(pid, tr, inp, dd, data) {
+    var rows = '';
+    var hasAny = false;
+
+    function makeSelectable(label, val, badgeText, badgeCls) {
+        var fmtVal = fmt2n(val);
+        if (fmtVal === null) return '';
+        hasAny = true;
+        var badge = badgeText ? '<span class="price-dd-badge ' + (badgeCls||'') + '">' + badgeText + '</span>' : '';
+        return '<div class="price-dd-row selectable" data-pick="' + parseFloat(val).toFixed(4) + '">'
+            + '<span class="price-dd-label">' + label + '</span>'
+            + badge
+            + '<span class="price-dd-val">' + fmtVal + '</span>'
+            + '</div>';
+    }
+
+    rows += makeSelectable('Роздрібна', data.price_sale, '', '');
+    if (data.price_act) {
+        rows += makeSelectable('Акційна', data.price_act, 'акція', 'act');
+    }
+    rows += makeSelectable('Оптова', data.price_wholesale, '', '');
+    rows += makeSelectable('Дилерська', data.price_dealer, '', '');
+
+    var tiers = data.qty_tiers || [];
+    if (tiers.length > 0) {
+        if (hasAny) rows += '<hr class="price-dd-sep">';
+        rows += '<div class="price-dd-row"><span class="price-dd-label price-dd-info">Знижки від кількості</span></div>';
+        for (var i = 0; i < tiers.length; i++) {
+            var t = tiers[i];
+            var pct = t.discount_percent > 0 ? ' <span class="price-dd-badge">−' + parseFloat(t.discount_percent).toFixed(0) + '%</span>' : '';
+            rows += '<div class="price-dd-row">'
+                + '<span class="price-dd-label price-dd-info">від ' + t.qty + ' шт.</span>'
+                + pct
+                + '<span class="price-dd-val price-dd-info">' + fmt2n(t.price) + '</span>'
+                + '</div>';
+        }
+    }
+
+    if (!hasAny && tiers.length === 0) {
+        dd.classList.remove('open');
+        dd.innerHTML = '';
+        return;
+    }
+
+    dd.innerHTML = rows;
+
+    // Bind click on selectable rows
+    dd.querySelectorAll('.price-dd-row.selectable').forEach(function(row) {
+        row.addEventListener('mousedown', function(e) {
+            e.preventDefault();
+            var val = parseFloat(row.dataset.pick || 0).toFixed(2);
+            inp.value = val;
+            inp.dispatchEvent(new Event('input'));
+            tr.dataset.sumChanged = '0';
+            syncRowToState(tr);
+            markDirty();
+            closePriceDd(dd);
+            inp.focus();
+        });
+    });
 }
 
 /* ══ BUILD NEW ROW HTML ══ */
@@ -1596,7 +1944,7 @@ function buildNewRowHtml(p) {
         + '</td>'
         + '<td class="text-c"><input type="text" data-field="unit" value="' + esc(p.unit||'') + '" style="width:42px;text-align:center;" readonly></td>'
         + '<td class="text-r"><input type="text" data-field="quantity" value="1" style="width:72px;text-align:right;"></td>'
-        + '<td class="text-r"><input type="text" data-field="price" value="' + pr + '" style="width:82px;text-align:right;"></td>'
+        + '<td class="text-r price-cell"><input type="text" data-field="price" value="' + pr + '" style="width:82px;text-align:right;"><div class="price-dd"></div></td>'
         + '<td class="text-c"><select data-field="vat_rate" style="width:82px;text-align:center;"><option value="0">Без ПДВ</option><option value="20">20%</option></select></td>'
         + '<td class="text-r"><input type="text" data-field="discount_percent" value="" placeholder="0" style="width:58px;text-align:right;"></td>'
         + '<td class="text-r"><input type="text" data-field="sum_row" value="' + pr + '" style="width:90px;text-align:right;font-weight:500;"></td>'
@@ -1649,6 +1997,8 @@ function saveOrder() {
         + '&store_id='                + encodeURIComponent(getVal('store_id'))
         + '&planned_shipment_at='     + encodeURIComponent(getVal('planned_shipment_at'))
         + '&applicable='              + encodeURIComponent(getChk('applicable'))
+        + '&wait_call='               + encodeURIComponent(getChk('wait_call'))
+        + '&description='             + encodeURIComponent(getVal('order_description'))
         + '&items='                   + encodeURIComponent(JSON.stringify(_state.items));
 
     fetch('/counterparties/api/save_order', {
@@ -1686,6 +2036,7 @@ document.querySelectorAll('.tab-btn').forEach(function(btn) {
         if (btn.dataset.tab === 'related' && !_relDocsLoaded) {
             _relDocsLoaded = true;
             RelDocsGraph.load(<?php echo (int)(isset($order['id']) ? $order['id'] : 0); ?>);
+            ShipmentsPanel.load(<?php echo (int)(isset($order['id']) ? $order['id'] : 0); ?>);
         }
     });
 });
@@ -2372,15 +2723,13 @@ function updateBulkBar() {
 }());
 
 /* ══ HISTORY PANEL ══ */
-var historyPanel   = document.getElementById('historyPanel');
-var historyOverlay = document.getElementById('historyOverlay');
-var historyToggle  = document.getElementById('historyToggle');
-var historyClose   = document.getElementById('historyClose');
-function openHistory()  { if (historyPanel) { historyPanel.style.right = '0'; historyOverlay.style.display = 'block'; } }
-function closeHistory() { if (historyPanel) { historyPanel.style.right = '-520px'; historyOverlay.style.display = 'none'; } }
-if (historyToggle) historyToggle.addEventListener('click', function(e) { e.preventDefault(); openHistory(); });
-if (historyClose)  historyClose.addEventListener('click', closeHistory);
-if (historyOverlay) historyOverlay.addEventListener('click', closeHistory);
+var historyToggle = document.getElementById('historyToggle');
+if (historyToggle) {
+    historyToggle.addEventListener('click', function(e) {
+        e.preventDefault();
+        if (_orderId) HistoryModal.open('customerorder', _orderId);
+    });
+}
 
 /* ══ SAVE BUTTON ══ */
 var btnSave = document.getElementById('btnSave');
@@ -2390,10 +2739,12 @@ if (btnSave) btnSave.addEventListener('click', saveOrder);
 ['organization_id','manager_employee_id','delivery_method_id','payment_method_id',
  'counterparty_id','contact_person_id','organization_bank_account_id','contract_id',
  'project_id','sales_channel','currency_code','store_id','planned_shipment_at',
- 'status','applicable'].forEach(function(id) {
+ 'status','applicable','order_description'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.addEventListener('change', markDirty);
 });
+var descEl = document.getElementById('order_description');
+if (descEl) descEl.addEventListener('input', markDirty);
 
 /* ══ BANK ACCOUNTS AJAX ══ */
 var orgSelect  = document.getElementById('organization_id');
@@ -2559,7 +2910,7 @@ renderDocTotals();
 }());
 
 /* ══ COUNTERPARTY PICKER ══ */
-function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType) {
+function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
     var inp    = document.getElementById(inputId);
     var hidden = document.getElementById(hiddenId);
     var dd     = document.getElementById(ddId);
@@ -2577,12 +2928,12 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType) {
         if (clear) clear.style.display = id ? '' : 'none';
         closeDd();
         markDirty();
+        if (onPick) onPick(id, name);
     }
 
-    inp.addEventListener('input', function() {
+    function doSearch(q, delay) {
         clearTimeout(timer);
-        var q = inp.value.trim();
-        if (q.length < 2) { closeDd(); return; }
+        if (q.length < 1) { closeDd(); return; }
         timer = setTimeout(function() {
             var url = '/counterparties/api/search?q=' + encodeURIComponent(q)
                     + (cpType ? '&type=' + encodeURIComponent(cpType) : '');
@@ -2595,16 +2946,33 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType) {
                         dd.style.display = 'block';
                         return;
                     }
+                    var typeCls = { company: 't-company', fop: 't-fop', person: 't-person' };
                     dd.innerHTML = _list.slice(0, 20).map(function(p) {
+                        var badge = '<span class="cp-picker-type-badge ' + (typeCls[p.type] || '') + '">'
+                                  + esc(p.type_label || p.type) + '</span>';
+                        var sub = '';
+                        if (p.okpo)  sub += 'ЄДРПОУ: ' + esc(p.okpo);
+                        if (p.phone) sub += (sub ? ' · ' : '') + esc(p.phone);
                         return '<div class="cp-picker-opt" data-id="' + p.id + '" data-name="' + esc(p.name) + '">'
-                            + esc(p.name)
-                            + (p.edrpou ? '<div class="cp-picker-opt-sub">ЄДРПОУ: ' + esc(p.edrpou) + '</div>' : '')
+                            + '<div class="cp-picker-opt-name">' + esc(p.name)
+                            + (sub ? '<div class="cp-picker-opt-sub">' + sub + '</div>' : '')
+                            + '</div>'
+                            + badge
                             + '</div>';
                     }).join('');
                     dd.style.display = 'block';
                 })
                 .catch(function() { closeDd(); });
-        }, 250);
+        }, delay !== undefined ? delay : 200);
+    }
+
+    inp.addEventListener('input', function() {
+        doSearch(inp.value.trim(), 200);
+    });
+
+    inp.addEventListener('focus', function() {
+        inp.select();
+        doSearch(inp.value.trim(), 0);
     });
 
     dd.addEventListener('mousedown', function(e) {
@@ -2630,8 +2998,116 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType) {
     }
 }
 
-makeCpPicker('cpPickerInput',     'counterparty_id',    'cpPickerDd',     'cpPickerClear',     'company,fop');
-makeCpPicker('personPickerInput', 'contact_person_id',  'personPickerDd', 'personPickerClear', 'person');
+/* ══ CONTACT PERSON PICKER (local list, linked contacts only) ══ */
+var _personContacts = <?= json_encode($initialContacts) ?>;
+
+function renderPersonDd(q) {
+    var dd = document.getElementById('personPickerDd');
+    if (!dd) return;
+    var filtered = _personContacts.filter(function(c) {
+        if (!q) return true;
+        var tokens = q.toLowerCase().split(/\s+/).filter(function(t) { return t.length > 0; });
+        var lname  = c.name.toLowerCase();
+        for (var i = 0; i < tokens.length; i++) {
+            if (lname.indexOf(tokens[i]) === -1) return false;
+        }
+        return true;
+    });
+    if (!filtered.length) {
+        dd.innerHTML = '<div class="cp-picker-opt" style="color:var(--text-muted)">Нічого не знайдено</div>';
+        dd.style.display = 'block';
+        return;
+    }
+    dd.innerHTML = filtered.slice(0, 20).map(function(p) {
+        var sub = p.position ? '<div class="cp-picker-opt-sub">' + esc(p.position) + '</div>' : '';
+        return '<div class="cp-picker-opt" data-id="' + p.id + '" data-name="' + esc(p.name) + '">'
+            + esc(p.name) + sub + '</div>';
+    }).join('');
+    dd.style.display = 'block';
+}
+
+(function () {
+    var inp    = document.getElementById('personPickerInput');
+    var hidden = document.getElementById('contact_person_id');
+    var dd     = document.getElementById('personPickerDd');
+    var clear  = document.getElementById('personPickerClear');
+    var field  = document.getElementById('contactPersonField');
+    if (!inp || !hidden || !dd || !field) return;
+
+    function closeDd() { dd.style.display = 'none'; dd.innerHTML = ''; }
+
+    function pickPerson(id, name) {
+        hidden.value = id;
+        inp.value    = name;
+        if (clear) clear.style.display = id ? '' : 'none';
+        closeDd();
+        markDirty();
+    }
+
+    inp.addEventListener('focus', function() {
+        if (_personContacts.length) renderPersonDd(inp.value.trim());
+    });
+
+    inp.addEventListener('input', function() {
+        if (!_personContacts.length) { closeDd(); return; }
+        renderPersonDd(inp.value.trim());
+    });
+
+    dd.addEventListener('mousedown', function(e) {
+        var opt = e.target.closest('.cp-picker-opt[data-id]');
+        if (!opt) return;
+        e.preventDefault();
+        pickPerson(opt.dataset.id, opt.dataset.name);
+    });
+
+    inp.addEventListener('blur', function() { setTimeout(closeDd, 150); });
+
+    inp.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') { closeDd(); }
+    });
+
+    inp.addEventListener('change', function() {
+        if (!inp.value.trim()) { pickPerson('', ''); }
+    });
+
+    if (clear) {
+        clear.addEventListener('click', function() { pickPerson('', ''); inp.focus(); });
+    }
+}());
+
+function loadContactsForCp(cpId) {
+    var field      = document.getElementById('contactPersonField');
+    var personHidden = document.getElementById('contact_person_id');
+    var personInp    = document.getElementById('personPickerInput');
+    var personClear  = document.getElementById('personPickerClear');
+    if (!field) return;
+
+    // Clear person selection when counterparty changes
+    if (personHidden) personHidden.value = '';
+    if (personInp)    personInp.value    = '';
+    if (personClear)  personClear.style.display = 'none';
+
+    if (!cpId) {
+        _personContacts = [];
+        field.style.display = 'none';
+        return;
+    }
+
+    fetch('/counterparties/api/get_contacts?counterparty_id=' + encodeURIComponent(cpId))
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            _personContacts = (res.ok && res.items) ? res.items : [];
+            field.style.display = _personContacts.length ? '' : 'none';
+        })
+        .catch(function() {
+            _personContacts = [];
+            field.style.display = 'none';
+        });
+}
+
+makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', '', function(id) {
+    loadContactsForCp(id);
+});
 
 /* ── Create document dropdown ── */
 (function () {
@@ -2692,4 +3168,794 @@ makeCpPicker('personPickerInput', 'contact_person_id',  'personPickerDd', 'perso
 </script>
 
 <?php require_once __DIR__ . '/../../shared/print-modal.php'; ?>
+<script src="/modules/shared/history-modal.js?v=<?= filemtime(__DIR__ . '/../../shared/history-modal.js') ?>"></script>
+<script src="/modules/shared/chat-modal.js?v=<?= filemtime(__DIR__ . '/../../shared/chat-modal.js') ?>"></script>
+<?php if (!empty($currentCpId) && !$isNew): ?>
+
+<!-- ══ COMPOSE MODAL ══════════════════════════════════════════════════ -->
+<div id="sendComposeModal" class="modal-overlay">
+    <div class="modal-box" style="width:540px;max-width:98vw">
+        <div class="modal-head">
+            <span id="sendComposeTitle">Надіслати клієнту</span>
+            <button type="button" class="modal-close" id="sendComposeClose">&#x2715;</button>
+        </div>
+        <div class="modal-body" style="padding:16px 20px">
+            <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center">
+                <span style="font-size:12px;color:#6b7280;flex-shrink:0">Канал:</span>
+                <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
+                    <input type="radio" name="sendCompCh" value="viber" checked> Viber
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
+                    <input type="radio" name="sendCompCh" value="sms"> SMS
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:13px;cursor:pointer">
+                    <input type="radio" name="sendCompCh" value="note"> Нотатка
+                </label>
+            </div>
+            <textarea id="sendComposeText" rows="12"
+                style="width:100%;box-sizing:border-box;font-size:13px;font-family:inherit;line-height:1.55;
+                       border:1px solid #d1d5db;border-radius:6px;padding:8px 10px;resize:vertical;outline:none"
+                onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#d1d5db'"></textarea>
+            <div id="sendComposeAttachInfo" style="display:none;margin-top:6px;font-size:12px;color:#6b7280">
+                📎 <span id="sendComposeAttachName"></span>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" id="sendComposeSend">📤 Надіслати</button>
+            <button type="button" class="btn btn-ghost" id="sendComposeCancel">Скасувати</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    var _cpId    = <?= (int)$currentCpId ?>;
+    var _orderId = <?= (int)$order['id'] ?>;
+    var _num     = <?= json_encode(field_value($order, 'number', (string)$order['id'])) ?>;
+    var _sum     = <?= json_encode(field_value($order, 'sum_total', '0')) ?>;
+    var _date    = <?= json_encode(!empty($order['moment']) ? substr($order['moment'], 0, 10) : date('Y-m-d')) ?>;
+
+    var _menu = null;
+
+    /* ── compose modal state ── */
+    var _composeAttachUrl  = null;
+    var _composeAttachName = null;
+
+    /* ── Compose modal open / close ── */
+    function _openCompose(title, text, attachUrl, attachName) {
+        _composeAttachUrl  = attachUrl  || null;
+        _composeAttachName = attachName || null;
+
+        document.getElementById('sendComposeTitle').textContent = title || 'Надіслати клієнту';
+        document.getElementById('sendComposeText').value = text || '';
+
+        var attachInfo = document.getElementById('sendComposeAttachInfo');
+        var attachNameEl = document.getElementById('sendComposeAttachName');
+        if (attachUrl) {
+            attachNameEl.textContent = attachName || attachUrl;
+            attachInfo.style.display = '';
+        } else {
+            attachInfo.style.display = 'none';
+        }
+
+        document.getElementById('sendComposeModal').classList.add('open');
+        setTimeout(function() {
+            var ta = document.getElementById('sendComposeText');
+            ta.focus();
+            ta.setSelectionRange(0, 0);
+        }, 50);
+    }
+
+    function _closeCompose() {
+        document.getElementById('sendComposeModal').classList.remove('open');
+    }
+
+    document.getElementById('sendComposeClose').addEventListener('click', _closeCompose);
+    document.getElementById('sendComposeCancel').addEventListener('click', _closeCompose);
+    document.getElementById('sendComposeModal').addEventListener('click', function(e) {
+        if (e.target === this) _closeCompose();
+    });
+
+    document.getElementById('sendComposeSend').addEventListener('click', function() {
+        var text = document.getElementById('sendComposeText').value.trim();
+        if (!text) { document.getElementById('sendComposeText').focus(); return; }
+        var ch = (document.querySelector('input[name="sendCompCh"]:checked') || {}).value || 'viber';
+        _closeCompose();
+        ChatModal.open(_cpId, ch, text, _composeAttachUrl, _composeAttachName);
+    });
+
+    /* ── Build order items text ── */
+    function _buildItemsText() {
+        var rows = document.querySelectorAll('#positionsTable tbody tr[data-local-id]');
+        if (!rows.length) return '';
+
+        var lines = ['Замовлення №' + _num + ':'];
+        var n = 0;
+        var total = 0;
+
+        rows.forEach(function(tr) {
+            var nameEl = tr.querySelector('.prod-name-link');
+            var name = nameEl ? (nameEl.textContent || nameEl.innerText || '').trim() : '';
+            var artEl = tr.querySelector('a[style*="9ca3af"]');
+            var art = artEl ? (artEl.textContent || '').trim() : '';
+            var qty = parseFloat((tr.querySelector('[data-field="quantity"]') || {}).value) || 0;
+            var price = parseFloat((tr.querySelector('[data-field="price"]') || {}).value) || 0;
+            var disc = parseFloat((tr.querySelector('[data-field="discount_percent"]') || {}).value) || 0;
+            var unit = (tr.querySelector('[data-field="unit"]') || {}).value || 'шт';
+            var gross = qty * price;
+            var sum = disc > 0 ? gross * (1 - disc / 100) : gross;
+            total += sum;
+            n++;
+
+            var label = name || art || ('Позиція ' + n);
+            var discStr = disc > 0 ? ' (−' + disc + '%)' : '';
+            lines.push(n + '. ' + label
+                + '\n   ' + qty + ' ' + unit + ' × ' + _fmt2(price) + discStr
+                + ' = ' + _fmt2(sum) + ' грн');
+        });
+
+        if (!n) return '';
+        lines.push('');
+        lines.push('РАЗОМ: ' + _fmt2(total) + ' грн');
+        return lines.join('\n');
+    }
+
+    function _fmt2(v) {
+        return parseFloat(v).toFixed(2).replace('.', ',');
+    }
+
+    /* ── Menu ── */
+    function _closeMenu() {
+        if (_menu) { _menu.remove(); _menu = null; }
+    }
+
+    function _openMenu(anchor) {
+        _closeMenu();
+        var div = document.createElement('div');
+        div.style.cssText = 'position:fixed;z-index:9999;background:#fff;border:1px solid #e5e7eb;border-radius:10px;'
+            + 'box-shadow:0 6px 24px rgba(0,0,0,.13);min-width:230px;overflow:hidden;font-family:inherit';
+        div.innerHTML =
+            '<div style="padding:8px 13px 6px;border-bottom:1px solid #f3f4f6;font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.4px">Надіслати клієнту</div>'
+            + '<div id="_sendMenuItems"></div>';
+
+        var items = [
+            { icon: '📋', label: 'Склад замовлення',    key: 'items_list' },
+            { icon: '💳', label: 'Посилання на оплату', key: 'pay' },
+            { icon: '📄', label: 'Рахунок (PDF-файл)',   key: 'invoice' },
+        ];
+        var itemsEl = div.querySelector('#_sendMenuItems');
+        items.forEach(function(it) {
+            var btn = document.createElement('div');
+            btn.style.cssText = 'padding:9px 13px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;color:#1f2937;transition:background .1s';
+            btn.innerHTML = '<span style="font-size:16px">' + it.icon + '</span><span>' + it.label + '</span>';
+            btn.addEventListener('mouseover', function() { btn.style.background = '#f5f3ff'; });
+            btn.addEventListener('mouseout',  function() { btn.style.background = ''; });
+            btn.addEventListener('click', function() { _closeMenu(); _runAction(it.key); });
+            itemsEl.appendChild(btn);
+        });
+
+        document.body.appendChild(div);
+        _menu = div;
+
+        var rect = anchor.getBoundingClientRect();
+        var menuW = 234;
+        var left  = rect.left;
+        if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+        div.style.top  = (rect.bottom + 4) + 'px';
+        div.style.left = left + 'px';
+
+        setTimeout(function() {
+            document.addEventListener('click', function _cl(e) {
+                if (!div.contains(e.target)) { _closeMenu(); document.removeEventListener('click', _cl); }
+            });
+        }, 10);
+    }
+
+    function _generatePdf(callback) {
+        var btn = document.getElementById('btnSendTpl');
+        if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Формую…'; }
+        var fd = new FormData();
+        fd.append('order_id', _orderId);
+        fetch('/print/api/generate_order_pdf', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (btn) { btn.disabled = false; btn.innerHTML = '📤 Надіслати ▾'; }
+                if (!d.ok) { alert('Помилка генерації PDF: ' + (d.error || '')); return; }
+                callback(d);
+            })
+            .catch(function() {
+                if (btn) { btn.disabled = false; btn.innerHTML = '📤 Надіслати ▾'; }
+                alert('Помилка мережі при генерації PDF');
+            });
+    }
+
+    function _runAction(key) {
+        if (key === 'items_list') {
+            var text = _buildItemsText();
+            _openCompose('Склад замовлення', text);
+        } else if (key === 'pay') {
+            _generatePdf(function(d) {
+                var text = 'Рахунок №' + _num + ' від ' + _date + ':\n' + d.url;
+                _openCompose('Посилання на оплату', text);
+            });
+        } else if (key === 'invoice') {
+            _generatePdf(function(d) {
+                var text = 'Рахунок №' + _num + ' від ' + _date;
+                _openCompose('Рахунок (PDF)', text, d.url, d.filename);
+            });
+        }
+    }
+
+    var btn = document.getElementById('btnSendTpl');
+    if (btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (_menu) { _closeMenu(); return; }
+            _openMenu(btn);
+        });
+    }
+}());
+
+/* ══ SHIPMENTS PANEL ══ */
+var ShipmentsPanel = (function() {
+    var _orderId = 0;
+
+    var TN_STATUS = {
+        created:    { cls: 'ttn-status-created',    label: 'Створено' },
+        in_transit: { cls: 'ttn-status-in_transit', label: 'В дорозі' },
+        delivered:  { cls: 'ttn-status-delivered',  label: 'Доставлено' },
+        returned:   { cls: 'ttn-status-returned',   label: 'Повернення' },
+        deleted:    { cls: 'ttn-status-deleted',     label: 'Видалено' },
+    };
+    var ND_STATUS = {
+        pending:   { cls: 'nd-status-pending',   label: 'Очікує' },
+        sent:      { cls: 'nd-status-sent',       label: 'Відправлено' },
+        delivered: { cls: 'nd-status-delivered',  label: 'Доставлено' },
+        cancelled: { cls: 'nd-status-cancelled',  label: 'Скасовано' },
+    };
+
+    function ttnStatus(t) {
+        if (t.deletion_mark) return 'deleted';
+        var def = parseInt(t.state_define, 10);
+        if (def === 9)                     return 'delivered';
+        if (def === 102 || def === 105)    return 'returned';
+        if (def >= 1)                      return 'in_transit';
+        return 'created';
+    }
+
+    function badge(cls, label) {
+        return '<span class="badge ' + cls + '" style="font-size:11px;">' + esc(label) + '</span>';
+    }
+
+    function esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function fmt2(n) {
+        return parseFloat(n || 0).toFixed(2).replace(/\.?0+$/, function(m, o, s){ return s.replace(/\./,'') === s.replace(/[^.]/g,'').repeat(s.length) ? '' : m; });
+    }
+
+    function renderTtn(t) {
+        var st = ttnStatus(t);
+        var stInfo = TN_STATUS[st] || TN_STATUS.created;
+        var num = t.int_doc_number || ('#' + t.id);
+
+        var meta = [];
+        if (t.recipient_contact_person) meta.push(esc(t.recipient_contact_person));
+        if (t.city_recipient_desc)       meta.push('📍 ' + esc(t.city_recipient_desc));
+        if (t.cost_on_site && parseFloat(t.cost_on_site) > 0) meta.push('Доставка: ' + parseFloat(t.cost_on_site).toFixed(0) + ' ₴');
+        if (t.backward_delivery_money && parseFloat(t.backward_delivery_money) > 0) meta.push('НП: ' + parseFloat(t.backward_delivery_money).toFixed(0) + ' ₴');
+        if (t.state_name) meta.push('<i style="color:#6b7280">' + esc(t.state_name) + '</i>');
+
+        var trackUrl = 'https://track.novaposhta.ua/#/' + encodeURIComponent(num);
+
+        return '<div class="shipment-card">'
+            + '<div class="shipment-card-icon">🚚</div>'
+            + '<div class="shipment-card-body">'
+            + '<div class="shipment-card-title">'
+            + badge(stInfo.cls, stInfo.label)
+            + '<span class="shipment-card-num">' + esc(num) + '</span>'
+            + '</div>'
+            + (meta.length ? '<div class="shipment-card-meta">' + meta.join(' · ') + '</div>' : '')
+            + '<div class="shipment-card-acts">'
+            + '<a href="' + trackUrl + '" target="_blank" class="btn btn-xs">Трекінг ↗</a>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+    }
+
+    function renderDelivery(d) {
+        var st = d.status || 'pending';
+        var stInfo = ND_STATUS[st] || ND_STATUS.pending;
+        var icon = d.code === 'pickup' ? '🏠' : '🚐';
+        var meta = [];
+        if (d.comment) meta.push(esc(d.comment));
+
+        return '<div class="shipment-card" data-nd-id="' + (int(d.id)) + '">'
+            + '<div class="shipment-card-icon">' + icon + '</div>'
+            + '<div class="shipment-card-body">'
+            + '<div class="shipment-card-title">'
+            + badge(stInfo.cls, stInfo.label)
+            + '<span>' + esc(d.name_uk) + '</span>'
+            + '</div>'
+            + (meta.length ? '<div class="shipment-card-meta">' + meta.join(' · ') + '</div>' : '')
+            + '<div class="shipment-card-acts">'
+            + '<button type="button" class="btn btn-xs nd-edit-btn">Редагувати</button>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+    }
+
+    function int(v) { return parseInt(v, 10) || 0; }
+
+    function render(data) {
+        var list    = document.getElementById('shipments-list');
+        var loading = document.getElementById('shipments-loading');
+        var empty   = document.getElementById('shipments-empty');
+        if (!list) return;
+        loading.style.display = 'none';
+
+        var html = '';
+        (data.ttns || []).forEach(function(t) { html += renderTtn(t); });
+        (data.deliveries || []).forEach(function(d) { html += renderDelivery(d); });
+
+        if (!html) {
+            empty.style.display = '';
+            list.innerHTML = '';
+        } else {
+            empty.style.display = 'none';
+            list.innerHTML = html;
+
+            // bind "Редагувати" buttons on delivery cards
+            list.querySelectorAll('.nd-edit-btn').forEach(function(btn) {
+                var card = btn.closest('.shipment-card');
+                var ndId = int(card.dataset.ndId);
+                var match = (data.deliveries || []).filter(function(d){ return int(d.id) === ndId; })[0];
+                if (match) btn.addEventListener('click', function(){ DeliveryModal.open(match); });
+            });
+        }
+    }
+
+    function load(orderId) {
+        _orderId = orderId;
+        if (!orderId) return;
+        var loading = document.getElementById('shipments-loading');
+        var empty   = document.getElementById('shipments-empty');
+        var list    = document.getElementById('shipments-list');
+        if (!loading) return;
+        loading.style.display = '';
+        empty.style.display = 'none';
+        if (list) list.innerHTML = '';
+
+        fetch('/customerorder/api/get_order_shipments?order_id=' + orderId)
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (data.ok) render(data);
+                else {
+                    loading.style.display = 'none';
+                    empty.style.display = '';
+                }
+            })
+            .catch(function() {
+                loading.style.display = 'none';
+                empty.style.display = '';
+            });
+    }
+
+    function reload() { load(_orderId); }
+
+    // bind toolbar buttons
+    document.addEventListener('DOMContentLoaded', function() {
+        var ttnBtn = document.getElementById('newTtnNpBtn');
+        if (ttnBtn) ttnBtn.addEventListener('click', function() { NpTtnModal.open(_orderId); });
+        var ndBtn  = document.getElementById('newDeliveryBtn');
+        if (ndBtn)  ndBtn.addEventListener('click', function() { DeliveryModal.open(null); });
+    });
+
+    return { load: load, reload: reload };
+}());
+
+/* ══ DELIVERY (PICKUP/COURIER) MODAL ══ */
+var DeliveryModal = (function() {
+    var _orderId = <?php echo (int)(isset($order['id']) ? $order['id'] : 0); ?>;
+
+    function open(existing) {
+        var modal    = document.getElementById('newDeliveryModal');
+        var title    = document.getElementById('newDeliveryModalTitle');
+        var idEl     = document.getElementById('ndDeliveryId');
+        var methodEl = document.getElementById('ndMethodId');
+        var statusEl = document.getElementById('ndStatus');
+        var commentEl= document.getElementById('ndComment');
+        var errEl    = document.getElementById('ndError');
+        if (!modal) return;
+
+        errEl.style.display = 'none';
+        if (existing) {
+            title.textContent      = 'Редагувати відправлення';
+            idEl.value             = existing.id;
+            if (methodEl) methodEl.value = existing.delivery_method_id;
+            if (statusEl) statusEl.value = existing.status;
+            if (commentEl) commentEl.value = existing.comment || '';
+        } else {
+            title.textContent = 'Нове відправлення';
+            idEl.value = '0';
+            if (statusEl) statusEl.value = 'pending';
+            if (commentEl) commentEl.value = '';
+        }
+        modal.classList.add('open');
+    }
+
+    function close() {
+        var modal = document.getElementById('newDeliveryModal');
+        if (modal) modal.classList.remove('open');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var closeBtn  = document.getElementById('newDeliveryModalClose');
+        var cancelBtn = document.getElementById('ndCancelBtn');
+        var saveBtn   = document.getElementById('ndSaveBtn');
+        var errEl     = document.getElementById('ndError');
+        if (closeBtn)  closeBtn.addEventListener('click', close);
+        if (cancelBtn) cancelBtn.addEventListener('click', close);
+
+        if (saveBtn) saveBtn.addEventListener('click', function() {
+            var idEl     = document.getElementById('ndDeliveryId');
+            var methodEl = document.getElementById('ndMethodId');
+            var statusEl = document.getElementById('ndStatus');
+            var commentEl= document.getElementById('ndComment');
+            if (!methodEl || !methodEl.value) {
+                errEl.textContent = 'Оберіть спосіб доставки'; errEl.style.display = ''; return;
+            }
+            saveBtn.disabled = true;
+            var body = 'customerorder_id=' + _orderId
+                + '&id='                  + (idEl ? idEl.value : '0')
+                + '&delivery_method_id='  + encodeURIComponent(methodEl.value)
+                + '&status='              + encodeURIComponent(statusEl ? statusEl.value : 'pending')
+                + '&comment='             + encodeURIComponent(commentEl ? commentEl.value : '');
+            fetch('/customerorder/api/save_order_delivery', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            }).then(function(r){ return r.json(); }).then(function(res) {
+                saveBtn.disabled = false;
+                if (!res.ok) { errEl.textContent = res.error || 'Помилка'; errEl.style.display = ''; return; }
+                close();
+                ShipmentsPanel.reload();
+                showToast('Збережено ✓');
+            }).catch(function() { saveBtn.disabled = false; errEl.textContent = 'Помилка з\'єднання'; errEl.style.display = ''; });
+        });
+    });
+
+    return { open: open, close: close };
+}());
+
+/* ══ NP TTN CREATE MODAL ══ */
+var NpTtnModal = (function() {
+    var _orderId = 0;
+    var _prefillData = null;
+
+    function esc(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function open(orderId) {
+        _orderId = orderId;
+        var modal = document.getElementById('newTtnModal');
+        var body  = document.getElementById('npTtnBody');
+        if (!modal || !body) return;
+        body.innerHTML = '<div style="text-align:center;color:#9ca3af;padding:30px;">Завантаження…</div>';
+        modal.classList.add('open');
+
+        fetch('/novaposhta/api/get_ttn_form?order_id=' + orderId)
+            .then(function(r){ return r.json(); })
+            .then(function(res) {
+                if (!res.ok) { body.innerHTML = '<div style="color:#dc2626;padding:16px">' + esc(res.error || 'Помилка') + '</div>'; return; }
+                _prefillData = res.data;
+                renderForm(res.data, body);
+            })
+            .catch(function() { body.innerHTML = '<div style="color:#dc2626;padding:16px">Помилка завантаження</div>'; });
+    }
+
+    function close() {
+        var modal = document.getElementById('newTtnModal');
+        if (modal) modal.classList.remove('open');
+    }
+
+    function renderForm(data, body) {
+        var senders   = data.senders   || [];
+        var recipient = data.recipient || {};
+
+        var sOpts = senders.map(function(s) {
+            var sel = (s.Ref === data.sender_ref) ? ' selected' : '';
+            return '<option value="' + esc(s.Ref) + '"' + sel + '>' + esc(s.Description) + '</option>';
+        }).join('');
+
+        var stOpts = [
+            ['WarehouseWarehouse', 'Відділення → Відділення'],
+            ['WarehouseDoors',     'Відділення → Адреса'],
+            ['DoorsWarehouse',     'Адреса → Відділення'],
+            ['DoorsDoor',          'Адреса → Адреса'],
+        ].map(function(o) {
+            return '<option value="' + o[0] + '">' + o[1] + '</option>';
+        }).join('');
+
+        var html = '';
+
+        // Sender
+        html += '<div class="np-form-section">Відправник</div>';
+        html += '<label class="np-field-label" style="margin-top:0">Відправник</label>';
+        html += '<select id="npSenderRef" class="np-inp" style="height:auto;padding:4px 7px;">' + sOpts + '</select>';
+        html += '<label class="np-field-label">Адреса відправки</label>';
+        html += '<select id="npSenderAddr" class="np-inp" style="height:auto;padding:4px 7px;"><option value="">Завантаження…</option></select>';
+
+        // Recipient
+        html += '<div class="np-form-section">Одержувач</div>';
+        html += '<div class="np-2col">';
+        html += '<div><label class="np-field-label" style="margin-top:0">Прізвище</label><input type="text" id="npRcpLast" class="np-inp" value="' + esc(recipient.last_name||'') + '"></div>';
+        html += '<div><label class="np-field-label" style="margin-top:0">Ім\'я</label><input type="text" id="npRcpFirst" class="np-inp" value="' + esc(recipient.first_name||'') + '"></div>';
+        html += '</div>';
+        html += '<label class="np-field-label">Телефон</label>';
+        html += '<input type="text" id="npRcpPhone" class="np-inp" value="' + esc(recipient.phone||'') + '" placeholder="0671234567">';
+
+        html += '<label class="np-field-label">Місто одержувача</label>';
+        html += '<div class="np-ac-wrap"><input type="text" id="npCityInput" class="np-inp" value="' + esc(recipient.city_hint||'') + '" placeholder="Введіть місто…" autocomplete="off">';
+        html += '<input type="hidden" id="npCityRef" value=""><div class="np-ac-dd" id="npCityDd"></div></div>';
+
+        html += '<div id="npWhSection"><label class="np-field-label">Відділення / Поштомат</label>';
+        html += '<div class="np-ac-wrap"><input type="text" id="npWhInput" class="np-inp" value="' + esc(recipient.address_hint||'') + '" placeholder="Відділення або поштомат…" autocomplete="off">';
+        html += '<input type="hidden" id="npWhRef" value="' + esc(recipient.np_warehouse_ref||'') + '"><div class="np-ac-dd" id="npWhDd"></div></div></div>';
+
+        html += '<div id="npAddrSection" style="display:none"><label class="np-field-label">Вулиця</label>';
+        html += '<div class="np-ac-wrap"><input type="text" id="npStreetInput" class="np-inp" placeholder="Вулиця…" autocomplete="off">';
+        html += '<input type="hidden" id="npStreetRef" value=""><div class="np-ac-dd" id="npStreetDd"></div></div>';
+        html += '<div class="np-2col" style="margin-top:6px"><div><label class="np-field-label" style="margin-top:0">Будинок</label><input type="text" id="npBuilding" class="np-inp"></div>';
+        html += '<div><label class="np-field-label" style="margin-top:0">Квартира</label><input type="text" id="npFlat" class="np-inp"></div></div></div>';
+
+        // Cargo
+        html += '<div class="np-form-section">Вантаж</div>';
+        html += '<label class="np-field-label" style="margin-top:0">Тип доставки</label>';
+        html += '<select id="npServiceType" class="np-inp" style="height:auto;padding:4px 7px;">' + stOpts + '</select>';
+        html += '<div class="np-2col" style="margin-top:8px">';
+        html += '<div><label class="np-field-label" style="margin-top:0">Вага (кг)</label><input type="number" id="npWeight" class="np-inp" value="0.5" step="0.1" min="0.1"></div>';
+        html += '<div><label class="np-field-label" style="margin-top:0">Місць</label><input type="number" id="npSeats" class="np-inp" value="1" step="1" min="1"></div>';
+        html += '</div>';
+        html += '<label class="np-field-label">Опис</label><input type="text" id="npDesc" class="np-inp" value="Товар">';
+        html += '<label class="np-field-label">Оголошена вартість (грн)</label><input type="number" id="npCost" class="np-inp" value="1" min="1">';
+
+        // Payment
+        html += '<div class="np-form-section">Оплата</div>';
+        html += '<div class="np-2col">';
+        html += '<div><label class="np-field-label" style="margin-top:0">Платник</label>'
+              + '<select id="npPayerType" class="np-inp" style="height:auto;padding:4px 7px;">'
+              + '<option value="Recipient">Одержувач</option><option value="Sender">Відправник</option></select></div>';
+        html += '<div><label class="np-field-label" style="margin-top:0">Спосіб оплати</label>'
+              + '<select id="npPayMethod" class="np-inp" style="height:auto;padding:4px 7px;">'
+              + '<option value="Cash">Готівка</option><option value="NonCash">Безготівка</option></select></div>';
+        html += '</div>';
+        html += '<label class="np-field-label">Накладений платіж (грн), 0 = без</label>';
+        html += '<input type="number" id="npBackMoney" class="np-inp" value="' + esc(data.backward_money_hint || 0) + '" min="0" step="0.01">';
+        html += '<label class="np-field-label">Дата відправки</label>';
+        html += '<input type="date" id="npDate" class="np-inp" value="' + (new Date().toISOString().slice(0,10)) + '">';
+
+        html += '<div id="npTtnError" class="np-form-error"></div>';
+
+        html += '<div style="display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">';
+        html += '<button type="button" class="btn btn-primary btn-sm" id="npTtnSubmitBtn">Створити ТТН</button>';
+        html += '<button type="button" class="btn btn-sm" id="npTtnCancelBtn">Скасувати</button>';
+        html += '</div>';
+
+        body.innerHTML = html;
+        bindFormEvents(data);
+    }
+
+    function bindFormEvents(data) {
+        document.getElementById('npTtnCancelBtn').addEventListener('click', close);
+
+        // Service type toggle
+        var stSel = document.getElementById('npServiceType');
+        function toggleDelivery() {
+            var v = stSel.value;
+            var isAddr = (v === 'WarehouseDoors' || v === 'DoorsDoor');
+            document.getElementById('npWhSection').style.display   = isAddr ? 'none' : '';
+            document.getElementById('npAddrSection').style.display = isAddr ? '' : 'none';
+        }
+        stSel.addEventListener('change', toggleDelivery);
+        toggleDelivery();
+
+        // Sender addresses
+        function loadSenderAddresses(senderRef) {
+            var addrSel = document.getElementById('npSenderAddr');
+            if (!addrSel) return;
+            addrSel.innerHTML = '<option value="">Завантаження…</option>';
+            fetch('/novaposhta/api/get_senders?sender_ref=' + encodeURIComponent(senderRef))
+                .then(function(r){ return r.json(); })
+                .then(function(res) {
+                    if (!res.ok || !res.addresses || !res.addresses.length) {
+                        addrSel.innerHTML = '<option value="">Адреси не знайдено</option>'; return;
+                    }
+                    addrSel.innerHTML = res.addresses.map(function(a) {
+                        var s = a.is_default ? ' selected' : '';
+                        return '<option value="' + esc(a.Ref) + '"' + s
+                            + ' data-city="' + esc(a.CityRef||'') + '"'
+                            + ' data-city-desc="' + esc(a.CityDescription||'') + '">'
+                            + esc(a.Description||a.Ref) + '</option>';
+                    }).join('');
+                });
+        }
+        var senderSel = document.getElementById('npSenderRef');
+        if (senderSel.value) loadSenderAddresses(senderSel.value);
+        senderSel.addEventListener('change', function(){ loadSenderAddresses(this.value); });
+
+        // Autocomplete helper
+        function makeAc(inpId, ddId, hiddenId, fetchFn, renderFn) {
+            var inp    = document.getElementById(inpId);
+            var dd     = document.getElementById(ddId);
+            var hidden = document.getElementById(hiddenId);
+            if (!inp || !dd || !hidden) return;
+            var timer;
+            inp.addEventListener('input', function() {
+                clearTimeout(timer);
+                var q = inp.value.trim();
+                if (q.length < 2) { dd.style.display = 'none'; return; }
+                timer = setTimeout(function() {
+                    fetchFn(q, function(items) {
+                        if (!items.length) { dd.style.display = 'none'; return; }
+                        dd.innerHTML = items.slice(0, 15).map(function(item) {
+                            var r = renderFn(item);
+                            return '<div class="np-ac-item" data-ref="' + esc(item.Ref) + '" data-label="' + esc(r.label) + '">'
+                                + esc(r.label) + (r.sub ? '<div class="np-ac-sub">' + esc(r.sub) + '</div>' : '') + '</div>';
+                        }).join('');
+                        dd.style.display = 'block';
+                    });
+                }, 280);
+            });
+            dd.addEventListener('mousedown', function(e) {
+                var item = e.target.closest('.np-ac-item');
+                if (!item) return;
+                inp.value    = item.dataset.label;
+                hidden.value = item.dataset.ref;
+                dd.style.display = 'none';
+                inp.dispatchEvent(new Event('np-selected', { bubbles: true }));
+            });
+            document.addEventListener('click', function(e) {
+                if (!inp.contains(e.target) && !dd.contains(e.target)) dd.style.display = 'none';
+            });
+        }
+
+        var curSenderRef = function() { return (document.getElementById('npSenderRef') || {}).value || ''; };
+
+        makeAc('npCityInput', 'npCityDd', 'npCityRef',
+            function(q, cb) {
+                fetch('/novaposhta/api/search_city?q=' + encodeURIComponent(q) + '&sender_ref=' + encodeURIComponent(curSenderRef()))
+                    .then(function(r){ return r.json(); }).then(function(res){ cb(res.cities||[]); });
+            },
+            function(c) { return { label: c.Description, sub: c.SettlementTypeDescription || '' }; }
+        );
+        document.getElementById('npCityInput').addEventListener('np-selected', function() {
+            var wh = document.getElementById('npWhInput');
+            var ws = document.getElementById('npWhRef');
+            var si = document.getElementById('npStreetInput');
+            var sr = document.getElementById('npStreetRef');
+            if (wh) wh.value = ''; if (ws) ws.value = '';
+            if (si) si.value = ''; if (sr) sr.value = '';
+        });
+
+        makeAc('npWhInput', 'npWhDd', 'npWhRef',
+            function(q, cb) {
+                var cityRef = (document.getElementById('npCityRef') || {}).value || '';
+                if (!cityRef) { cb([]); return; }
+                fetch('/novaposhta/api/search_warehouse?city_ref=' + encodeURIComponent(cityRef)
+                    + '&q=' + encodeURIComponent(q) + '&sender_ref=' + encodeURIComponent(curSenderRef()))
+                    .then(function(r){ return r.json(); }).then(function(res){ cb(res.warehouses||[]); });
+            },
+            function(w) { return { label: 'Відд. №' + w.Number + (w.ShortAddress ? ': ' + w.ShortAddress : ''), sub: w.Description }; }
+        );
+
+        makeAc('npStreetInput', 'npStreetDd', 'npStreetRef',
+            function(q, cb) {
+                var cityRef = (document.getElementById('npCityRef') || {}).value || '';
+                if (!cityRef) { cb([]); return; }
+                fetch('/novaposhta/api/search_street?city_ref=' + encodeURIComponent(cityRef)
+                    + '&q=' + encodeURIComponent(q) + '&sender_ref=' + encodeURIComponent(curSenderRef()))
+                    .then(function(r){ return r.json(); }).then(function(res){ cb(res.streets||[]); });
+            },
+            function(s) { return { label: s.Description, sub: s.StreetsType || '' }; }
+        );
+
+        // Submit
+        document.getElementById('npTtnSubmitBtn').addEventListener('click', function() {
+            var btn    = this;
+            var errDiv = document.getElementById('npTtnError');
+            errDiv.style.display = 'none';
+
+            var senderRef   = (document.getElementById('npSenderRef')   || {}).value || '';
+            var addrSel     = document.getElementById('npSenderAddr');
+            var senderAddr  = addrSel ? addrSel.value : '';
+            var cityRcpRef  = (document.getElementById('npCityRef')     || {}).value || '';
+            var cityRcpDesc = (document.getElementById('npCityInput')   || {}).value || '';
+            var phone       = ((document.getElementById('npRcpPhone')   || {}).value || '').trim();
+            var weight      = parseFloat((document.getElementById('npWeight') || {}).value) || 0;
+            var serviceType = (document.getElementById('npServiceType') || {}).value || 'WarehouseWarehouse';
+            var whRef       = (document.getElementById('npWhRef')       || {}).value || '';
+
+            if (!senderRef)   { errDiv.textContent = 'Оберіть відправника';         errDiv.style.display = ''; return; }
+            if (!senderAddr)  { errDiv.textContent = 'Оберіть адресу відправки';    errDiv.style.display = ''; return; }
+            if (!cityRcpRef)  { errDiv.textContent = 'Оберіть місто одержувача';    errDiv.style.display = ''; return; }
+            if (!phone)       { errDiv.textContent = 'Введіть телефон одержувача';  errDiv.style.display = ''; return; }
+            if (weight <= 0)  { errDiv.textContent = 'Вага повинна бути > 0';       errDiv.style.display = ''; return; }
+            if ((serviceType === 'WarehouseWarehouse' || serviceType === 'DoorsWarehouse') && !whRef) {
+                errDiv.textContent = 'Оберіть відділення одержувача'; errDiv.style.display = ''; return;
+            }
+
+            var addrOpt = addrSel ? addrSel.options[addrSel.selectedIndex] : null;
+            var citySenderRef  = addrOpt ? (addrOpt.dataset.city     || '') : '';
+            var citySenderDesc = addrOpt ? (addrOpt.dataset.cityDesc || '') : '';
+
+            var dateVal   = (document.getElementById('npDate') || {}).value || '';
+            var dateParts = dateVal.split('-');
+            var dateNp    = dateParts.length === 3 ? dateParts[2]+'.'+dateParts[1]+'.'+dateParts[0] : '';
+
+            btn.disabled = true; btn.textContent = 'Створення…';
+
+            var body = [
+                'customerorder_id='        + _orderId,
+                'sender_ref='              + encodeURIComponent(senderRef),
+                'sender_address_ref='      + encodeURIComponent(senderAddr),
+                'city_sender_ref='         + encodeURIComponent(citySenderRef),
+                'city_sender_desc='        + encodeURIComponent(citySenderDesc),
+                'city_recipient_ref='      + encodeURIComponent(cityRcpRef),
+                'city_recipient_desc='     + encodeURIComponent(cityRcpDesc),
+                'service_type='            + encodeURIComponent(serviceType),
+                'recipient_type=PrivatePerson',
+                'recipient_last_name='     + encodeURIComponent(((document.getElementById('npRcpLast')||{}).value||'').trim()),
+                'recipient_first_name='    + encodeURIComponent(((document.getElementById('npRcpFirst')||{}).value||'').trim()),
+                'recipient_middle_name=',
+                'recipient_phone='         + encodeURIComponent(phone),
+                'counterparty_id='         + (_prefillData && _prefillData.recipient ? (_prefillData.recipient.counterparty_id || 0) : 0),
+                'recipient_warehouse_ref=' + encodeURIComponent(whRef),
+                'recipient_address_desc='  + encodeURIComponent(((document.getElementById('npWhInput')||{}).value||'')),
+                'recipient_street_ref='    + encodeURIComponent(((document.getElementById('npStreetRef')||{}).value||'')),
+                'recipient_building='      + encodeURIComponent(((document.getElementById('npBuilding')||{}).value||'').trim()),
+                'recipient_flat='          + encodeURIComponent(((document.getElementById('npFlat')||{}).value||'').trim()),
+                'weight='                  + weight,
+                'seats_amount='            + (parseInt(((document.getElementById('npSeats')||{}).value||'1'))||1),
+                'cargo_type=Cargo',
+                'description='             + encodeURIComponent(((document.getElementById('npDesc')||{}).value||'Товар').trim()),
+                'cost='                    + (parseInt(((document.getElementById('npCost')||{}).value||'1'))||1),
+                'payment_method='          + encodeURIComponent(((document.getElementById('npPayMethod')||{}).value||'Cash')),
+                'payer_type='              + encodeURIComponent(((document.getElementById('npPayerType')||{}).value||'Recipient')),
+                'backward_delivery_money=' + (parseFloat(((document.getElementById('npBackMoney')||{}).value||'0'))||0),
+                'date='                    + encodeURIComponent(dateNp),
+            ].join('&');
+
+            fetch('/novaposhta/api/create_ttn', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: body
+            }).then(function(r){ return r.json(); }).then(function(res) {
+                btn.disabled = false; btn.textContent = 'Створити ТТН';
+                if (!res.ok) {
+                    errDiv.textContent = res.error || 'Невідома помилка'; errDiv.style.display = ''; return;
+                }
+                close();
+                ShipmentsPanel.reload();
+                _relDocsLoaded = false;
+                RelDocsGraph.load(_orderId);
+                showToast('ТТН ' + (res.int_doc_number || '') + ' створено ✓');
+            }).catch(function() {
+                btn.disabled = false; btn.textContent = 'Створити ТТН';
+                errDiv.textContent = 'Помилка з\'єднання'; errDiv.style.display = '';
+            });
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var closeBtn = document.getElementById('newTtnModalClose');
+        if (closeBtn) closeBtn.addEventListener('click', close);
+    });
+
+    return { open: open, close: close };
+}());
+</script>
+<?php endif; ?>
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

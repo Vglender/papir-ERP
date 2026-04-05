@@ -36,6 +36,7 @@ $currencyCode         = isset($_POST['currency_code'])        ? trim($_POST['cur
 $storeId              = isset($_POST['store_id'])             && $_POST['store_id'] !== ''             ? (int)$_POST['store_id'] : null;
 $plannedShipmentAt    = isset($_POST['planned_shipment_at'])  && $_POST['planned_shipment_at'] !== '' ? trim($_POST['planned_shipment_at']) : null;
 $applicable           = isset($_POST['applicable'])           ? (int)$_POST['applicable']           : null;
+$waitCall             = isset($_POST['wait_call'])             ? (int)(bool)$_POST['wait_call']       : null;
 
 if ($orderId <= 0) {
     echo json_encode(array('ok' => false, 'error' => 'order_id required'));
@@ -48,9 +49,14 @@ if (!is_array($items)) {
     exit;
 }
 
-// Version check
+// Version check + fetch current values for history diff
 $rOrder = \Database::fetchRow('Papir',
-    "SELECT id, version FROM customerorder WHERE id = {$orderId} AND deleted_at IS NULL LIMIT 1");
+    "SELECT id, version, status, manager_employee_id,
+            organization_id, delivery_method_id, payment_method_id,
+            description, applicable, wait_call, sales_channel, currency_code,
+            store_id, planned_shipment_at, counterparty_id, contact_person_id,
+            organization_bank_account_id, contract_id, project_id
+     FROM customerorder WHERE id = {$orderId} AND deleted_at IS NULL LIMIT 1");
 
 if (!$rOrder['ok'] || empty($rOrder['row'])) {
     echo json_encode(array('ok' => false, 'error' => 'Order not found'));
@@ -58,6 +64,7 @@ if (!$rOrder['ok'] || empty($rOrder['row'])) {
 }
 
 $currentVersion = (int)$rOrder['row']['version'];
+$_oldOrder = $rOrder['row'];  // snapshot for history diff
 
 if ($version > 0 && $currentVersion !== $version) {
     echo json_encode(array(
@@ -68,6 +75,21 @@ if ($version > 0 && $currentVersion !== $version) {
     ));
     exit;
 }
+
+// ── Снапшот позиций ДО изменений (для диффа в истории) ────────────────────
+$_trackFields   = \DocumentHistory::getItemTrackableFields('customerorder');
+$_trackFieldStr = implode(', ', array_map(function($f) { return "`{$f}`"; }, array_keys($_trackFields)));
+
+$_rSnap = \Database::fetchAll('Papir',
+    "SELECT id, product_name, sku, line_no, {$_trackFieldStr}
+     FROM customerorder_item WHERE customerorder_id = {$orderId}");
+$_itemsBefore = array();
+if ($_rSnap['ok'] && !empty($_rSnap['rows'])) {
+    foreach ($_rSnap['rows'] as $_si) {
+        $_itemsBefore[(int)$_si['id']] = $_si;
+    }
+}
+$_itemsHistory = array(); // накапливаем события, пишем после commit
 
 \Database::begin('Papir');
 
@@ -89,6 +111,7 @@ try {
     if ($storeId       !== null) $headerData['store_id']          = $storeId > 0 ? $storeId : null;
     if ($plannedShipmentAt !== null) $headerData['planned_shipment_at'] = $plannedShipmentAt;
     if ($applicable    !== null) $headerData['applicable']        = $applicable;
+    if ($waitCall      !== null) $headerData['wait_call']         = $waitCall;
     if ($status !== null) {
         $allowed = array('draft','new','confirmed','in_progress','waiting_payment','paid',
                          'partially_shipped','shipped','completed','cancelled');
@@ -107,6 +130,13 @@ try {
                 $r = \Database::query('Papir',
                     "DELETE FROM customerorder_item WHERE id={$itemId} AND customerorder_id={$orderId}");
                 if (!$r['ok']) throw new Exception('Delete item ' . $itemId . ' failed');
+                // History: запомнить удалённую позицию
+                $_itemsHistory[] = array(
+                    'action'  => 'delete_item',
+                    'item_id' => $itemId,
+                    'before'  => isset($_itemsBefore[$itemId]) ? $_itemsBefore[$itemId] : null,
+                    'after'   => null,
+                );
             }
             continue;
         }
@@ -142,6 +172,13 @@ try {
             $r = \Database::update('Papir', 'customerorder_item', $fields,
                 array('id' => $itemId, 'customerorder_id' => $orderId));
             if (!$r['ok']) throw new Exception('Update item ' . $itemId . ' failed');
+            // History: запомнить изменённую позицию (before уже в снапшоте)
+            $_itemsHistory[] = array(
+                'action'  => 'update_item',
+                'item_id' => $itemId,
+                'before'  => isset($_itemsBefore[$itemId]) ? $_itemsBefore[$itemId] : null,
+                'after'   => $fields,  // trackable поля входят в $fields
+            );
         } else {
             // INSERT new item
             $rLine = \Database::fetchRow('Papir',
@@ -161,6 +198,13 @@ try {
 
             $r = \Database::insert('Papir', 'customerorder_item', $fields);
             if (!$r['ok']) throw new Exception('Insert item failed: ' . (isset($r['error']) ? $r['error'] : ''));
+            // History: новая позиция
+            $_itemsHistory[] = array(
+                'action'    => 'add_item',
+                'item_id'   => isset($r['insert_id']) ? (int)$r['insert_id'] : null,
+                'before'    => null,
+                'after'     => $fields,
+            );
         }
     }
 
@@ -174,6 +218,174 @@ try {
     if (!$rFinal['ok']) throw new Exception('Final update failed');
 
     \Database::commit('Papir');
+
+    // ── History logging ────────────────────────────────────────────────────────
+    $currentUser = \Papir\Crm\AuthService::getCurrentUser();
+    $_actor = $currentUser
+        ? array('actor_type' => 'user', 'actor_id' => (int)$currentUser['user_id'], 'actor_label' => $currentUser['display_name'])
+        : array('actor_type' => 'system', 'actor_id' => null, 'actor_label' => 'Система');
+
+    // Лейблы полей
+    $_fieldLabels = array(
+        'status'                       => 'Статус',
+        'manager_employee_id'          => 'Менеджер',
+        'organization_id'              => 'Організація',
+        'delivery_method_id'           => 'Спосіб доставки',
+        'payment_method_id'            => 'Спосіб оплати',
+        'description'                  => 'Коментар',
+        'applicable'                   => 'Проведено',
+        'sales_channel'                => 'Канал продажу',
+        'store_id'                     => 'Склад',
+        'planned_shipment_at'          => 'Планове відвантаження',
+        'counterparty_id'              => 'Контрагент',
+        'contact_person_id'            => 'Контактна особа',
+        'organization_bank_account_id' => 'Банківський рахунок',
+        'contract_id'                  => 'Договір',
+        'currency_code'                => 'Валюта',
+    );
+
+    // Резолвер: ID → человекочитаемый текст (вызывается для old и new)
+    // Важно: резолвить ДО записи, чтобы история хранила актуальные названия на момент изменения
+    function _resolveFieldValue($field, $rawVal) {
+        if ($rawVal === null || $rawVal === '') return null;
+        $id = (int)$rawVal;
+
+        if ($field === 'manager_employee_id') {
+            $r = \Database::fetchRow('Papir', "SELECT full_name FROM employee WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['full_name'] : $rawVal;
+        }
+        if ($field === 'organization_id') {
+            $r = \Database::fetchRow('Papir', "SELECT name FROM organization WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['name'] : $rawVal;
+        }
+        if ($field === 'delivery_method_id') {
+            $r = \Database::fetchRow('Papir', "SELECT name_uk FROM delivery_method WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['name_uk'] : $rawVal;
+        }
+        if ($field === 'payment_method_id') {
+            $r = \Database::fetchRow('Papir', "SELECT name_uk FROM payment_method WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['name_uk'] : $rawVal;
+        }
+        if ($field === 'store_id') {
+            $r = \Database::fetchRow('Papir', "SELECT name FROM store WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['name'] : $rawVal;
+        }
+        if ($field === 'counterparty_id') {
+            $r = \Database::fetchRow('Papir', "SELECT name FROM counterparty WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['name'] : $rawVal;
+        }
+        if ($field === 'contact_person_id') {
+            $r = \Database::fetchRow('Papir',
+                "SELECT CONCAT(COALESCE(last_name,''),' ',COALESCE(first_name,'')) AS nm
+                 FROM counterparty WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row'] && trim($r['row']['nm'])) ? trim($r['row']['nm']) : $rawVal;
+        }
+        if ($field === 'contract_id') {
+            $r = \Database::fetchRow('Papir', "SELECT name FROM contract WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['name'] : $rawVal;
+        }
+        if ($field === 'organization_bank_account_id') {
+            $r = \Database::fetchRow('Papir', "SELECT iban FROM organization_bank_account WHERE id={$id} LIMIT 1");
+            return ($r['ok'] && $r['row']) ? $r['row']['iban'] : $rawVal;
+        }
+        if ($field === 'applicable') {
+            return $rawVal ? 'Так' : 'Ні';
+        }
+        if ($field === 'status') {
+            $map = array(
+                'draft'=>'Чернетка','new'=>'Нове','confirmed'=>'Підтверджено',
+                'in_progress'=>'В роботі','waiting_payment'=>'Очік. оплати',
+                'paid'=>'Оплачено','partially_shipped'=>'Частк. відвантаж.',
+                'shipped'=>'Відвантажено','completed'=>'Виконано','cancelled'=>'Скасовано',
+            );
+            return isset($map[$rawVal]) ? $map[$rawVal] : $rawVal;
+        }
+        // Прочие поля — возвращаем as-is
+        return (string)$rawVal;
+    }
+
+    $_skipFields = array('updated_at', 'version');
+    foreach ($headerData as $_field => $_newVal) {
+        if (in_array($_field, $_skipFields, true)) continue;
+        $_oldVal = isset($_oldOrder[$_field]) ? $_oldOrder[$_field] : null;
+        if ((string)$_oldVal === (string)$_newVal) continue;
+
+        $_label      = isset($_fieldLabels[$_field]) ? $_fieldLabels[$_field] : $_field;
+        $_oldDisplay = _resolveFieldValue($_field, $_oldVal);
+        $_newDisplay = _resolveFieldValue($_field, $_newVal);
+
+        \DocumentHistory::log('customerorder', $orderId, 'update', array_merge($_actor, array(
+            'field_name'  => $_field,
+            'field_label' => $_label,
+            'old_value'   => $_oldDisplay,
+            'new_value'   => $_newDisplay,
+        )));
+    }
+
+    // ── History: позиции ──────────────────────────────────────────────────────
+    foreach ($_itemsHistory as $_ih) {
+        $_action    = $_ih['action'];
+        $_iid       = $_ih['item_id'];
+        $_before    = $_ih['before'];
+        $_after     = $_ih['after'];
+        $_itemLabel = $_before ? \DocumentHistory::buildItemLabel($_before)
+                               : ($_after ? \DocumentHistory::buildItemLabel($_after) : 'Позиція');
+
+        if ($_action === 'add_item') {
+            // Одна запись: суммарное "що додали"
+            $_parts = array();
+            foreach ($_trackFields as $_tf => $_tl) {
+                if (isset($_after[$_tf]) && $_after[$_tf] !== null && (string)$_after[$_tf] !== '') {
+                    $_fv = \DocumentHistory::formatItemFieldValue($_tf, $_after[$_tf]);
+                    if ($_fv !== null) $_parts[] = $_tl . ': ' . $_fv;
+                }
+            }
+            \DocumentHistory::log('customerorder', $orderId, 'add_item', array_merge($_actor, array(
+                'item_id'    => $_iid,
+                'item_label' => $_itemLabel,
+                'old_value'  => null,
+                'new_value'  => implode(', ', $_parts),
+            )));
+
+        } elseif ($_action === 'delete_item') {
+            // Одна запись: суммарное "що було"
+            $_parts = array();
+            if ($_before) {
+                foreach ($_trackFields as $_tf => $_tl) {
+                    if (isset($_before[$_tf]) && $_before[$_tf] !== null && (string)$_before[$_tf] !== '') {
+                        $_fv = \DocumentHistory::formatItemFieldValue($_tf, $_before[$_tf]);
+                        if ($_fv !== null) $_parts[] = $_tl . ': ' . $_fv;
+                    }
+                }
+            }
+            \DocumentHistory::log('customerorder', $orderId, 'delete_item', array_merge($_actor, array(
+                'item_id'    => $_iid,
+                'item_label' => $_itemLabel,
+                'old_value'  => implode(', ', $_parts),
+                'new_value'  => null,
+            )));
+
+        } elseif ($_action === 'update_item') {
+            // По записи на каждое изменённое trackable поле
+            foreach ($_trackFields as $_tf => $_tl) {
+                $_oldRaw = isset($_before[$_tf]) ? $_before[$_tf] : null;
+                $_newRaw = isset($_after[$_tf])  ? $_after[$_tf]  : null;
+                // Нормализуем через форматтер — "0.000", 0.0, "0" → все станут "0"
+                $_oldFmt = \DocumentHistory::formatItemFieldValue($_tf, $_oldRaw);
+                $_newFmt = \DocumentHistory::formatItemFieldValue($_tf, $_newRaw);
+                if ($_oldFmt === $_newFmt) continue;
+                \DocumentHistory::log('customerorder', $orderId, 'update_item', array_merge($_actor, array(
+                    'item_id'    => $_iid,
+                    'item_label' => $_itemLabel,
+                    'field_name' => $_tf,
+                    'field_label'=> $_tl,
+                    'old_value'  => $_oldFmt,
+                    'new_value'  => $_newFmt,
+                )));
+            }
+        }
+    }
+    // ── End History ────────────────────────────────────────────────────────────
 
     // Return fresh data
     $rO = \Database::fetchRow('Papir',
@@ -215,6 +427,22 @@ try {
         'order'   => $rO['row'],
         'items'   => $rI['rows'],
     ));
+
+    // Fire automation triggers for status changes
+    if (isset($headerData['status']) && $headerData['status'] !== $_oldOrder['status']) {
+        $_cpId2 = isset($_oldOrder['counterparty_id']) ? (int)$_oldOrder['counterparty_id'] : 0;
+        $_orderCtx2 = array(
+            'order'           => array_merge($_oldOrder, array('status' => $headerData['status'])),
+            'order_id'        => $orderId,
+            'counterparty_id' => $_cpId2,
+            'old_status'      => $_oldOrder['status'],
+            'new_status'      => $headerData['status'],
+        );
+        TriggerEngine::fire('order_status_changed', $_orderCtx2);
+        if ($headerData['status'] === 'cancelled') {
+            TriggerEngine::fire('order_cancelled', $_orderCtx2);
+        }
+    }
 
     // Push to MoySklad after response sent
     if (function_exists('fastcgi_finish_request')) { fastcgi_finish_request(); }

@@ -71,17 +71,11 @@ class CustomerOrderService
             return $attributes;
         }
 
-        $history = $this->repository->getHistory($id);
-        if (!$history['ok']) {
-            return $history;
-        }
-
         return array(
             'ok' => true,
             'order' => $order['row'],
             'items' => $items['rows'],
             'attributes' => $attributes['rows'],
-            'history' => $history['rows'],
         );
     }
 
@@ -573,6 +567,7 @@ protected function prepareHeaderData($data, $isCreate)
         'number' => isset($data['number']) ? trim($data['number']) : null,
         'moment' => !empty($data['moment']) ? date('Y-m-d H:i:s', strtotime($data['moment'])) : date('Y-m-d H:i:s'),
         'applicable' => !empty($data['applicable']) ? 1 : 0,
+        'wait_call' => !empty($data['wait_call']) ? 1 : 0,
         'organization_id' => !empty($data['organization_id']) ? (int)$data['organization_id'] : null,
         'store_id' => !empty($data['store_id']) ? (int)$data['store_id'] : null,
         'manager_employee_id' => !empty($data['manager_employee_id']) ? (int)$data['manager_employee_id'] : null,
@@ -587,6 +582,7 @@ protected function prepareHeaderData($data, $isCreate)
         'currency_code' => !empty($data['currency_code']) ? $data['currency_code'] : 'UAH',
         'currency_rate' => isset($data['currency_rate']) && $data['currency_rate'] !== '' ? (float)$data['currency_rate'] : 1,
         'sales_channel' => isset($data['sales_channel']) ? $data['sales_channel'] : null,
+        'description' => isset($data['description']) ? trim($data['description']) : null,
 //		'stock_quantity' => isset($item['stock_quantity']) ? (float)$item['stock_quantity'] : 0,
 //		'reserved_stock_quantity' => isset($item['reserved_stock_quantity']) ? (float)$item['reserved_stock_quantity'] : 0,
 //		'expected_quantity' => isset($item['expected_quantity']) ? (float)$item['expected_quantity'] : 0,
@@ -601,7 +597,6 @@ protected function prepareHeaderData($data, $isCreate)
      * - contact_person_id
      * - organization_bank_account
      * - project_id
-     * - description
      * - comment_manager
      * - payment_status
      * - shipment_status
