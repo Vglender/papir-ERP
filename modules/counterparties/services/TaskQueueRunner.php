@@ -71,6 +71,9 @@ class TaskQueueRunner
                 case 'change_status':
                     list($ok, $note) = self::doChangeStatus($item, $params);
                     break;
+                case 'create_demand':
+                    list($ok, $note) = self::doCreateDemand($item, $params);
+                    break;
                 case 'wait':
                     $ok   = true;
                     $note = 'Waited';
@@ -104,52 +107,126 @@ class TaskQueueRunner
         $cpId = (int)$item['counterparty_id'];
         if (!$cpId) return array(false, 'No counterparty_id');
 
-        $text     = isset($params['text'])    ? $params['text']    : '';
-        $channels = isset($params['channels']) ? (array)$params['channels'] : array('viber');
-
-        // Resolve template variables from context
+        $text = isset($params['text']) ? $params['text'] : '';
         $text = self::resolveVars($text, $context);
         if (!$text) return array(false, 'No message text');
 
-        // Get phone for the counterparty
-        $r = Database::fetchRow('Papir',
-            "SELECT COALESCE(cc.phone, cp.phone) AS phone
-             FROM counterparty c
-             LEFT JOIN counterparty_company cc ON cc.counterparty_id = c.id
-             LEFT JOIN counterparty_person  cp ON cp.counterparty_id = c.id
-             WHERE c.id={$cpId}"
-        );
-        $phone = ($r['ok'] && $r['row']) ? $r['row']['phone'] : null;
-
-        $sent = false;
-        foreach ($channels as $ch) {
-            if ($ch === 'viber' && $phone) {
-                $res = AlphaSmsService::sendViber($phone, $text);
-                if ($res) {
-                    ChatRepository::saveMessage(array(
-                        'counterparty_id' => $cpId,
-                        'channel'         => 'viber',
-                        'direction'       => 'out',
-                        'is_auto'         => 1,
-                        'body'            => $text,
-                        'phone'           => $phone,
-                    ));
-                    $sent = true;
-                }
-            } elseif ($ch === 'sms' && $phone) {
-                AlphaSmsService::sendSms($phone, $text);
-                ChatRepository::saveMessage(array(
-                    'counterparty_id' => $cpId,
-                    'channel'         => 'sms',
-                    'direction'       => 'out',
-                    'is_auto'         => 1,
-                    'body'            => $text,
-                    'phone'           => $phone,
-                ));
-                $sent = true;
-            }
+        // Priority mode (new) — используем MessageDispatchService
+        if (isset($params['mode']) && $params['mode'] === 'priority') {
+            $priority = isset($params['priority_channels']) && is_array($params['priority_channels'])
+                ? $params['priority_channels']
+                : MessageDispatchService::DEFAULT_PRIORITY;
+            $res = MessageDispatchService::send($cpId, $text, $priority);
+            $note = $res['ok']
+                ? 'Sent via ' . $res['channel']
+                : 'Failed: ' . $res['error'] . ' (tried: ' . implode(',', array_column($res['tried'], 'channel')) . ')';
+            return array($res['ok'], $note);
         }
-        return array($sent, $sent ? 'Sent via ' . implode(',', $channels) : 'Could not send');
+
+        // Legacy mode — список каналів з чекбоксів
+        $channels = isset($params['channels']) ? (array)$params['channels'] : array('viber');
+        $res = MessageDispatchService::send($cpId, $text, $channels);
+        $note = $res['ok']
+            ? 'Sent via ' . $res['channel']
+            : 'Could not send: ' . $res['error'];
+        return array($res['ok'], $note);
+    }
+
+    // ── Create demand (відвантаження) ─────────────────────────────────────────
+
+    private static function doCreateDemand($item, $params)
+    {
+        $orderId = (int)$item['order_id'];
+        if (!$orderId) return array(false, 'No order_id in context');
+
+        // Перевіряємо чи вже є відвантаження
+        $rEx = Database::fetchRow('Papir',
+            "SELECT id FROM demand WHERE customerorder_id={$orderId} AND deleted_at IS NULL LIMIT 1");
+        if ($rEx['ok'] && !empty($rEx['row'])) {
+            return array(true, 'Demand already exists: #' . (int)$rEx['row']['id']);
+        }
+
+        // Завантажуємо замовлення
+        $rOrder = Database::fetchRow('Papir',
+            "SELECT * FROM customerorder WHERE id={$orderId} LIMIT 1");
+        if (!$rOrder['ok'] || empty($rOrder['row'])) {
+            return array(false, 'Order not found');
+        }
+        $order = $rOrder['row'];
+
+        // Завантажуємо позиції
+        $rItems = Database::fetchAll('Papir',
+            "SELECT ci.*, pp.product_article AS sku_fallback, pp.id_ms AS product_ms_id
+             FROM customerorder_item ci
+             LEFT JOIN product_papir pp ON pp.product_id = ci.product_id
+             WHERE ci.customerorder_id = {$orderId}
+             ORDER BY ci.line_no ASC");
+        if (!$rItems['ok']) return array(false, 'Failed to load order items');
+
+        // Генеруємо UUID
+        $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff),
+            mt_rand(0,0x0fff)|0x4000, mt_rand(0,0x3fff)|0x8000,
+            mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff));
+
+        $demandStatus = isset($params['status']) ? $params['status'] : 'new';
+        $storeId = isset($params['store_id']) && $params['store_id']
+            ? (int)$params['store_id']
+            : (isset($order['store_id']) ? (int)$order['store_id'] : null);
+
+        Database::begin('Papir');
+        try {
+            $rIns = Database::insert('Papir', 'demand', array(
+                'uuid'             => $uuid,
+                'customerorder_id' => $orderId,
+                'counterparty_id'  => isset($order['counterparty_id']) ? (int)$order['counterparty_id'] : null,
+                'organization_id'  => isset($order['organization_id']) ? (int)$order['organization_id'] : null,
+                'store_id'         => $storeId ?: null,
+                'moment'           => date('Y-m-d H:i:s'),
+                'status'           => $demandStatus,
+                'applicable'       => 0,
+                'source'           => 'auto',
+                'sync_state'       => 'new',
+                'sum_total'        => isset($order['sum_total']) ? (float)$order['sum_total'] : 0,
+                'sum_vat'          => isset($order['sum_vat'])   ? (float)$order['sum_vat']   : 0,
+                'description'      => isset($params['description']) ? $params['description'] : 'Авто-відвантаження',
+            ));
+            if (!$rIns['ok']) throw new Exception('Demand insert failed');
+            $demandId = (int)$rIns['insert_id'];
+
+            // Копіюємо позиції
+            foreach ($rItems['rows'] as $ci) {
+                $sku = $ci['sku'] ?: $ci['sku_fallback'];
+                Database::insert('Papir', 'demand_item', array(
+                    'demand_id'        => $demandId,
+                    'line_no'          => (int)$ci['line_no'],
+                    'product_id'       => $ci['product_id'] ? (int)$ci['product_id'] : null,
+                    'product_ms_id'    => $ci['product_ms_id'] ?: null,
+                    'product_name'     => $ci['product_name'],
+                    'sku'              => $sku,
+                    'quantity'         => (float)$ci['quantity'],
+                    'price'            => (float)$ci['price'],
+                    'discount_percent' => (float)$ci['discount_percent'],
+                    'vat_rate'         => (float)$ci['vat_rate'],
+                    'sum_row'          => (float)$ci['sum_row'],
+                ));
+            }
+
+            // Зв'язуємо з замовленням
+            Database::insert('Papir', 'document_link', array(
+                'from_type' => 'demand',
+                'from_id'   => $demandId,
+                'to_type'   => 'customerorder',
+                'to_id'     => $orderId,
+                'link_type' => 'shipment',
+            ));
+
+            Database::commit('Papir');
+            return array(true, "Demand #{$demandId} created (status={$demandStatus}, items=" . count($rItems['rows']) . ')');
+        } catch (Exception $e) {
+            Database::rollback('Papir');
+            return array(false, $e->getMessage());
+        }
     }
 
     private static function doCreateTask($item, $params)
@@ -250,14 +327,36 @@ class TaskQueueRunner
 
     private static function resolveVars($text, $context)
     {
-        // Replace {{order.number}}, {{order.sum_total}}, etc.
+        // Replace {{order.number}}, {{order.sum_total}}, {{counterparty.name}} etc.
         preg_match_all('/\{\{(\w+\.\w+)\}\}/', $text, $matches);
         foreach ($matches[1] as $key) {
             $parts = explode('.', $key, 2);
+            $root  = $parts[0];
+            $field = $parts[1];
             $val   = '';
-            if (isset($context[$parts[0]][$parts[1]])) {
-                $val = $context[$parts[0]][$parts[1]];
+
+            if (isset($context[$root][$field])) {
+                $val = (string)$context[$root][$field];
+            } elseif ($root === 'counterparty') {
+                $cpId = isset($context['counterparty_id']) ? (int)$context['counterparty_id'] : 0;
+                if ($cpId) {
+                    $safeField = preg_replace('/[^a-z0-9_]/i', '', $field);
+                    $r = Database::fetchRow('Papir',
+                        "SELECT `{$safeField}` FROM counterparty WHERE id={$cpId} LIMIT 1");
+                    if ($r['ok'] && !empty($r['row']) && array_key_exists($safeField, $r['row'])) {
+                        $val = (string)$r['row'][$safeField];
+                    }
+                }
+            } elseif ($root === 'order' && isset($context['order_id'])) {
+                $ordId     = (int)$context['order_id'];
+                $safeField = preg_replace('/[^a-z0-9_]/i', '', $field);
+                $r = Database::fetchRow('Papir',
+                    "SELECT `{$safeField}` FROM customerorder WHERE id={$ordId} LIMIT 1");
+                if ($r['ok'] && !empty($r['row']) && array_key_exists($safeField, $r['row'])) {
+                    $val = (string)$r['row'][$safeField];
+                }
             }
+
             $text = str_replace('{{' . $key . '}}', $val, $text);
         }
         return $text;

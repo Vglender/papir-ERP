@@ -162,7 +162,7 @@ $r = Database::fetchRow('Papir',
 
 | Таблица | Записей | Назначение |
 |---------|---------|-----------|
-| `counterparty` | 8 | Контрагенты (type: person/company/fop/department). Денормализованные поля: `last_activity_at` (последнее сообщение/заказ), `unread_count` (непрочитанные), `open_task_count` + `next_task_due_at` + `next_task_priority` (для decay-сортировки в инбоксе) |
+| `counterparty` | 8 | Контрагенты (type: person/company/fop/department). Денормализованные поля: `last_activity_at`, `unread_count`, `open_task_count`, `next_task_due_at`, `next_task_priority`. `viber_unavailable TINYINT` — автоматически устанавливается в 1 когда Viber-статус сообщения = failed (нет Viber у клиента), сбрасывается при delivered/read. Используется для блокировки вкладки Viber в чате. |
 | `cp_tasks` | 0 | Задачи контрагентов: priority(1-5), task_type, due_at, status(open/snoozed/done). Decay model: score = priority×20 + бонус от proximity к due_at. Обновляют `counterparty.open_task_count` и `next_task_*` |
 | `counterparty_company` | 4 | Расширение для юр. лиц (okpo, inn, адреса, банк) |
 | `counterparty_person` | 4 | Расширение для физ. лиц (ФИО, телефон, telegram) |

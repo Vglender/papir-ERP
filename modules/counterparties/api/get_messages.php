@@ -63,6 +63,8 @@ foreach ($messages as $msg) {
         'read_at'       => $msg['read_at'],
         'scheduled_at'  => $msg['scheduled_at'],
         'assigned_to'   => $msg['assigned_to'] ? (int)$msg['assigned_to'] : null,
+        'reply_to_id'   => $msg['reply_to_id'] ? (int)$msg['reply_to_id'] : null,
+        'reply_to_body' => isset($msg['reply_to_body']) ? $msg['reply_to_body'] : null,
     );
 }
 

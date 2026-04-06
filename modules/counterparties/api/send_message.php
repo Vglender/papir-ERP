@@ -7,12 +7,27 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-$counterpartyId = isset($_POST['id'])        ? (int)$_POST['id']         : 0;
-$leadId         = isset($_POST['lead_id'])  ? (int)$_POST['lead_id']    : 0;
-$channel        = isset($_POST['channel'])  ? trim($_POST['channel'])    : '';
-$body           = isset($_POST['body'])     ? trim($_POST['body'])       : '';
-$subject        = isset($_POST['subject'])  ? trim($_POST['subject'])    : 'Повідомлення від Papir CRM';
-$mediaUrl       = isset($_POST['media_url'])? trim($_POST['media_url'])  : '';
+$counterpartyId = isset($_POST['id'])           ? (int)$_POST['id']            : 0;
+$leadId         = isset($_POST['lead_id'])     ? (int)$_POST['lead_id']       : 0;
+$channel        = isset($_POST['channel'])     ? trim($_POST['channel'])       : '';
+$body           = isset($_POST['body'])        ? trim($_POST['body'])          : '';
+$subject        = isset($_POST['subject'])     ? trim($_POST['subject'])       : 'Повідомлення від Papir CRM';
+$mediaUrl       = isset($_POST['media_url'])   ? trim($_POST['media_url'])     : '';
+$replyToId      = isset($_POST['reply_to_id']) ? (int)$_POST['reply_to_id']   : 0;
+
+// If replying — prepend quoted text to body so the client sees the context
+if ($replyToId > 0 && $body) {
+    $rOrig = Database::fetchRow('Papir',
+        "SELECT body FROM cp_messages WHERE id = {$replyToId} LIMIT 1");
+    if ($rOrig['ok'] && !empty($rOrig['row']['body'])) {
+        $origBody = $rOrig['row']['body'];
+        // Trim to 120 chars to keep the message readable
+        if (mb_strlen($origBody, 'UTF-8') > 120) {
+            $origBody = mb_substr($origBody, 0, 120, 'UTF-8') . '…';
+        }
+        $body = '> ' . $origBody . "\n" . $body;
+    }
+}
 
 if (($counterpartyId <= 0 && $leadId <= 0) || (!$body && !$mediaUrl)) {
     echo json_encode(array('ok' => false, 'error' => 'id або lead_id і body/media_url обовʼязкові'));
@@ -134,15 +149,20 @@ if ($channel === 'viber' || $channel === 'sms') {
     $attachPath = null;
     $attachName = null;
     if ($mediaUrl) {
-        // Files are stored at officetorg.com.ua/image/... → local /var/www/menufold/data/www/officetorg.com.ua/image/...
-        $localBase = '/var/www/menufold/data/www/officetorg.com.ua/image/';
-        $urlBase   = 'https://officetorg.com.ua/image/';
-        if (strpos($mediaUrl, $urlBase) === 0) {
-            $relPath    = substr($mediaUrl, strlen($urlBase));
-            $candidate  = $localBase . $relPath;
-            if (file_exists($candidate)) {
-                $attachPath = $candidate;
-                $attachName = basename($relPath);
+        // Map known public URL bases to local filesystem paths
+        $urlLocalMap = array(
+            'https://officetorg.com.ua/image/'  => '/var/www/menufold/data/www/officetorg.com.ua/image/',
+            'https://officetorg.com.ua/docum/'  => '/var/www/menufold/data/www/officetorg.com.ua/docum/',
+        );
+        foreach ($urlLocalMap as $urlBase => $localBase) {
+            if (strpos($mediaUrl, $urlBase) === 0) {
+                $relPath   = substr($mediaUrl, strlen($urlBase));
+                $candidate = $localBase . $relPath;
+                if (file_exists($candidate)) {
+                    $attachPath = $candidate;
+                    $attachName = basename($relPath);
+                }
+                break;
             }
         }
         // If attachment not resolved but body is only placeholder, add URL as text
@@ -213,6 +233,7 @@ if ($leadId > 0) {
         'body'          => $body,
         'media_url'     => $mediaUrl ? $mediaUrl : null,
         'external_id'   => $externalId,
+        'reply_to_id'   => $replyToId ? $replyToId : null,
     ));
 } else {
     $msgId = $chatRepo->saveMessage(array(
@@ -227,6 +248,7 @@ if ($leadId > 0) {
         'body'            => $body,
         'media_url'       => $mediaUrl ? $mediaUrl : null,
         'external_id'     => $externalId,
+        'reply_to_id'     => $replyToId ? $replyToId : null,
     ));
 }
 

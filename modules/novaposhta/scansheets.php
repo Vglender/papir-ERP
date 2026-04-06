@@ -17,10 +17,12 @@ $page      = max(1, isset($_GET['page']) ? (int)$_GET['page'] : 1);
 $limit     = 50;
 $offset    = ($page - 1) * $limit;
 
+$showDisbanded = isset($_GET['show_disbanded']) && $_GET['show_disbanded'] === '1';
 $filters = array(
-    'sender_ref' => $senderRef,
-    'date_from'  => $dateFrom,
-    'date_to'    => $dateTo,
+    'sender_ref'     => $senderRef,
+    'date_from'      => $dateFrom,
+    'date_to'        => $dateTo,
+    'show_disbanded' => $showDisbanded ? '1' : '',
 );
 
 $data       = \Papir\Crm\ScanSheetRepository::getList($filters, $limit, $offset);

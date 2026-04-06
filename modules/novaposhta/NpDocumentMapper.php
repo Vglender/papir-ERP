@@ -38,7 +38,7 @@ class NpDocumentMapper
      */
     public static function buildDateRange($days, $hours)
     {
-        $dateTo = date('d.m.Y');
+        $dateTo = date('d.m.Y', strtotime('+1 day'));
         if ($hours !== null) {
             $dateFrom = date('d.m.Y', strtotime('-' . (int)$hours . ' hours'));
         } else {

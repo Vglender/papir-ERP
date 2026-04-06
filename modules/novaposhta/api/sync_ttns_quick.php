@@ -67,10 +67,22 @@ foreach ($senders as $sender) {
             }
         }
 
+        // Collect scan sheet refs seen in this page to auto-create missing stubs
+        $pageScanSheets = array(); // ssRef => ssNumber (may be empty)
+
         foreach ($docs as $doc) {
             $mapped = \Papir\Crm\NpDocumentMapper::map($doc, $senderRef);
             if (!$mapped) continue;
             $npRef = $mapped['ref'];
+
+            // Collect scan sheet info for stub creation
+            if (!empty($mapped['scan_sheet_ref'])) {
+                $ssRef = $mapped['scan_sheet_ref'];
+                if (!isset($pageScanSheets[$ssRef])) {
+                    $ssNum = !empty($doc['ScanSheetNumber']) ? $doc['ScanSheetNumber'] : null;
+                    $pageScanSheets[$ssRef] = $ssNum;
+                }
+            }
 
             if (isset($existingMap[$npRef])) {
                 $existing = $existingMap[$npRef];
@@ -96,6 +108,33 @@ foreach ($senders as $sender) {
                         : (float)(isset($mapped['cost']) ? $mapped['cost'] : 0);
                     \Papir\Crm\TtnService::autoMatchOrder($ttnId, $mapped['recipients_phone'], $sum);
                 }
+            }
+        }
+
+        // Auto-create np_scan_sheets stubs for registries seen in NP but missing in our DB
+        if (!empty($pageScanSheets)) {
+            $ssRefs = array_keys($pageScanSheets);
+            $ssInList = implode("','", array_map(function($ref) {
+                return \Database::escape('Papir', $ref);
+            }, $ssRefs));
+            $rExistSs = \Database::fetchAll('Papir',
+                "SELECT Ref FROM np_scan_sheets WHERE Ref IN ('{$ssInList}')");
+            $existingSsRefs = array();
+            if ($rExistSs['ok']) {
+                foreach ($rExistSs['rows'] as $row) $existingSsRefs[$row['Ref']] = true;
+            }
+            foreach ($pageScanSheets as $ssRef => $ssNum) {
+                if (isset($existingSsRefs[$ssRef])) continue;
+                // Status 'unknown' stub — real Number/status will be set after syncList (↻ Синхр. on registries page)
+                // Use 'closed' so this stub is never auto-selected as the "current open" registry
+                \Papir\Crm\ScanSheetRepository::save(array(
+                    'Ref'        => $ssRef,
+                    'Number'     => $ssNum,
+                    'DateTime'   => date('Y-m-d H:i:s'),
+                    'Count'      => 0,
+                    'sender_ref' => $senderRef,
+                    'status'     => 'closed',
+                ));
             }
         }
 

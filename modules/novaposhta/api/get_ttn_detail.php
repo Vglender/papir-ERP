@@ -21,6 +21,25 @@ if (!$ttn) {
 // is_editable: only draft (state_define=1) and not yet printed
 $ttn['is_editable'] = ((int)$ttn['state_define'] === 1 && !(int)$ttn['is_printed']);
 
+// Resolve counterparty_id: via linked customerorder or via Counterparties_np phone cache
+$ttn['counterparty_id'] = 0;
+if (!empty($ttn['customerorder_id'])) {
+    $rCp = \Database::fetchRow('Papir',
+        "SELECT counterparty_id FROM customerorder WHERE id = " . (int)$ttn['customerorder_id'] . " LIMIT 1");
+    if ($rCp['ok'] && !empty($rCp['row']['counterparty_id'])) {
+        $ttn['counterparty_id'] = (int)$rCp['row']['counterparty_id'];
+    }
+}
+if (!$ttn['counterparty_id'] && !empty($ttn['recipients_phone'])) {
+    $ePhone = \Database::escape('Papir', $ttn['recipients_phone']);
+    $rCp = \Database::fetchRow('Papir',
+        "SELECT counterparty_id FROM Counterparties_np
+         WHERE phone LIKE '%{$ePhone}%' AND counterparty_id > 0 LIMIT 1");
+    if ($rCp['ok'] && !empty($rCp['row']['counterparty_id'])) {
+        $ttn['counterparty_id'] = (int)$rCp['row']['counterparty_id'];
+    }
+}
+
 // can_duplicate: needs city_recipient_ref stored OR has int_doc_number (we can try NP API)
 $ttn['can_duplicate'] = !empty($ttn['int_doc_number']) || !empty($ttn['city_recipient_ref']);
 
@@ -36,7 +55,7 @@ if ($ttn['sender_ref']) {
     $eSenderRef = \Database::escape('Papir', $ttn['sender_ref']);
     $rSheet = \Database::fetchRow('Papir',
         "SELECT Ref, Number FROM np_scan_sheets
-         WHERE sender_ref = '{$eSenderRef}' AND status = 'open'
+         WHERE sender_ref = '{$eSenderRef}' AND status = 'open' AND Number IS NOT NULL
          ORDER BY DateTime DESC LIMIT 1");
     if ($rSheet['ok'] && $rSheet['row']) {
         $openSheet = $rSheet['row'];

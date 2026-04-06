@@ -107,8 +107,7 @@ $orderStatus = status_meta('order', field_value($order, 'status', 'draft'));
 $paymentStatus = status_meta('payment', field_value($order, 'payment_status', 'not_paid'));
 $shipmentStatus = status_meta('shipment', field_value($order, 'shipment_status', 'not_shipped'));
 
-$momentValue = !empty($order['moment']) ? date('Y-m-d\TH:i', strtotime($order['moment'])) : date('Y-m-d\TH:i');
-$plannedShipDate = !empty($order['planned_shipment_at']) ? date('Y-m-d\TH:i', strtotime($order['planned_shipment_at'])) : '';
+$plannedShipDate = !empty($order['planned_shipment_at']) ? date('Y-m-d', strtotime($order['planned_shipment_at'])) : '';
 
 $managerName = field_value($order, 'manager_name');
 $updatedByName = field_value($order, 'updated_by_name');
@@ -403,7 +402,7 @@ require_once __DIR__ . '/../../shared/layout.php';
             font-size: 12px;
             color: var(--text-muted);
         }
-        .planned-date-wrap input[type="datetime-local"] {
+        .planned-date-wrap input[type="date"] {
             border: none;
             background: transparent;
             font-size: 12px;
@@ -413,6 +412,15 @@ require_once __DIR__ . '/../../shared/layout.php';
             padding: 2px 0;
             cursor: pointer;
         }
+        .planned-date-wrap input[type="date"]::-webkit-calendar-picker-indicator {
+            display: none;
+            -webkit-appearance: none;
+        }
+        .planned-date-wrap .planned-date-icon {
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .planned-date-wrap .planned-date-icon:hover { color: var(--accent); }
         .planned-date-wrap input:hover { color: var(--accent); }
 
         /* ─── FIELDS AREA ─── */
@@ -751,7 +759,7 @@ require_once __DIR__ . '/../../shared/layout.php';
         /* ─── TOTALS INVOICE BLOCK ─── */
         .totals-invoice {
             display: flex;
-            align-items: flex-start;
+            align-items: stretch;
             justify-content: space-between;
             gap: 20px;
             padding: 12px 16px 14px;
@@ -777,7 +785,8 @@ require_once __DIR__ . '/../../shared/layout.php';
         .totals-comment textarea {
             width: 100%;
             resize: vertical;
-            min-height: 72px;
+            flex: 1;
+            min-height: 0;
             font-size: 12.5px;
             font-family: inherit;
             color: var(--text);
@@ -799,50 +808,48 @@ require_once __DIR__ . '/../../shared/layout.php';
         }
 
         .totals-inner {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 0 32px;
-            min-width: 480px;
-        }
-
-        .totals-cell {
             display: flex;
             flex-direction: column;
-            align-items: flex-end;
-            padding: 5px 0;
+            min-width: 240px;
+            max-width: 300px;
         }
 
-        .totals-cell-label {
-            font-size: 10.5px;
-            font-weight: 500;
-            color: var(--text-light);
-            text-transform: uppercase;
-            letter-spacing: .35px;
-            margin-bottom: 2px;
-        }
-
-        .totals-cell-value {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text);
-            font-family: 'Geist Mono', monospace;
-        }
-
-        .totals-cell.big .totals-cell-label {
-            font-size: 11px;
+        .totals-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 3px 0;
+            font-size: 12.5px;
             color: var(--text-muted);
         }
-        .totals-cell.big .totals-cell-value {
-            font-size: 22px;
-            font-weight: 700;
+        .totals-row-value {
+            font-family: 'Geist Mono', monospace;
+            font-weight: 600;
             color: var(--text);
+            text-align: right;
+        }
+        .totals-row.big {
+            padding: 6px 0 3px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .totals-row.big .totals-row-value {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        .totals-row.sub {
+            font-size: 11.5px;
+        }
+        .totals-row.sub .totals-row-value {
+            font-weight: 500;
+            font-size: 12px;
         }
 
         .totals-divider {
-            grid-column: 1 / -1;
             border: none;
-            border-top: 1px solid var(--border);
-            margin: 6px 0;
+            border-top: 1px solid var(--border-light);
+            margin: 4px 0;
         }
 
         /* ─── ERRORS ─── */
@@ -876,7 +883,7 @@ require_once __DIR__ . '/../../shared/layout.php';
             .fields-area { grid-template-columns: 1fr; }
             .fields-col + .fields-col { border-left: none; padding-left: 0; border-top: 1px solid var(--border-light); padding-top: 12px; margin-top: 4px; }
             .fields-grid { grid-template-columns: repeat(2,1fr); }
-            .totals-inner { min-width: unset; grid-template-columns: 1fr 1fr; }
+            .totals-inner { min-width: unset; }
         }
 
         /* ── Wait call checkbox ── */
@@ -887,6 +894,46 @@ require_once __DIR__ . '/../../shared/layout.php';
         }
         .wait-call-label input[type=checkbox] { cursor: pointer; accent-color: #f59e0b; }
         .wait-call-label:has(input:checked) { color: #b45309; font-weight: 600; }
+
+        .cp-card-link {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; border-radius: 5px;
+            font-size: 13px; font-weight: 600; line-height: 1;
+            color: var(--accent); text-decoration: none;
+            flex-shrink: 0; margin-left: 2px;
+        }
+        .cp-card-link:hover { background: #ede9fe; color: #5b21b6; }
+
+        /* ── Shipment quick-action buttons ── */
+        .ship-action-sep { width: 1px; height: 16px; background: var(--border); flex-shrink: 0; margin: 0 2px; }
+        .ship-actions-row { display: flex; align-items: center; gap: 6px; }
+        .ship-action-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            height: 28px; padding: 0 10px;
+            border: 1.5px solid; border-radius: 7px;
+            font-size: 12px; font-weight: 600;
+            cursor: pointer; white-space: nowrap; font-family: inherit;
+            transition: background .15s, filter .1s;
+            line-height: 1;
+        }
+        .ship-action-btn svg { flex-shrink: 0; }
+        .ship-action-plus { font-size: 15px; font-weight: 700; line-height: 1; margin-right: 1px; }
+
+        /* ТТН Нова Пошта — фірмовий червоно-помаранчевий */
+        .ship-action-btn--np {
+            background: #fff3f0; color: #c0392b; border-color: #f5a89a;
+        }
+        .ship-action-btn--np:hover { background: #ffe4de; filter: none; border-color: #e07060; }
+        .ship-action-btn--np .ship-action-plus { color: #c0392b; }
+        .ship-action-btn--np svg { stroke: #c0392b; }
+
+        /* Доставка — бірюзовий */
+        .ship-action-btn--del {
+            background: #f0fdf9; color: #0f766e; border-color: #99e6d8;
+        }
+        .ship-action-btn--del:hover { background: #ccfbf1; border-color: #2dd4bf; }
+        .ship-action-btn--del .ship-action-plus { color: #0f766e; }
+        .ship-action-btn--del svg { stroke: #0f766e; }
 
         /* ── Counterparty picker ── */
         .cp-picker-wrap { position: relative; display: flex; align-items: center; gap: 4px; }
@@ -945,6 +992,7 @@ require_once __DIR__ . '/../../shared/layout.php';
         .shipment-card-acts { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
         .ttn-status-created    { background: #e0f2fe; color: #0369a1; }
         .ttn-status-in_transit { background: #fef9c3; color: #854d0e; }
+        .ttn-status-at_branch  { background: #ffedd5; color: #c2410c; }
         .ttn-status-delivered  { background: #dcfce7; color: #166534; }
         .ttn-status-returned   { background: #fce7f3; color: #9d174d; }
         .ttn-status-deleted    { background: #f3f4f6; color: #6b7280; }
@@ -1138,10 +1186,26 @@ require_once __DIR__ . '/../../shared/layout.php';
 
                 <!-- Planned shipment date — compact, no big field -->
                 <div class="planned-date-wrap" style="margin-left:10px;">
-                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="color:var(--text-light)"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                    <svg class="planned-date-icon" id="plannedDateIcon" width="13" height="13" viewBox="0 0 16 16" fill="none" style="color:var(--text-light)" title="Обрати дату відвантаження"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
                     <span>Відвантаження:</span>
-                    <input type="datetime-local" name="planned_shipment_at" id="planned_shipment_at" value="<?= h($plannedShipDate) ?>">
+                    <input type="date" name="planned_shipment_at" id="planned_shipment_at" value="<?= h($plannedShipDate) ?>">
                 </div>
+
+                <?php if (!$isNew): ?>
+                <!-- Shipment action buttons -->
+                <div class="ship-actions-row">
+                    <button type="button" id="newTtnNpBtn" class="ship-action-btn ship-action-btn--np" title="Створити ТТН Нова Пошта">
+                        <span class="ship-action-plus">+</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        ТТН Нова Пошта
+                    </button>
+                    <button type="button" id="newDeliveryBtn" class="ship-action-btn ship-action-btn--del" title="Додати самовивіз / кур'єрську доставку">
+                        <span class="ship-action-plus">+</span>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Самовивіз / доставка
+                    </button>
+                </div>
+                <?php endif; ?>
             </div>
 
             <!-- Fields area -->
@@ -1206,6 +1270,7 @@ require_once __DIR__ . '/../../shared/layout.php';
                                         <input type="checkbox" id="wait_call" name="wait_call" value="1"<?= !empty($order['wait_call']) ? ' checked' : '' ?>>
                                         <span>📞</span>
                                     </label>
+                                    <a href="/counterparties/view?id=<?= h($currentCpId) ?>" target="_blank" id="cpCardLink" class="cp-card-link" title="Картка контрагента"<?= $currentCpId ? '' : ' style="display:none"' ?>>↗</a>
                                     <div class="cp-picker-dd" id="cpPickerDd" style="display:none"></div>
                                 </div>
                             </div>
@@ -1224,6 +1289,7 @@ require_once __DIR__ . '/../../shared/layout.php';
                             </div>
                         </div>
                     </div>
+
                 </div>
 
                 <!-- RIGHT col: contract, project, channel, currency, store, manager -->
@@ -1461,67 +1527,42 @@ require_once __DIR__ . '/../../shared/layout.php';
                     <textarea id="order_description" name="description" placeholder="Коментар до замовлення…"><?= h(field_value($order, 'description', '')) ?></textarea>
                 </div>
                 <div class="totals-inner">
-                    <div class="totals-cell">
-                        <div class="totals-cell-label">Позицій</div>
-                        <div class="totals-cell-value" id="summary-total-items"><?= count($items) ?></div>
+                    <div class="totals-row sub">
+                        <span>Сума без ПДВ</span>
+                        <span class="totals-row-value" id="summary-total-net"><?= number_format(array_sum(array_map(function($r){
+                            $s=(float)$r['sum_row']; $v=(float)$r['vat_rate'];
+                            return $v>0 ? $s/(1+$v/100) : $s;
+                        }, $items)), 2, '.', ' ') ?></span>
                     </div>
-                    <div class="totals-cell">
-                        <div class="totals-cell-label">К-сть товару</div>
-                        <div class="totals-cell-value" id="summary-total-qty">
-                            <?= number_format(array_sum(array_map(function($r){ return (float)$r['quantity']; }, $items)), 3, '.', ' ') ?>
-                        </div>
+                    <div class="totals-row sub">
+                        <span>ПДВ</span>
+                        <span class="totals-row-value" id="summary-total-vat"><?= number_format(array_sum(array_map(function($r){
+                            $s=(float)$r['sum_row']; $v=(float)$r['vat_rate'];
+                            if($v>0){ $net=$s/(1+$v/100); return $s-$net; } return 0;
+                        }, $items)), 2, '.', ' ') ?></span>
                     </div>
-                    <div class="totals-cell">
-                        <div class="totals-cell-label">Вага, кг</div>
-                        <div class="totals-cell-value" id="summary-total-weight">
-                            <?= number_format(array_sum(array_map(function($r){ return (float)$r['weight']*(float)$r['quantity']; }, $items)), 3, '.', ' ') ?>
-                        </div>
-                    </div>
-
                     <hr class="totals-divider">
-
-                    <div class="totals-cell">
-                        <div class="totals-cell-label">Сума без ПДВ</div>
-                        <div class="totals-cell-value" id="summary-total-net">
-                            <?= number_format(array_sum(array_map(function($r){
-                                $s=(float)$r['sum_row']; $v=(float)$r['vat_rate'];
-                                return $v>0 ? $s/(1+$v/100) : $s;
-                            }, $items)), 2, '.', ' ') ?>
-                        </div>
+                    <div class="totals-row big">
+                        <span>До сплати</span>
+                        <span class="totals-row-value" id="summary-total-sum"><?= number_format(array_sum(array_map(function($r){ return (float)$r['sum_row']; }, $items)), 2, '.', ' ') ?></span>
                     </div>
-                    <div class="totals-cell">
-                        <div class="totals-cell-label">ПДВ</div>
-                        <div class="totals-cell-value" id="summary-total-vat">
-                            <?= number_format(array_sum(array_map(function($r){
-                                $s=(float)$r['sum_row']; $v=(float)$r['vat_rate'];
-                                if($v>0){ $net=$s/(1+$v/100); return $s-$net; } return 0;
-                            }, $items)), 2, '.', ' ') ?>
-                        </div>
+                    <?php if (!empty($marginData)): ?>
+                    <hr class="totals-divider">
+                    <div class="totals-row sub">
+                        <span>Собівартість</span>
+                        <span class="totals-row-value" id="summary-cost"><?= number_format($marginData['cost_total'], 2, '.', ' ') ?></span>
                     </div>
-                    <div class="totals-cell big">
-                        <div class="totals-cell-label">Разом до сплати</div>
-                        <div class="totals-cell-value" id="summary-total-sum">
-                            <?= number_format(array_sum(array_map(function($r){ return (float)$r['sum_row']; }, $items)), 2, '.', ' ') ?>
-                        </div>
+                    <div class="totals-row">
+                        <span>Маржа</span>
+                        <span class="totals-row-value <?= $marginData['margin'] >= 0 ? 'text-green' : 'text-red' ?>" id="summary-margin"><?= number_format($marginData['margin'], 2, '.', ' ') ?> <span style="font-size:11px;font-weight:500;opacity:.7">(<?= $marginData['margin_pct'] ?>%)</span></span>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div><!-- /tab-positions -->
 
         <!-- Related docs tab -->
         <div class="tab-content" id="tab-related">
-
-            <!-- ── Відправлення ── -->
-            <div id="shipments-sect" style="border-bottom:1px solid var(--border); padding-bottom:10px; margin-bottom:2px;">
-                <div style="display:flex; align-items:center; padding:10px 14px 8px; gap:8px;">
-                    <span style="font-weight:600; font-size:13px; flex-shrink:0;">Відправлення</span>
-                    <button type="button" class="btn btn-primary btn-sm" id="newTtnNpBtn">+ ТТН НП</button>
-                    <button type="button" class="btn btn-sm"         id="newDeliveryBtn">+ Самовивіз / Кур'єр</button>
-                </div>
-                <div id="shipments-loading" style="display:none; padding:6px 14px 4px; color:#9ca3af; font-size:12px;">Завантаження…</div>
-                <div id="shipments-empty"   style="display:none; padding:4px 14px 8px; color:#9ca3af; font-size:12px;">Відправлень немає</div>
-                <div id="shipments-list"    style="padding:0 14px 2px; display:flex; flex-direction:column; gap:8px;"></div>
-            </div>
 
             <!-- ── Пов'язані документи (граф) ── -->
             <div id="reldocs-wrap">
@@ -2746,6 +2787,15 @@ if (btnSave) btnSave.addEventListener('click', saveOrder);
 var descEl = document.getElementById('order_description');
 if (descEl) descEl.addEventListener('input', markDirty);
 
+/* ══ PLANNED DATE ICON CLICK ══ */
+var _pdIcon = document.getElementById('plannedDateIcon');
+var _pdInput = document.getElementById('planned_shipment_at');
+if (_pdIcon && _pdInput) {
+    _pdIcon.addEventListener('click', function() {
+        if (_pdInput.showPicker) { _pdInput.showPicker(); } else { _pdInput.focus(); _pdInput.click(); }
+    });
+}
+
 /* ══ BANK ACCOUNTS AJAX ══ */
 var orgSelect  = document.getElementById('organization_id');
 var bankSelect = document.getElementById('organization_bank_account_id');
@@ -3107,6 +3157,11 @@ function loadContactsForCp(cpId) {
 
 makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', '', function(id) {
     loadContactsForCp(id);
+    var cpLink = document.getElementById('cpCardLink');
+    if (cpLink) {
+        if (id) { cpLink.href = '/counterparties/view?id=' + id; cpLink.style.display = ''; }
+        else { cpLink.style.display = 'none'; }
+    }
 });
 
 /* ── Create document dropdown ── */
@@ -3401,10 +3456,13 @@ var ShipmentsPanel = (function() {
     var _orderId = 0;
 
     var TN_STATUS = {
+        draft:      { cls: 'ttn-status-created',    label: 'Чернетка' },
         created:    { cls: 'ttn-status-created',    label: 'Створено' },
         in_transit: { cls: 'ttn-status-in_transit', label: 'В дорозі' },
+        at_branch:  { cls: 'ttn-status-at_branch',  label: 'У відділенні' },
         delivered:  { cls: 'ttn-status-delivered',  label: 'Доставлено' },
         returned:   { cls: 'ttn-status-returned',   label: 'Повернення' },
+        refused:    { cls: 'ttn-status-returned',   label: 'Відмова' },
         deleted:    { cls: 'ttn-status-deleted',     label: 'Видалено' },
     };
     var ND_STATUS = {
@@ -3413,13 +3471,28 @@ var ShipmentsPanel = (function() {
         delivered: { cls: 'nd-status-delivered',  label: 'Доставлено' },
         cancelled: { cls: 'nd-status-cancelled',  label: 'Скасовано' },
     };
+    var DEMAND_STATUS = {
+        new:        { cls: 'badge-blue',   label: 'Нове' },
+        assembling: { cls: 'badge-orange', label: 'Збирається' },
+        assembled:  { cls: 'badge-indigo', label: 'Зібрано' },
+        shipped:    { cls: 'badge-green',  label: 'Відвантажено' },
+        arrived:    { cls: 'badge-teal',   label: 'Отримано' },
+        transfer:   { cls: 'badge-purple', label: 'Передача' },
+        robot:      { cls: 'badge-gray',   label: 'Авто' },
+        cancelled:  { cls: 'badge-red',    label: 'Скасовано' },
+    };
 
     function ttnStatus(t) {
         if (t.deletion_mark) return 'deleted';
         var def = parseInt(t.state_define, 10);
-        if (def === 9)                     return 'delivered';
-        if (def === 102 || def === 105)    return 'returned';
-        if (def >= 1)                      return 'in_transit';
+        if (def === 9)                                               return 'delivered';
+        if (def === 7 || def === 8 || def === 105)                   return 'at_branch';
+        if (def === 4 || def === 5 || def === 6 || def === 41
+            || def === 101 || def === 104)                           return 'in_transit';
+        if (def === 10 || def === 11 || def === 103)                 return 'returned';
+        if (def === 102 || def === 106)                              return 'refused';
+        if (def === 2 || def === 3)                                  return 'deleted';
+        if (def === 1)                                               return 'draft';
         return 'created';
     }
 
@@ -3486,6 +3559,32 @@ var ShipmentsPanel = (function() {
             + '</div>';
     }
 
+    function renderDemand(d) {
+        var st = d.status || 'new';
+        var stInfo = DEMAND_STATUS[st] || { cls: 'badge-gray', label: st };
+        var num = d.number || ('#' + d.id);
+        var meta = [];
+        if (d.moment) {
+            var p = String(d.moment).split(' ')[0].split('-');
+            if (p.length >= 3) meta.push(p[2] + '.' + p[1] + '.' + p[0]);
+        }
+        if (d.sum_total && parseFloat(d.sum_total) > 0) meta.push(parseFloat(d.sum_total).toFixed(2).replace(/\.00$/, '') + ' ₴');
+        var url = '/demand/edit?id=' + int(d.id);
+        return '<div class="shipment-card">'
+            + '<div class="shipment-card-icon">📋</div>'
+            + '<div class="shipment-card-body">'
+            + '<div class="shipment-card-title">'
+            + badge(stInfo.cls, stInfo.label)
+            + '<span class="shipment-card-num">' + esc(num) + '</span>'
+            + '</div>'
+            + (meta.length ? '<div class="shipment-card-meta">' + meta.join(' · ') + '</div>' : '')
+            + '<div class="shipment-card-acts">'
+            + '<a href="' + url + '" class="btn btn-xs">Відкрити ↗</a>'
+            + '</div>'
+            + '</div>'
+            + '</div>';
+    }
+
     function int(v) { return parseInt(v, 10) || 0; }
 
     function render(data) {
@@ -3496,8 +3595,8 @@ var ShipmentsPanel = (function() {
         loading.style.display = 'none';
 
         var html = '';
-        (data.ttns || []).forEach(function(t) { html += renderTtn(t); });
-        (data.deliveries || []).forEach(function(d) { html += renderDelivery(d); });
+        (data.ttns      || []).forEach(function(t) { html += renderTtn(t); });
+        (data.deliveries|| []).forEach(function(d) { html += renderDelivery(d); });
 
         if (!html) {
             empty.style.display = '';
@@ -3547,7 +3646,7 @@ var ShipmentsPanel = (function() {
     // bind toolbar buttons
     document.addEventListener('DOMContentLoaded', function() {
         var ttnBtn = document.getElementById('newTtnNpBtn');
-        if (ttnBtn) ttnBtn.addEventListener('click', function() { NpTtnModal.open(_orderId); });
+        if (ttnBtn) ttnBtn.addEventListener('click', function() { NpTtnModal.open(window._orderId); });
         var ndBtn  = document.getElementById('newDeliveryBtn');
         if (ndBtn)  ndBtn.addEventListener('click', function() { DeliveryModal.open(null); });
     });

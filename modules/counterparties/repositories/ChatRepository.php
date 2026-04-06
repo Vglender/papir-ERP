@@ -8,14 +8,19 @@ class ChatRepository
     {
         $cid   = (int)$counterpartyId;
         $limit = (int)$limit;
-        $where = "counterparty_id = {$cid}"
-               . " AND (scheduled_at IS NULL OR scheduled_at <= NOW())";
+        $where = "m.counterparty_id = {$cid}"
+               . " AND (m.scheduled_at IS NULL OR m.scheduled_at <= NOW())";
         if ($channel) {
             $ch    = Database::escape('Papir', $channel);
-            $where .= " AND channel = '{$ch}'";
+            $where .= " AND m.channel = '{$ch}'";
         }
         $r = Database::fetchAll('Papir',
-            "SELECT * FROM cp_messages WHERE {$where} ORDER BY created_at ASC LIMIT {$limit}");
+            "SELECT * FROM (
+                SELECT m.*, LEFT(r.body, 80) AS reply_to_body
+                FROM cp_messages m
+                LEFT JOIN cp_messages r ON r.id = m.reply_to_id
+                WHERE {$where} ORDER BY m.created_at DESC LIMIT {$limit}
+             ) sub ORDER BY sub.created_at ASC");
         return $r['ok'] ? $r['rows'] : array();
     }
 
@@ -35,6 +40,7 @@ class ChatRepository
             'media_url'       => isset($data['media_url'])       ? $data['media_url']       : null,
             'external_id'     => isset($data['external_id'])     ? (string)$data['external_id'] : null,
             'order_id'        => isset($data['order_id'])        ? (int)$data['order_id']   : null,
+            'reply_to_id'     => isset($data['reply_to_id']) && $data['reply_to_id'] ? (int)$data['reply_to_id'] : null,
         );
         if (!empty($data['created_at'])) {
             $row['created_at'] = $data['created_at'];
@@ -153,15 +159,19 @@ class ChatRepository
 
     // ── Templates ────────────────────────────────────────────────────────────
 
-    public function getTemplates($channel = null)
+    public function getTemplates($channel = null, $context = null)
     {
         $where = 'status = 1';
         if ($channel) {
-            $ch    = Database::escape('Papir', $channel);
+            $ch = Database::escape('Papir', $channel);
             $where .= " AND FIND_IN_SET('{$ch}', channels) > 0";
         }
+        if ($context) {
+            $ctx   = Database::escape('Papir', $context);
+            $where .= " AND (context = '{$ctx}' OR context = 'any')";
+        }
         $r = Database::fetchAll('Papir',
-            "SELECT * FROM cp_message_templates WHERE {$where} ORDER BY sort_order ASC, id ASC");
+            "SELECT * FROM cp_message_templates WHERE {$where} ORDER BY context DESC, sort_order ASC, id ASC");
         return $r['ok'] ? $r['rows'] : array();
     }
 

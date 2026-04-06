@@ -393,7 +393,7 @@ foreach ($contacts as $_ct) {
 </div>
 
 <!-- Template edit form (inside modal) -->
-<div id="cppTplEditModal" class="modal-overlay" style="display:none">
+<div id="cppTplEditModal" class="modal-overlay" style="display:none;z-index:2100">
     <div class="modal-box" style="width:440px">
         <div class="modal-head">
             <span id="cppTplEditTitle">Новий шаблон</span>
@@ -1121,6 +1121,11 @@ foreach ($contacts as $_ct) {
     var tplEditCancel  = document.getElementById('cppTplEditCancel');
     var tplAddBtn      = document.getElementById('cppTplAddBtn');
     var tplListEl      = document.getElementById('cppTplList');
+
+    // Move modals to document.body so position:fixed works correctly
+    // (panel column has overflow-y:auto which can trap fixed elements)
+    if (tplModal && tplModal.parentNode !== document.body) document.body.appendChild(tplModal);
+    if (tplEditModal && tplEditModal.parentNode !== document.body) document.body.appendChild(tplEditModal);
 
     function refreshTplCache() {
         tplCache = {};

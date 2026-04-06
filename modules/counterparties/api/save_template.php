@@ -30,11 +30,16 @@ if (empty($channels)) {
     $channels = array('viber', 'sms');
 }
 
+$allowedCtx = array('any', 'order', 'ttn');
+$context    = isset($_POST['context']) ? trim($_POST['context']) : 'any';
+if (!in_array($context, $allowedCtx)) { $context = 'any'; }
+
 $data = array(
     'id'         => $id,
     'title'      => $title,
     'body'       => $body,
     'channels'   => implode(',', $channels),
+    'context'    => $context,
     'sort_order' => isset($_POST['sort_order']) ? (int)$_POST['sort_order'] : 0,
     'status'     => isset($_POST['status'])     ? (int)(bool)$_POST['status'] : 1,
 );

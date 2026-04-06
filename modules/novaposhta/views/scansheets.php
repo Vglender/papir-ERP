@@ -75,6 +75,21 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
         <?php endif; ?>
       </form>
     </div>
+    <div class="filter-bar-sep"></div>
+    <div class="filter-bar-group">
+      <?php
+        $disbandedUrl = $curUrl . '?' . http_build_query(array_filter(array(
+            'sender_ref'     => $senderRef,
+            'date_from'      => $dateFrom,
+            'date_to'        => $dateTo,
+            'show_disbanded' => $showDisbanded ? '' : '1',
+        )));
+      ?>
+      <a href="<?php echo $disbandedUrl; ?>"
+         class="filter-pill <?php echo $showDisbanded ? 'active' : ''; ?>">
+        Розформовані
+      </a>
+    </div>
     <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
       <svg viewBox="0 0 16 16" fill="none"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
     </button>
@@ -128,6 +143,8 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
           <td>
             <?php if ($row['status'] === 'open'): ?>
               <span class="badge badge-blue">Відкритий</span>
+            <?php elseif ($row['status'] === 'disbanded'): ?>
+              <span class="badge badge-red">Розформований</span>
             <?php else: ?>
               <span class="badge badge-gray">Закритий</span>
             <?php endif; ?>

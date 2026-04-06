@@ -8,6 +8,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../counterparties_bootstrap.php';
 require_once __DIR__ . '/../../moysklad/moysklad_api.php';
 require_once __DIR__ . '/../../customerorder/services/CustomerOrderMsSync.php';
+require_once __DIR__ . '/../../shared/DocumentHistory.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(array('ok' => false, 'error' => 'POST required'));
@@ -51,7 +52,9 @@ if (empty($data)) {
 // Fetch old status before update (for history log and transition validation)
 $oldStatus = null;
 if ($status !== null) {
-    $rOld = \Database::fetchRow('Papir', "SELECT status FROM customerorder WHERE id={$orderId} AND deleted_at IS NULL");
+    $rOld = \Database::fetchRow('Papir',
+        "SELECT status, payment_method_id, delivery_method_id, wait_call, sum_total, counterparty_id
+         FROM customerorder WHERE id={$orderId} AND deleted_at IS NULL");
     if (!$rOld['ok'] || empty($rOld['row'])) {
         echo json_encode(array('ok' => false, 'error' => 'Order not found'));
         exit;
@@ -79,17 +82,39 @@ if (!$r['ok']) {
 }
 
 if ($status !== null) {
-    // Write to customerorder_history (is_auto=0 — manual change from UI)
-    \Database::insert('Papir', 'customerorder_history', array(
-        'customerorder_id' => $orderId,
-        'event_type'       => 'status_change',
-        'field_name'       => 'status',
-        'old_value'        => $oldStatus,
-        'new_value'        => $status,
-        'is_auto'          => 0,
-        'comment'          => 'Зміна статусу вручну',
-    ));
+    $currentUser = \Papir\Crm\AuthService::getCurrentUser();
+    $actor = $currentUser
+        ? array('actor_type' => 'user', 'actor_id' => (int)$currentUser['user_id'], 'actor_label' => $currentUser['display_name'])
+        : array('actor_type' => 'system', 'actor_id' => null, 'actor_label' => 'Система');
+
+    $_statusLabels = array(
+        'draft'=>'Чернетка','new'=>'Нове','confirmed'=>'Підтверджено',
+        'in_progress'=>'В роботі','waiting_payment'=>'Очік. оплати',
+        'paid'=>'Оплачено','partially_shipped'=>'Частк. відвантаж.',
+        'shipped'=>'Відвантажено','completed'=>'Виконано','cancelled'=>'Скасовано',
+    );
+    \DocumentHistory::log('customerorder', $orderId, 'status_change', array_merge($actor, array(
+        'field_name'  => 'status',
+        'field_label' => 'Статус',
+        'old_value'   => isset($_statusLabels[$oldStatus]) ? $_statusLabels[$oldStatus] : $oldStatus,
+        'new_value'   => isset($_statusLabels[$status])    ? $_statusLabels[$status]    : $status,
+        'comment'     => 'Зміна статусу вручну',
+    )));
     \Papir\Crm\AuthService::log('status_change', 'customerorder', $orderId, $status);
+
+    // Fire automation triggers
+    $_cpId = (int)$rOld['row']['counterparty_id'];
+    $_orderCtx = array(
+        'order'           => array_merge($rOld['row'], array('id' => $orderId, 'status' => $status)),
+        'order_id'        => $orderId,
+        'counterparty_id' => $_cpId,
+        'old_status'      => $oldStatus,
+        'new_status'      => $status,
+    );
+    TriggerEngine::fire('order_status_changed', $_orderCtx);
+    if ($status === 'cancelled') {
+        TriggerEngine::fire('order_cancelled', $_orderCtx);
+    }
 }
 echo json_encode(array('ok' => true));
 

@@ -13,7 +13,23 @@ if (!$taskId) {
     exit;
 }
 
+// Fetch task context before marking done (for TriggerEngine)
+$_taskRow = null;
+$_rTask = Database::fetchRow('Papir', "SELECT * FROM cp_tasks WHERE id={$taskId}");
+if ($_rTask['ok'] && $_rTask['row']) { $_taskRow = $_rTask['row']; }
+
 $ok = TaskRepository::markDone($taskId);
+
+// Fire trigger after successful completion
+if ($ok && $_taskRow) {
+    $cpId = (int)$_taskRow['counterparty_id'];
+    TriggerEngine::fire('task_done', array(
+        'task'           => $_taskRow,
+        'task_id'        => $taskId,
+        'counterparty_id'=> $cpId,
+        'order_id'       => 0,
+    ));
+}
 
 // Return fresh task list for the cp/lead
 $cpId   = Request::postInt('id', 0);

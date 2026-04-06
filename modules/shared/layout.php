@@ -170,12 +170,13 @@ endforeach; ?>
 
     <div class="app-hdr-right">
 
-        <button class="app-hdr-btn" title="Чат">
+        <button class="app-hdr-btn" id="globalChatBtn" title="Чат команди" onclick="GlobalChat.toggle()">
             <svg viewBox="0 0 20 20" fill="none">
                 <path d="M3 4C3 3.45 3.45 3 4 3h12c.55 0 1 .45 1 1v8c0 .55-.45 1-1 1H7l-4 3V4z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
                 <path d="M7 7.5h6M7 10.5h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity=".6"/>
             </svg>
             <span>Чат</span>
+            <span class="ws-mode-badge" id="globalChatBadge"></span>
         </button>
 
         <button class="app-hdr-btn" id="blQuickBtn" title="Бэклог / швидке додавання">

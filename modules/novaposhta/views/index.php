@@ -491,6 +491,8 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
 
 
 <script src="/modules/shared/chip-search.js?v=<?php echo $chipSearchJs; ?>"></script>
+<script src="/modules/shared/chat-modal.js?v=<?php echo filemtime('/var/www/papir/modules/shared/chat-modal.js'); ?>"></script>
+<script src="/modules/shared/send-templates.js?v=<?php echo filemtime('/var/www/papir/modules/shared/send-templates.js'); ?>"></script>
 <script>
 // ── Live search ──────────────────────────────────────────────────────────────
 (function () {
@@ -1179,7 +1181,8 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         // Icon: delete
         html += iconBtn('ttnActDelete', 'danger', 'Видалити', '<path d="M3 5h10M8 5V3M6 5v9M10 5v9M4 5l.5 9h7l.5-9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>');
         // Icon: add to registry
-        if (t.int_doc_number && !t.scan_sheet_ref) {
+        // Show if no scan_sheet_ref, OR if scan_sheet_ref exists but registry is not in our DB (orphaned) or is closed
+        if (t.int_doc_number && (!t.scan_sheet_ref || t.scan_sheet_status !== 'open')) {
             html += iconBtn('ttnActSheet', '', _openSheet ? 'Додати до реєстру' : 'Новий реєстр', '<rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.4"/><path d="M5 6h6M5 8.5h6M5 11h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>');
         }
         // Icon: duplicate
@@ -1190,6 +1193,20 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         if (t.int_doc_number) {
             html += iconBtn('ttnActP100', '', 'Друк 100×100', '<rect x="3" y="1" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="9" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M1 7h14v4H1z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="9.5" r=".8" fill="currentColor"/>');
             html += iconBtn('ttnActPA4',  '', 'Друк A4/6',   '<rect x="3" y="1" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="3" y="9" width="10" height="6" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M1 7h14v4H1z" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="9.5" r=".8" fill="currentColor"/>');
+        }
+
+        // Chat + Send buttons (if counterparty is known)
+        if (t.counterparty_id) {
+            html += '<span style="margin-left:auto;display:inline-flex;gap:4px">';
+            html += '<button type="button" class="btn btn-ghost btn-sm js-ttn-send"'
+                  + ' data-cp="'     + h(String(t.counterparty_id))        + '"'
+                  + ' data-ttn="'    + h(String(t.int_doc_number || ''))   + '"'
+                  + ' data-status="' + h(String(t.state_name     || ''))   + '">'
+                  + '&#128228; &#1053;&#1072;&#1076;&#1110;&#1089;&#1083;&#1072;&#1090;&#1080; &#9662;</button>';
+            html += '<button type="button" class="btn btn-ghost btn-sm"'
+                  + ' onclick="ChatModal.open(' + h(String(t.counterparty_id)) + ')">'
+                  + '&#128172; &#1063;&#1072;&#1090;</button>';
+            html += '</span>';
         }
 
         // Edit / Save button
@@ -1724,5 +1741,23 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         }).catch(function(){ if(btn){btn.disabled=false;btn.textContent='💾 Зберегти';} showToast('Мережева помилка',true); });
     }
 }());
+
+// Delegated handler for "Надіслати ▾" buttons in TTN detail panel
+document.addEventListener('click', function(e) {
+    var btn = e.target.closest('.js-ttn-send');
+    if (!btn) return;
+    var cpId = parseInt(btn.getAttribute('data-cp'), 10) || 0;
+    if (!cpId) return;
+    SendTemplates.show(btn, {
+        cpId:    cpId,
+        context: 'ttn',
+        channel: 'viber',
+        vars: {
+            '{ttn_number}': btn.getAttribute('data-ttn')    || '',
+            '{ttn_status}': btn.getAttribute('data-status') || '',
+            '{status}':     btn.getAttribute('data-status') || ''
+        }
+    });
+});
 
 </script>

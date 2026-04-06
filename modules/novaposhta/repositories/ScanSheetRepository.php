@@ -18,6 +18,9 @@ class ScanSheetRepository
         if (!empty($filters['status'])) {
             $e = \Database::escape('Papir', $filters['status']);
             $where[] = "ss.status = '{$e}'";
+        } elseif (empty($filters['show_disbanded'])) {
+            // By default hide disbanded registries
+            $where[] = "ss.status != 'disbanded'";
         }
 
         if (!empty($filters['date_from'])) {

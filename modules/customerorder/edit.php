@@ -61,6 +61,26 @@ if (!empty($result['order']['contact_person_id'])) {
     if ($rPerson['ok'] && !empty($rPerson['row'])) $contactPersonName = $rPerson['row']['name'];
 }
 
+// Load initial contacts for person picker (only if counterparty is company/fop)
+$initialContacts = array();
+if (!empty($result['order']['counterparty_id'])) {
+    $rCpType = Database::fetchRow('Papir',
+        "SELECT type FROM counterparty WHERE id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
+    if ($rCpType['ok'] && !empty($rCpType['row']) && in_array($rCpType['row']['type'], array('company', 'fop'))) {
+        require_once __DIR__ . '/../counterparties/counterparties_bootstrap.php';
+        $cpRepo = new CounterpartyRepository();
+        $cpContacts = $cpRepo->getContacts((int)$result['order']['counterparty_id']);
+        foreach ($cpContacts as $row) {
+            $initialContacts[] = array(
+                'id'       => (int)$row['id'],
+                'name'     => $row['name'],
+                'phone'    => isset($row['phone']) ? $row['phone'] : '',
+                'position' => isset($row['position_name']) ? $row['position_name'] : (isset($row['job_title']) ? $row['job_title'] : ''),
+            );
+        }
+    }
+}
+
 // ИСПОЛЬЗУЕМ HELPER для банковских счетов
 $organizationBankAccounts = getOrganizationBankAccounts(
     !empty($result['order']['organization_id']) ? $result['order']['organization_id'] : null
@@ -146,6 +166,30 @@ if ($id > 0 && !empty($result['order']['number'])) {
     }
 }
 
+// Пов'язані відвантаження (для рядка тайтлу)
+$linkedDemands = array();
+if ($id > 0) {
+    $rDL = Database::fetchAll('Papir',
+        "SELECT from_id, from_ms_id FROM document_link
+         WHERE to_type='customerorder' AND to_id={$id} AND from_type='demand'
+         ORDER BY id ASC LIMIT 12");
+    if ($rDL['ok'] && !empty($rDL['rows'])) {
+        $numIds = array(); $msIds = array();
+        foreach ($rDL['rows'] as $_r) {
+            if ((int)$_r['from_id'] > 0) $numIds[] = (int)$_r['from_id'];
+            elseif (!empty($_r['from_ms_id'])) $msIds[] = "'" . Database::escape('Papir', $_r['from_ms_id']) . "'";
+        }
+        $parts = array();
+        if (!empty($numIds)) $parts[] = 'id IN (' . implode(',', $numIds) . ')';
+        if (!empty($msIds))  $parts[] = 'id_ms IN (' . implode(',', $msIds) . ')';
+        if (!empty($parts)) {
+            $rD = Database::fetchAll('Papir',
+                "SELECT id, number FROM demand WHERE (" . implode(' OR ', $parts) . ") ORDER BY moment ASC");
+            if ($rD['ok']) $linkedDemands = $rD['rows'];
+        }
+    }
+}
+
 // Доступні переходи для створення документів із замовлення
 $rTrans = Database::fetchAll('Papir',
     "SELECT dtt.`to_type`, dtt.`link_type`, dtt.`description`, dt.`name_uk`
@@ -154,6 +198,29 @@ $rTrans = Database::fetchAll('Papir',
      WHERE dtt.`from_type` = 'customerorder'
      ORDER BY dt.`sort_order`");
 $docTransitions = ($rTrans['ok'] && !empty($rTrans['rows'])) ? $rTrans['rows'] : array();
+
+// ── Планируемая маржа ──────────────────────────────────────────────────────
+$marginData = null;
+if ($id > 0 && !empty($result['ok'])) {
+    $rMargin = Database::fetchRow('Papir',
+        "SELECT SUM(ci.sum_row) AS sum_total,
+                SUM(ci.quantity * COALESCE(pp.price_purchase, 0)) AS cost_total
+         FROM customerorder_item ci
+         LEFT JOIN product_papir pp ON pp.product_id = ci.product_id
+         WHERE ci.customerorder_id = {$id}");
+    if ($rMargin['ok'] && !empty($rMargin['row']) && $rMargin['row']['sum_total'] > 0) {
+        $sumTotal  = (float)$rMargin['row']['sum_total'];
+        $costTotal = (float)$rMargin['row']['cost_total'];
+        $margin    = $sumTotal - $costTotal;
+        $marginPct = $sumTotal > 0 ? round($margin / $sumTotal * 100, 1) : 0;
+        $marginData = array(
+            'sum_total'  => $sumTotal,
+            'cost_total' => $costTotal,
+            'margin'     => $margin,
+            'margin_pct' => $marginPct,
+        );
+    }
+}
 
 // Подключаем шаблон
 require __DIR__ . '/views/edit.php';

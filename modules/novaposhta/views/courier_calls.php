@@ -248,11 +248,20 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
           <label>Часовий інтервал *</label>
           <select id="ccInterval">
             <option value="">— оберіть —</option>
-            <option value="CityPickingTimeInterval1" data-start="09:00" data-end="12:00">09:00–12:00</option>
-            <option value="CityPickingTimeInterval2" data-start="12:00" data-end="15:00">12:00–15:00</option>
-            <option value="CityPickingTimeInterval3" data-start="15:00" data-end="18:00">15:00–18:00</option>
-            <option value="CityPickingTimeInterval4" data-start="18:00" data-end="21:00">18:00–21:00</option>
+            <option value="CityPickingTimeInterval1"  data-start="08:00" data-end="09:00">08:00–09:00</option>
+            <option value="CityPickingTimeInterval2"  data-start="09:00" data-end="10:00">09:00–10:00</option>
+            <option value="CityPickingTimeInterval3"  data-start="10:00" data-end="12:00">10:00–12:00</option>
+            <option value="CityPickingTimeInterval4"  data-start="12:00" data-end="14:00">12:00–14:00</option>
+            <option value="CityPickingTimeInterval5"  data-start="13:00" data-end="14:00">13:00–14:00</option>
+            <option value="CityPickingTimeInterval6"  data-start="14:00" data-end="16:00">14:00–16:00</option>
+            <option value="CityPickingTimeInterval7"  data-start="16:00" data-end="18:00">16:00–18:00</option>
+            <option value="CityPickingTimeInterval8"  data-start="18:00" data-end="19:00">18:00–19:00</option>
+            <option value="CityPickingTimeInterval9"  data-start="19:00" data-end="20:00">19:00–20:00</option>
+            <option value="CityPickingTimeInterval10" data-start="20:00" data-end="21:00">20:00–21:00</option>
           </select>
+          <div id="ccIntervalNote" style="font-size:11px;color:#94a3b8;margin-top:3px;display:none">
+            Для сьогодні доступні лише майбутні інтервали
+          </div>
         </div>
       </div>
 
@@ -284,11 +293,46 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
         document.getElementById('ccDate').value     = '';
         document.getElementById('ccInterval').value = '';
         document.getElementById('ccWeight').value   = '';
+        if (intervalNote) intervalNote.style.display = 'none';
+        // Re-enable all interval options
+        Array.prototype.forEach.call(document.getElementById('ccInterval').options, function(o) { o.disabled = false; });
     }
 
     document.getElementById('ccBtnCreate').addEventListener('click', openModal);
     document.getElementById('ccModalClose').addEventListener('click', closeModal);
     document.getElementById('ccModalCancel').addEventListener('click', closeModal);
+
+    // ── Filter past time slots when today is selected ────────────────────
+    var intervalSel  = document.getElementById('ccInterval');
+    var intervalNote = document.getElementById('ccIntervalNote');
+    var todayStr     = '<?php echo date('Y-m-d'); ?>';
+
+    function updateIntervalOptions() {
+        var dateRaw = document.getElementById('ccDate').value;
+        var isToday = (dateRaw === todayStr);
+        var nowH    = new Date().getHours();
+        var nowM    = new Date().getMinutes();
+        var nowMins = nowH * 60 + nowM;
+
+        Array.prototype.forEach.call(intervalSel.options, function(opt) {
+            if (!opt.dataset.start) return; // placeholder option
+            var endTime = opt.dataset.end || '23:59';
+            var ep = endTime.split(':');
+            var endMins = parseInt(ep[0], 10) * 60 + parseInt(ep[1], 10);
+            // Disable past slots only for today; require 30 min buffer
+            opt.disabled = isToday && (endMins <= nowMins + 30);
+        });
+
+        // Reset selection if currently selected option became disabled
+        if (intervalSel.value && intervalSel.options[intervalSel.selectedIndex] &&
+            intervalSel.options[intervalSel.selectedIndex].disabled) {
+            intervalSel.value = '';
+        }
+
+        if (intervalNote) intervalNote.style.display = isToday ? 'block' : 'none';
+    }
+
+    document.getElementById('ccDate').addEventListener('change', updateIntervalOptions);
 
     // ── Save ──────────────────────────────────────────────────────────────
     document.getElementById('ccBtnSave').addEventListener('click', function () {

@@ -25,9 +25,13 @@ function ld_statusLabel($type, $status) {
 function ld_ttnNpStatus($t) {
     if (!empty($t['deletion_mark'])) return 'deleted';
     $def = (int)$t['state_define'];
-    if ($def === 9)                     return 'delivered';
-    if (in_array($def, array(102,105))) return 'returned';
-    if ($def >= 1)                      return 'in_transit';
+    if ($def === 9)                                        return 'delivered';
+    if (in_array($def, array(7, 8, 105)))                  return 'at_branch';
+    if (in_array($def, array(4, 5, 6, 41, 101, 104)))     return 'in_transit';
+    if (in_array($def, array(10, 11, 103)))                return 'returned';
+    if (in_array($def, array(102, 106)))                   return 'refused';
+    if ($def === 2 || $def === 3)                          return 'deleted';
+    if ($def === 1)                                        return 'draft';
     return 'created';
 }
 
@@ -108,33 +112,65 @@ $demandEntityIds = array();
 $CAP = 12;
 
 // ── demand ────────────────────────────────────────────────────────────────────
-if (!empty($byType['demand'])) {
-    $limited  = array_slice($byType['demand'], 0, $CAP);
-    $overflow = count($byType['demand']) - count($limited);
-    $where = ld_whereIds($limited, 'id_ms');
-    if ($where) {
-        $rD = \Database::fetchAll('Papir',
-            "SELECT id, number, moment, status, sum_total FROM demand WHERE {$where} ORDER BY moment ASC");
-        if ($rD['ok']) {
-            foreach ($rD['rows'] as $d) {
-                $demandEntityIds[] = (int)$d['id'];
-                $nid = 'demand_' . $d['id'];
-                $nodes[] = array(
-                    'id'        => $nid,
-                    'type'      => 'demand',
-                    'label'     => $d['number'] ?: ('#'.$d['id']),
-                    'number'    => $d['number'] ?: ('#'.$d['id']),
-                    'sublabel'  => ld_statusLabel('demand', $d['status']),
-                    'status'    => $d['status'],
-                    'amount'    => ld_amt($d['sum_total']),
-                    'moment'    => $d['moment'],
-                    'entity_id' => (int)$d['id'],
-                    'url'       => '/demand/edit?id=' . $d['id'],
-                    'col'       => 2,
-                );
-                $edges[] = array('from' => $nid, 'to' => 'co_'.$orderId, 'type' => 'shipment');
+// Two sources: document_link AND demand.customerorder_id (direct FK)
+{
+    $demandRows = array();
+    $seenDemandIds = array();
+
+    // Source 1: via document_link
+    if (!empty($byType['demand'])) {
+        $limited = array_slice($byType['demand'], 0, $CAP);
+        $where = ld_whereIds($limited, 'id_ms');
+        if ($where) {
+            $rD = \Database::fetchAll('Papir',
+                "SELECT id, number, moment, status, sum_total FROM demand WHERE {$where} ORDER BY moment ASC");
+            if ($rD['ok']) {
+                foreach ($rD['rows'] as $d) {
+                    $did = (int)$d['id'];
+                    if (!isset($seenDemandIds[$did])) {
+                        $seenDemandIds[$did] = true;
+                        $demandRows[] = $d;
+                    }
+                }
             }
         }
+    }
+
+    // Source 2: via demand.customerorder_id (most common)
+    $rD2 = \Database::fetchAll('Papir',
+        "SELECT id, number, moment, status, sum_total FROM demand
+         WHERE customerorder_id={$orderId} ORDER BY moment ASC");
+    if ($rD2['ok']) {
+        foreach ($rD2['rows'] as $d) {
+            $did = (int)$d['id'];
+            if (!isset($seenDemandIds[$did])) {
+                $seenDemandIds[$did] = true;
+                $demandRows[] = $d;
+            }
+        }
+    }
+
+    $totalDemands = count($demandRows);
+    $limited  = array_slice($demandRows, 0, $CAP);
+    $overflow = $totalDemands - count($limited);
+
+    foreach ($limited as $d) {
+        $demandEntityIds[] = (int)$d['id'];
+        $nid = 'demand_' . $d['id'];
+        $nodes[] = array(
+            'id'        => $nid,
+            'type'      => 'demand',
+            'label'     => $d['number'] ?: ('#'.$d['id']),
+            'number'    => $d['number'] ?: ('#'.$d['id']),
+            'sublabel'  => ld_statusLabel('demand', $d['status']),
+            'status'    => $d['status'],
+            'amount'    => ld_amt($d['sum_total']),
+            'moment'    => $d['moment'],
+            'entity_id' => (int)$d['id'],
+            'url'       => '/demand/edit?id=' . $d['id'],
+            'col'       => 2,
+        );
+        $edges[] = array('from' => $nid, 'to' => 'co_'.$orderId, 'type' => 'shipment');
     }
     if ($overflow > 0) {
         $nodes[] = array('id'=>'ovf_demand','type'=>'overflow','label'=>'+' . $overflow . ' відвантаж.','col'=>2,'url'=>null);
@@ -149,7 +185,7 @@ if (!empty($byType['ttn_np'])) {
     $ids = array_filter(array_map(function($r){ return (int)$r['from_id']; }, $limited));
     if (!empty($ids)) {
         $rT = \Database::fetchAll('Papir',
-            "SELECT id, int_doc_number, state_name, state_define, deletion_mark, created_at
+            "SELECT id, int_doc_number, state_name, state_define, deletion_mark, moment
              FROM ttn_novaposhta WHERE id IN (" . implode(',', $ids) . ")");
         if ($rT['ok']) {
             foreach ($rT['rows'] as $t) {
@@ -161,7 +197,7 @@ if (!empty($byType['ttn_np'])) {
                     'number'    => $t['int_doc_number'] ?: ('#'.$t['id']),
                     'sublabel'  => mb_substr($t['state_name'] ?: '—', 0, 30, 'UTF-8'),
                     'status'    => ld_ttnNpStatus($t),
-                    'moment'    => $t['created_at'],
+                    'moment'    => $t['moment'],
                     'entity_id' => (int)$t['id'],
                     'url'       => '/novaposhta/ttns',
                     'col'       => 3,
@@ -320,7 +356,7 @@ if (!empty($demandEntityIds)) {
 
     // TTN NP via ttn_novaposhta.demand_id (numeric FK)
     $rTtns = \Database::fetchAll('Papir',
-        "SELECT id, int_doc_number, state_name, state_define, deletion_mark, demand_id, created_at
+        "SELECT id, int_doc_number, state_name, state_define, deletion_mark, demand_id, moment
          FROM ttn_novaposhta
          WHERE demand_id IN ({$inDemands}) AND (deletion_mark IS NULL OR deletion_mark=0)
          ORDER BY id ASC");
@@ -342,7 +378,7 @@ if (!empty($demandEntityIds)) {
                         'number'    => $t['int_doc_number'] ?: ('#'.$t['id']),
                         'sublabel'  => mb_substr($t['state_name'] ?: '—', 0, 30, 'UTF-8'),
                         'status'    => ld_ttnNpStatus($t),
-                        'moment'    => $t['created_at'],
+                        'moment'    => $t['moment'],
                         'entity_id' => (int)$t['id'],
                         'url'       => '/novaposhta/ttns',
                         'col'       => 3,

@@ -37,7 +37,7 @@ if (!$targetSheet) {
     $eSenderRef = \Database::escape('Papir', $ttn['sender_ref']);
     $rSheet = \Database::fetchRow('Papir',
         "SELECT Ref FROM np_scan_sheets
-         WHERE sender_ref = '{$eSenderRef}' AND status = 'open'
+         WHERE sender_ref = '{$eSenderRef}' AND status = 'open' AND Number IS NOT NULL
          ORDER BY DateTime DESC LIMIT 1");
     if ($rSheet['ok'] && $rSheet['row']) {
         $targetSheet = $rSheet['row']['Ref'];

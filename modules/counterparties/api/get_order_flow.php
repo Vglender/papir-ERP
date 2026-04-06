@@ -105,6 +105,7 @@ $rItems = \Database::fetchAll('Papir',
             COALESCE(NULLIF(ci.product_name,''),
                      NULLIF(pd_uk.name,''), NULLIF(pd_ru.name,''), '') AS name,
             COALESCE(NULLIF(ci.sku,''), pp.product_article, '') AS article,
+            COALESCE(NULLIF(ci.unit,''), pp.unit, 'шт') AS unit,
             (SELECT psi.stock FROM price_supplier_items psi
              WHERE psi.product_id = ci.product_id
                AND psi.pricelist_id = 1

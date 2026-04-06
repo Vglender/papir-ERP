@@ -100,12 +100,43 @@ class TriggerEngine
 
     private static function resolveKey($key, $context)
     {
+        // ── Віртуальні поля (обчислювані через БД) ───────────────────────────
+
+        // order.all_items_in_stock → '1' якщо всі позиції є в достатній кількості
+        if ($key === 'order.all_items_in_stock') {
+            $ordId = isset($context['order_id']) ? (int)$context['order_id'] : 0;
+            if (!$ordId) return '0';
+            $r = Database::fetchRow('Papir',
+                "SELECT COUNT(*) AS cnt
+                 FROM customerorder_item ci
+                 LEFT JOIN product_papir pp ON pp.product_id = ci.product_id
+                 WHERE ci.customerorder_id = {$ordId}
+                   AND (pp.product_id IS NULL OR pp.quantity < ci.quantity)");
+            return ($r['ok'] && $r['row'] && (int)$r['row']['cnt'] === 0) ? '1' : '0';
+        }
+
+        // ── Звичайні поля контексту ───────────────────────────────────────────
+
         $parts = explode('.', $key, 2);
         $root  = isset($parts[0]) ? $parts[0] : '';
         $field = isset($parts[1]) ? $parts[1] : '';
 
-        if ($root === 'order' && isset($context['order'][$field])) {
-            return $context['order'][$field];
+        if ($root === 'order') {
+            // Спочатку шукаємо в масиві order, якщо немає — підвантажуємо з БД
+            if (isset($context['order'][$field])) {
+                return $context['order'][$field];
+            }
+            // Fallback: підвантажити поле напряму з БД
+            $ordId = isset($context['order_id']) ? (int)$context['order_id'] : 0;
+            if ($ordId && $field) {
+                $safeField = preg_replace('/[^a-z0-9_]/i', '', $field);
+                $r = Database::fetchRow('Papir',
+                    "SELECT `{$safeField}` FROM customerorder WHERE id={$ordId} LIMIT 1");
+                if ($r['ok'] && $r['row'] && array_key_exists($safeField, $r['row'])) {
+                    return $r['row'][$safeField];
+                }
+            }
+            return null;
         }
         if ($root === 'task' && isset($context['task'][$field])) {
             return $context['task'][$field];

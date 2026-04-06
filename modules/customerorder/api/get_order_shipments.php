@@ -61,8 +61,43 @@ $rDels = Database::fetchAll('Papir',
      ORDER BY od.id ASC");
 $deliveries = ($rDels['ok']) ? $rDels['rows'] : array();
 
+// Demand (відвантаження) records linked via customerorder_id
+$rDemands = Database::fetchAll('Papir',
+    "SELECT id, number, moment, status, sum_total
+     FROM demand
+     WHERE customerorder_id = {$orderId}
+     ORDER BY id ASC");
+$demands = ($rDemands['ok']) ? $rDemands['rows'] : array();
+
+// Also get demands linked only via document_link (from_ms_id), without customerorder_id
+$rDLinks = Database::fetchAll('Papir',
+    "SELECT from_ms_id FROM document_link
+     WHERE to_type='customerorder' AND to_id={$orderId} AND from_type='demand'
+       AND from_id IS NULL AND from_ms_id IS NOT NULL AND from_ms_id != ''");
+if ($rDLinks['ok'] && !empty($rDLinks['rows'])) {
+    $knownMsIds = array();
+    // demands loaded via customerorder_id don't have id_ms in the SELECT above,
+    // so we just collect all link ms_ids and exclude duplicates after fetching
+    $msIds = array();
+    foreach ($rDLinks['rows'] as $row) {
+        $msIds[] = "'" . Database::escape('Papir', $row['from_ms_id']) . "'";
+    }
+    if (!empty($msIds)) {
+        $rExtra = Database::fetchAll('Papir',
+            "SELECT id, number, moment, status, sum_total
+             FROM demand
+             WHERE id_ms IN (" . implode(',', $msIds) . ")
+               AND (customerorder_id IS NULL OR customerorder_id != {$orderId})
+             ORDER BY id ASC");
+        if ($rExtra['ok']) {
+            $demands = array_merge($demands, $rExtra['rows']);
+        }
+    }
+}
+
 echo json_encode(array(
     'ok'         => true,
     'ttns'       => $ttns,
     'deliveries' => $deliveries,
+    'demands'    => $demands,
 ));

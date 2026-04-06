@@ -355,10 +355,10 @@ $orderStatusLabels = array(
 
 <!-- Back + breadcrumb -->
 <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px">
-    <a href="/counterparties?select=<?php echo (int)$cp['id']; ?>" class="btn btn-sm" style="gap:5px; display:inline-flex; align-items:center;">
-        <svg width="14" height="14" fill="none" viewBox="0 0 16 16"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Повернутись
-    </a>
+    <button type="button" class="btn btn-sm" onclick="window.close()" style="gap:5px; display:inline-flex; align-items:center;">
+        <svg width="13" height="13" fill="none" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        Закрити
+    </button>
     <span style="color:var(--border-input)">|</span>
     <span class="breadcrumb" style="margin:0"><?php echo htmlspecialchars($cp['name']); ?></span>
 </div>

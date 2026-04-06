@@ -78,8 +78,11 @@ class ScanSheetService
         ));
         if (!$r['ok']) return array('ok' => false, 'error' => $r['error']);
 
+        $npRefs = array();
+
         foreach ($r['data'] as $ss) {
             if (empty($ss['Ref'])) continue;
+            $npRefs[] = $ss['Ref'];
 
             $detail    = null;
             $rDetail   = $np->call('ScanSheet', 'getScanSheet', array('Ref' => $ss['Ref']));
@@ -104,7 +107,53 @@ class ScanSheetService
             ));
         }
 
-        return array('ok' => true, 'count' => count($r['data']));
+        // Mark registries that NP no longer returns as disbanded (closed)
+        // and clear scan_sheet_ref on their TTNs
+        $disbanded = 0;
+        if (!empty($npRefs)) {
+            $eSender = \Database::escape('Papir', $senderRef);
+            $inList  = implode("','", array_map(function($ref) {
+                return \Database::escape('Papir', $ref);
+            }, $npRefs));
+
+            $rMissing = \Database::fetchAll('Papir',
+                "SELECT Ref FROM np_scan_sheets
+                 WHERE sender_ref = '{$eSender}' AND status = 'open'
+                   AND Number IS NOT NULL AND Ref NOT IN ('{$inList}')");
+
+            if ($rMissing['ok']) {
+                foreach ($rMissing['rows'] as $miss) {
+                    $eMissRef = \Database::escape('Papir', $miss['Ref']);
+                    // Clear scan_sheet_ref on TTNs belonging to this disbanded registry
+                    \Database::query('Papir',
+                        "UPDATE ttn_novaposhta SET scan_sheet_ref = NULL
+                         WHERE scan_sheet_ref = '{$eMissRef}'");
+                    // Mark as disbanded
+                    \Database::query('Papir',
+                        "UPDATE np_scan_sheets SET status = 'disbanded'
+                         WHERE Ref = '{$eMissRef}'");
+                    $disbanded++;
+                }
+            }
+        } elseif (count($r['data']) === 0) {
+            // NP returned empty list — mark all our open registries for this sender as disbanded
+            $eSender = \Database::escape('Papir', $senderRef);
+            $rAll = \Database::fetchAll('Papir',
+                "SELECT Ref FROM np_scan_sheets
+                 WHERE sender_ref = '{$eSender}' AND status = 'open' AND Number IS NOT NULL");
+            if ($rAll['ok']) {
+                foreach ($rAll['rows'] as $row) {
+                    $eMissRef = \Database::escape('Papir', $row['Ref']);
+                    \Database::query('Papir',
+                        "UPDATE ttn_novaposhta SET scan_sheet_ref = NULL WHERE scan_sheet_ref = '{$eMissRef}'");
+                    \Database::query('Papir',
+                        "UPDATE np_scan_sheets SET status = 'disbanded' WHERE Ref = '{$eMissRef}'");
+                    $disbanded++;
+                }
+            }
+        }
+
+        return array('ok' => true, 'count' => count($r['data']), 'disbanded' => $disbanded);
     }
 
     /**

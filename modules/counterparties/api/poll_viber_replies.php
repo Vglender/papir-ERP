@@ -159,6 +159,22 @@ foreach ($r['rows'] as $sent) {
                     Database::update('Papir', 'cp_messages',
                         array('status' => $newStatus),
                         array('id' => (int)$sent['id']));
+
+                    // ── Viber availability tracking ──────────────────────────
+                    // failed/undelivered = Viber не встановлено, повідомлення
+                    // відіслано через SMS-fallback → помічаємо контрагента
+                    if ($counterpartyId > 0) {
+                        if ($newStatus === 'failed') {
+                            Database::query('Papir',
+                                "UPDATE counterparty SET viber_unavailable = 1
+                                 WHERE id = {$counterpartyId} AND viber_unavailable = 0");
+                        } elseif (in_array($newStatus, array('delivered', 'read'))) {
+                            // Viber доставлено → скидаємо флаг якщо він був встановлений
+                            Database::query('Papir',
+                                "UPDATE counterparty SET viber_unavailable = 0
+                                 WHERE id = {$counterpartyId} AND viber_unavailable = 1");
+                        }
+                    }
                 }
             }
         }
@@ -214,6 +230,21 @@ foreach ($r['rows'] as $sent) {
                     }
                     continue;
                 }
+            }
+
+            // Dedup 3: content-based — 10-minute window
+            // Catches duplicates when minute bucket mismatch between webhook and poll datetime.
+            if ($body) {
+                $bodyEscD  = Database::escape('Papir', $body);
+                $phoneEscD = Database::escape('Papir', $sent['phone'] ? $sent['phone'] : '');
+                $contentDup = Database::fetchRow('Papir',
+                    "SELECT id FROM cp_messages
+                     WHERE channel = 'viber' AND direction = 'in'
+                       AND phone = '{$phoneEscD}'
+                       AND body  = '{$bodyEscD}'
+                       AND created_at >= NOW() - INTERVAL 10 MINUTE
+                     LIMIT 1");
+                if ($contentDup['ok'] && !empty($contentDup['row'])) continue;
             }
 
             // Resolve phone from the sent message

@@ -304,6 +304,50 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
 .ws-msg-status.read    svg { color: #6d28d9; }
 .ws-msg-status.failed  svg { color: #ef4444; }
 
+/* Message outer (bubble + action buttons side by side) */
+.ws-msg-outer {
+    display: inline-flex; align-items: center; gap: 4px; max-width: 85%;
+}
+.ws-msg-row.out .ws-msg-outer { flex-direction: row-reverse; }
+.ws-msg-row.in  .ws-msg-outer { flex-direction: row; }
+.ws-msg-actions {
+    display: flex; flex-direction: column; gap: 3px; flex-shrink: 0;
+    opacity: 0; pointer-events: none; transition: opacity .1s;
+}
+.ws-msg-outer:hover .ws-msg-actions { opacity: 1; pointer-events: auto; }
+.ws-msg-act-btn {
+    width: 24px; height: 24px; border: none; border-radius: 5px;
+    background: #ede9fe; color: #7c3aed; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-family: inherit; padding: 0; line-height: 1;
+}
+.ws-msg-act-btn:hover { background: #ddd6fe; }
+
+/* Reply quote inside bubble */
+.ws-bubble-reply {
+    border-left: 3px solid rgba(255,255,255,.5);
+    background: rgba(0,0,0,.12); border-radius: 4px;
+    padding: 4px 8px; font-size: 11px; line-height: 1.4;
+    margin-bottom: 5px; white-space: pre-wrap; word-break: break-word;
+    max-height: 44px; overflow: hidden; opacity: .9;
+}
+.ws-msg-row.in .ws-bubble-reply { border-left-color: #7c3aed; background: rgba(124,58,237,.08); }
+
+/* Reply preview strip above textarea */
+.ws-reply-strip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 14px; background: #f5f3ff;
+    border-top: 1px solid #ede9fe; flex-shrink: 0;
+}
+.ws-reply-strip-bar { width: 3px; align-self: stretch; min-height: 28px; background: #7c3aed; border-radius: 2px; flex-shrink: 0; }
+.ws-reply-strip-text { flex: 1; font-size: 12px; color: #374151; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ws-reply-strip-close { width: 22px; height: 22px; border: none; background: transparent; color: #9ca3af; cursor: pointer; font-size: 18px; line-height: 1; padding: 0; border-radius: 4px; flex-shrink: 0; }
+.ws-reply-strip-close:hover { background: #ede9fe; color: #7c3aed; }
+
+/* Forward search results */
+.ws-fwd-result { padding: 8px 10px; cursor: pointer; font-size: 13px; border-radius: 6px; }
+.ws-fwd-result:hover { background: #f5f3ff; }
+
 /* Takeover notice */
 .ws-takeover {
     background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
@@ -726,6 +770,74 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
   transition: background .1s;
 }
 .ws-snooze-item:hover { background: #f3f4f6; }
+
+/* ── Team Chat ──────────────────────────────────────────────────────────────── */
+.tc-tabs-wrap { flex-shrink:0; padding: 6px 10px 0; border-bottom: 1px solid #f3f4f6; overflow-x: auto; }
+.tc-tabs { display: flex; gap: 4px; white-space: nowrap; }
+.tc-tab {
+    height: 28px; padding: 0 10px; border: 1px solid #e5e7eb; border-radius: 14px;
+    background: #fff; font-size: 11px; font-family: inherit; cursor: pointer;
+    color: #6b7280; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.tc-tab.active { background: #ede9fe; border-color: #c4b5fd; color: #7c3aed; font-weight: 600; }
+.tc-tab:hover:not(.active) { background: #f9fafb; }
+.tc-badge {
+    min-width: 16px; height: 16px; border-radius: 8px; background: #ef4444;
+    color: #fff; font-size: 9px; font-weight: 700; padding: 0 4px;
+    line-height: 16px; text-align: center;
+}
+.tc-title-bar { flex-shrink:0; padding: 6px 14px 4px; }
+.tc-title { font-size: 12px; font-weight: 600; color: #374151; }
+.tc-msgs {
+    flex: 1; overflow-y: auto; padding: 10px 14px;
+    display: flex; flex-direction: column; gap: 6px; background: #fafafa;
+}
+.tc-empty { font-size: 12px; color: #9ca3af; text-align: center; padding: 20px 0; }
+.tc-msg-row { display: flex; flex-direction: column; }
+.tc-msg-row.out { align-items: flex-end; }
+.tc-msg-row.in  { align-items: flex-start; }
+.tc-fwd-badge {
+    display: flex; align-items: center; gap: 5px; margin-bottom: 3px;
+    font-size: 11px; color: #7c3aed;
+}
+.tc-fwd-icon { font-size: 13px; }
+.tc-fwd-cp { color: #7c3aed; font-weight: 600; text-decoration: none; }
+.tc-fwd-cp:hover { text-decoration: underline; }
+.tc-fwd-author { color: #6b7280; }
+.tc-bubble {
+    padding: 7px 10px; border-radius: 10px; font-size: 12px;
+    line-height: 1.5; max-width: 78%; white-space: pre-wrap; word-break: break-word;
+}
+.tc-msg-row.out .tc-bubble { background: #7c3aed; color: #fff; border-radius: 10px 2px 10px 10px; }
+.tc-msg-row.in  .tc-bubble { background: #f3f4f6; color: #1a1a1a; border-radius: 2px 10px 10px 10px; }
+.tc-bubble .tc-link { color: inherit; opacity: .85; text-decoration: underline; word-break: break-all; }
+.tc-meta { font-size: 10px; color: #9ca3af; margin-top: 2px; padding: 0 2px; display: flex; gap: 4px; }
+.tc-from { font-weight: 600; color: #6b7280; }
+.tc-fwd-strip {
+    display: flex; align-items: center; gap: 8px;
+    padding: 5px 14px; background: #f5f3ff; border-top: 1px solid #ede9fe; flex-shrink: 0;
+}
+.tc-fwd-strip-bar { width: 3px; align-self: stretch; min-height: 24px; background: #7c3aed; border-radius: 2px; flex-shrink: 0; }
+.tc-fwd-strip-text { flex: 1; font-size: 11px; color: #374151; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.tc-fwd-strip-close { width: 20px; height: 20px; border: none; background: transparent; color: #9ca3af; cursor: pointer; font-size: 16px; padding: 0; border-radius: 4px; flex-shrink: 0; }
+.tc-fwd-strip-close:hover { background: #ede9fe; color: #7c3aed; }
+/* Forwarded quote block */
+.tc-fwd-header { font-size: 11px; color: #7c3aed; font-weight: 600; margin-bottom: 3px; }
+.tc-quote {
+    border-left: 3px solid #7c3aed; background: rgba(124,58,237,.07);
+    border-radius: 4px; padding: 5px 9px; margin-bottom: 4px; max-width: 78%;
+}
+.tc-quote-meta { font-size: 10px; color: #7c3aed; font-weight: 600; margin-bottom: 2px; }
+.tc-quote-body { font-size: 12px; color: #374151; line-height: 1.4; white-space: pre-wrap; word-break: break-word; max-height: 60px; overflow: hidden; }
+.tc-comment { margin-top: 4px; }
+.tc-input-area { border-top: 1px solid #f0f0f0; flex-shrink: 0; background: #fff; padding: 6px 14px 8px; }
+.tc-input {
+    width: 100%; border: 1px solid #e5e7eb; border-radius: 8px;
+    padding: 6px 10px; font-size: 12px; font-family: inherit; resize: none;
+    outline: none; box-sizing: border-box; line-height: 1.4;
+}
+.tc-input:focus { border-color: #c4b5fd; }
+.tc-input-row { display: flex; justify-content: flex-end; margin-top: 5px; }
 </style>
 
 <div class="ws-wrap">
@@ -885,6 +997,12 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
               </button>
               <span class="ws-t-hint" id="wsInputHint"></span>
             </div>
+            <!-- Reply strip (hidden by default) -->
+            <div class="ws-reply-strip" id="wsReplyStrip" style="display:none">
+              <div class="ws-reply-strip-bar"></div>
+              <div class="ws-reply-strip-text"></div>
+              <button type="button" class="ws-reply-strip-close" onclick="ChatHub.cancelReply()" title="Скасувати">&#x2715;</button>
+            </div>
             <textarea class="ws-textarea" id="wsMsgInput" placeholder="Написати повідомлення…" rows="2" spellcheck="false"></textarea>
             <div class="ws-input-row">
               <span class="ws-char-c" id="wsCharC"></span>
@@ -900,9 +1018,28 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
           </div>
         </div>
 
-        <!-- Internal chat pane -->
-        <div class="ws-tab-pane" id="wsPaneInternal" style="display:none">
-          <div class="ws-placeholder">Внутрішній чат — незабаром</div>
+        <!-- Internal team chat pane (cp context) -->
+        <div class="ws-tab-pane" id="wsPaneInternal" style="display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden">
+          <div class="tc-title-bar">
+            <span class="tc-title">💬 Команда про цього клієнта</span>
+          </div>
+          <div class="tc-msgs" id="wsTcMsgs">
+            <div class="tc-empty">Завантаження…</div>
+          </div>
+          <div class="tc-fwd-strip" id="wsTcFwdStrip" style="display:none">
+            <div class="tc-fwd-strip-bar"></div>
+            <div class="tc-fwd-strip-text"></div>
+            <button type="button" class="tc-fwd-strip-close" onclick="WsCpChat.clearFwd()" title="Скасувати">&#x2715;</button>
+          </div>
+          <div class="tc-input-area">
+            <textarea class="tc-input" id="wsTcInput" placeholder="Повідомлення команді…" rows="2"></textarea>
+            <div class="tc-input-row">
+              <button class="ws-send-btn" id="wsTcSendBtn" onclick="WsCpChat.send()">
+                Надіслати
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
 
       </div><!-- /ws-hub-inner -->
@@ -998,6 +1135,23 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
 </div>
 
 <!-- ══ Modal: template manager ════════════════════════════════════════════════ -->
+<!-- Forward message modal -->
+<div class="modal-overlay" id="wsFwdModal" style="display:none" onclick="if(event.target===this)ChatHub.closeFwdModal()">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-head">
+      <span>Переслати повідомлення</span>
+      <button class="modal-close" onclick="ChatHub.closeFwdModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="ws-fwd-preview" style="font-size:12px;color:#6b7280;border-left:3px solid #7c3aed;padding:4px 10px;border-radius:3px;background:#f5f3ff;margin-bottom:12px;max-height:44px;overflow:hidden;"></div>
+      <input type="text" class="ws-fwd-search" placeholder="Пошук контрагента…" autocomplete="off"
+             style="width:100%;height:34px;border:1px solid #e5e7eb;border-radius:8px;padding:0 10px;font-size:13px;font-family:inherit;box-sizing:border-box"
+             oninput="ChatHub.searchFwdCounterparty(this.value)">
+      <div class="ws-fwd-results" id="wsFwdResults" style="margin-top:6px;max-height:200px;overflow-y:auto;border-radius:8px;border:1px solid #e5e7eb;display:none"></div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="wsTplModal" style="display:none" onclick="if(event.target===this)WS.closeTplManager()">
   <div class="modal-box" style="max-width:500px">
     <div class="modal-head">
@@ -1039,6 +1193,7 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
 </div>
 
 <script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
+<script src="/modules/shared/chat-hub.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chat-hub.js'); ?>"></script>
 <script>
 var WS = {
 
@@ -1098,16 +1253,8 @@ var WS = {
       });
     });
 
-    // Channel tabs
-    document.querySelectorAll('.ws-ch-tab').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.ws-ch-tab').forEach(function(b){ b.classList.remove('active'); });
-        btn.classList.add('active');
-        self.activeCh = btn.dataset.ch;
-        self.clearChannelDot(self.activeCh);
-        self.applyChPanel();
-      });
-    });
+    // Channel tabs — управляет ChatHub (он же синхронизирует activeCh)
+    ChatHub.bindChannelTabs();
 
     // Search
     var searchInp   = document.getElementById('wsSearch');
@@ -1137,18 +1284,13 @@ var WS = {
       searchInp.focus();
     });
 
-    // Textarea
+    // Textarea: char counter + '/' command menu (Enter→send handled by ChatHub)
     var inp = document.getElementById('wsMsgInput');
     inp.addEventListener('input', function() {
       var len = inp.value.length;
       document.getElementById('wsCharC').textContent = len > 0 ? len + ' симв.' : '';
     });
     inp.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault();
-        self.sendMessage();
-        return;
-      }
       // Telegram-style / command menu
       if (e.key === '/' && inp.value === '' && self._flowData) {
         e.preventDefault();
@@ -1161,7 +1303,11 @@ var WS = {
       self.openNew();
     });
 
-    this.initEmoji();
+    // ChatHub: инициализация чат-модуля
+    ChatHub.init({
+      onAfterRender: function() { self.loadInbox(); },
+      onTaskChanged: function() { self.refreshInboxCard(); }
+    });
   },
 
   // ── Inbox ──────────────────────────────────────────────────────────────────
@@ -1431,13 +1577,14 @@ var WS = {
             self.currentCp      = d;
             self.currentLead    = null;
             self.activeChatCpId = self.itemId;
+            ChatHub.setContext(self.itemId, 'counterparty', self.itemId, d.cp.name);
             self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats, d.cp.id);
             self.renderContactSwitcher(d.cp.id, d.contacts || []);
             self.updateChannelTabs(d.cp.available_channels || ['note']);
             self.renderCpCtx(d);
             self.applyAiMode();
-            self.updateChannelDots(d.unread_by_channel || {});
-            self.loadMessages();
+            ChatHub.updateChannelDots(d.unread_by_channel || {});
+            ChatHub.loadMessages();
             self.startPolling();
           });
         }
@@ -1492,7 +1639,7 @@ var WS = {
     if (c.last_msg_dir === 'in') {
       if (c.unread_count > 0) {
         var waitMin = c.last_msg_at ? (Date.now() - new Date(c.last_msg_at).getTime()) / 60000 : 0;
-        return waitMin > 60 ? 'critical' : 'high';
+        return waitMin > 30 ? 'critical' : 'high';
       }
       return 'medium';  // read but no reply yet
     }
@@ -1505,17 +1652,23 @@ var WS = {
     return '<span class="ws-urg-dot ' + cls + '"></span>';
   },
 
-  // Score for messages tab sorting: base_weight × time_factor × channel_coeff
+  // Score for messages tab sorting — clear tiers:
+  //   Unread incoming  1000-2000  (always above read)
+  //   Read-but-unanswered 100-500
+  //   Outgoing             5
   computeMessageScore: function(c) {
     if (!c.last_msg_body || !c.last_msg_at) return 0;
     if (c.last_msg_dir === 'in') {
-      var waitMin   = (Date.now() - new Date(c.last_msg_at).getTime()) / 60000;
-      var base      = c.unread_count > 0 ? 100 : 30;
-      var timeBonus = Math.floor(waitMin / 15) * (c.unread_count > 0 ? 5 : 2);
-      var chCoeff   = { viber: 1.2, sms: 1.0, email: 0.8, telegram: 1.1 }[c.last_msg_channel] || 1.0;
-      return Math.min(500, (base + timeBonus) * chCoeff);
+      var waitMin = (Date.now() - new Date(c.last_msg_at).getTime()) / 60000;
+      var chCoeff = { viber: 1.2, sms: 1.0, email: 0.8, telegram: 1.1 }[c.last_msg_channel] || 1.0;
+      if (c.unread_count > 0) {
+        var timeBonus = Math.floor(waitMin / 15) * 5;
+        return 1000 + Math.min(1000, timeBonus * chCoeff);
+      }
+      var timeBonus = Math.floor(waitMin / 15) * 2;
+      return Math.min(500, (100 + timeBonus) * chCoeff);
     }
-    return 5;  // ball is with client — very low
+    return 5;  // ball is with client
   },
 
   renderTaskBadge: function(c) {
@@ -1573,6 +1726,7 @@ var WS = {
     var validChannels = ['viber', 'sms', 'email', 'telegram', 'tasks'];
     if (channel && validChannels.indexOf(channel) !== -1) {
       this.activeCh = channel;
+      ChatHub.activeCh = channel;
       document.querySelectorAll('.ws-ch-tab').forEach(function(b){ b.classList.remove('active'); });
       var chBtn = document.querySelector('.ws-ch-tab[data-ch="' + channel + '"]');
       if (chBtn) chBtn.classList.add('active');
@@ -1605,32 +1759,20 @@ var WS = {
         self.currentCp      = d;
         self.currentLead    = null;
         self.activeChatCpId = self.itemId; // reset to company on new selection
+        ChatHub.setContext(self.itemId, 'counterparty', self.itemId, d.cp.name);
         self.renderHubHeader(d.cp.initials, d.cp.name, d.cp.type, null, d.stats, d.cp.id);
         self.renderContactSwitcher(d.cp.id, d.contacts || []);
         self.updateChannelTabs(d.cp.available_channels || ['note']);
         self.renderCpCtx(d);
         self.applyAiMode();
-        self.updateChannelDots(d.unread_by_channel || {});
-        self.loadMessages();
+        ChatHub.updateChannelDots(d.unread_by_channel || {});
+        ChatHub.loadMessages();
         self.startPolling();
       });
   },
 
   // ── Channel tab availability ───────────────────────────────────────────────
-  updateChannelTabs: function(availableChannels) {
-    var avail = availableChannels || [];
-    // tasks tab is always available regardless of contact data
-    document.querySelectorAll('.ws-ch-tab').forEach(function(btn) {
-      var ch = btn.dataset.ch;
-      if (ch === 'tasks' || avail.indexOf(ch) !== -1) {
-        btn.classList.remove('ch-unavailable');
-        btn.removeAttribute('title');
-      } else {
-        btn.classList.add('ch-unavailable');
-        btn.setAttribute('title', 'Немає контактних даних');
-      }
-    });
-  },
+  updateChannelTabs: function(availableChannels) { ChatHub.updateChannelTabs(availableChannels); },
 
   // ── Contact switcher ──────────────────────────────────────────────────────
   renderContactSwitcher: function(cpId, contacts) {
@@ -1669,10 +1811,12 @@ var WS = {
         var newId = parseInt(this.dataset.csId, 10);
         if (newId === self.activeChatCpId) return;
         self.activeChatCpId = newId;
+        ChatHub.activeChatCpId = newId;
         el.querySelectorAll('.ws-cs-btn').forEach(function(b){ b.classList.remove('active'); });
         this.classList.add('active');
         self.updateChannelTabs(channelMap[newId] || ['note']);
-        self.loadMessages();
+        ChatHub.loadMessages();
+        if (WS._teamChatInited) WsCpChat.setCp(newId);
       });
     });
   },
@@ -1687,6 +1831,7 @@ var WS = {
         self.currentLead    = d;
         self.currentCp      = null;
         self.activeChatCpId = null;
+        ChatHub.setContext(id, 'lead', null);
         var switcher = document.getElementById('wsContactSwitcher');
         if (switcher) { switcher.style.display = 'none'; switcher.innerHTML = ''; }
         self.updateChannelTabs(['viber','sms','email','telegram','note']);
@@ -1696,8 +1841,8 @@ var WS = {
         // Hide AI banner for leads
         document.getElementById('wsModeBanner').style.display = 'none';
         document.getElementById('wsTakeover').style.display   = 'none';
-        self.updateChannelDots(d.unread_by_channel || {});
-        self.loadMessages();
+        ChatHub.updateChannelDots(d.unread_by_channel || {});
+        ChatHub.loadMessages();
         self.startPolling();
       });
   },
@@ -2143,7 +2288,7 @@ var WS = {
     if (ttnsEl) {
       var allTtns = [];
       (d.ttns_np || []).forEach(function(t) {
-        allTtns.push({ type: 'ttn_np', num: t.int_doc_number, status: t.state_name, moment: t.moment, data: t });
+        allTtns.push({ type: 'ttn_np', num: t.int_doc_number, status: self._npStatusLabel(t), moment: t.moment, data: t });
       });
       (d.ttns_up || []).forEach(function(t) {
         allTtns.push({ type: 'ttn_up', num: t.barcode, status: t.lifecycle_status, moment: t.moment, data: t });
@@ -2151,10 +2296,14 @@ var WS = {
       allTtns.sort(function(a, b) { return (a.moment || '').localeCompare(b.moment || ''); });
 
       var TTN_ST_CSS_MAP = {
-        'Доставлено': 'st-delivered',
-        'Вручено': 'st-delivered',
-        'Повернуто': 'st-cancelled',
-        'Відмовлено': 'st-cancelled'
+        'Отримано': 'st-delivered', 'Доставлено': 'st-delivered', 'Вручено': 'st-delivered',
+        'У відділенні': 'st-branch',
+        'В дорозі': 'st-transit', 'В місті відправника': 'st-transit', 'В місті одержувача': 'st-transit',
+        'Кур\'єр доставляє': 'st-transit',
+        'Чернетка': 'st-draft',
+        'Повернуто': 'st-cancelled', 'Повертається': 'st-cancelled', 'Повернення': 'st-cancelled',
+        'Відмова': 'st-cancelled', 'Відмовлено': 'st-cancelled',
+        'Видалено': 'st-cancelled', 'Не знайдено': 'st-cancelled'
       };
       var html = '<div class="ws-bottom-col-hd">'
         + '<span class="ws-bottom-col-hd-title">Відправки'
@@ -2227,7 +2376,7 @@ var WS = {
       var npNum = dt.int_doc_number ? String(dt.int_doc_number) : '';
       title = 'ТТН Нова Пошта' + (npNum ? ' · ' + npNum.substr(-8) : '');
       rows += this._ddr('Номер',       npNum || '—');
-      rows += this._ddr('Статус',      dt.state_name || '—');
+      rows += this._ddr('Статус',      this._npStatusLabel(dt));
       rows += this._ddr('Місто',       dt.city_recipient_desc || '—');
       if (dt.backward_delivery_money > 0)
         rows += this._ddr('Накл. платіж',       '₴' + this.formatNum(dt.backward_delivery_money));
@@ -3064,11 +3213,11 @@ var WS = {
     // ── Items table (editable) ────────────────────────────────────────────────
     var itemsHtml = '<div class="ws-of-items-wrap"><table class="ws-of-items">'
       + '<colgroup>'
-      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col style="width:52px"><col class="ws-of-col-price">'
+      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col class="ws-of-col-unit"><col style="width:52px"><col class="ws-of-col-price">'
       + '<col class="ws-of-col-disc"><col class="ws-of-col-vat"><col class="ws-of-col-sum"><col class="ws-of-col-del">'
       + '</colgroup>'
       + '<thead><tr>'
-      + '<th class="left">Товар</th><th>К-ть</th><th title="Залишок на складі (Склад)">Зал.</th><th>Ціна</th>'
+      + '<th class="left">Товар</th><th>К-ть</th><th>Од.</th><th title="Залишок на складі (Склад)">Зал.</th><th>Ціна</th>'
       + '<th title="Знижка %">Зн%</th><th>ПДВ</th><th>Сума</th><th></th>'
       + '</tr></thead><tbody>';
 
@@ -3094,6 +3243,7 @@ var WS = {
         +   shipNote
         + '</td>'
         + '<td><input class="ws-cell-input" data-field="quantity" value="' + qty + '" type="text"></td>'
+        + '<td class="ws-of-unit-cell">' + self.esc(it.unit || 'шт') + '</td>'
         + stkCell
         + '<td><input class="ws-cell-input" data-field="price" value="' + parseFloat(it.price).toFixed(2) + '" type="text"></td>'
         + '<td><input class="ws-cell-input" data-field="discount_percent" value="' + (disc > 0 ? disc : '') + '" placeholder="0" type="text"></td>'
@@ -3160,7 +3310,7 @@ var WS = {
         + '<span style="font-size:10px;font-weight:700;color:#ea580c">НП</span>'
         + '<span style="font-size:10px;font-weight:600">' + self.esc(num) + '</span>'
         + '</div>'
-        + '<div style="font-size:10px;color:#6b7280">' + self.esc(t.state_name||'') + (t.city_recipient_desc ? ' · ' + self.esc(t.city_recipient_desc) : '') + '</div>'
+        + '<div style="font-size:10px;color:#6b7280">' + self.esc(self._npStatusLabel(t)) + (t.city_recipient_desc ? ' · ' + self.esc(t.city_recipient_desc) : '') + '</div>'
         + (t.backward_delivery_money > 0 ? '<div style="font-size:10px;color:#ea580c">Накл.пл.: ₴' + self.formatNum(t.backward_delivery_money) + '</div>' : '')
         + (num ? '<a href="https://novaposhta.ua/tracking/' + encodeURIComponent(num) + '" target="_blank" style="font-size:10px;color:#7c3aed">Відстежити →</a>' : '')
         + '</div>';
@@ -3564,6 +3714,7 @@ var WS = {
       + stkHint
       + '</td>'
       + '<td><input class="ws-cell-input" data-field="quantity" value="' + qty + '" type="text"></td>'
+      + '<td class="ws-of-unit-cell">' + self.esc(it.unit || 'шт') + '</td>'
       + '<td><input class="ws-cell-input" data-field="price" value="' + parseFloat(it.price||0).toFixed(2) + '" type="text"></td>'
       + '<td><input class="ws-cell-input" data-field="discount_percent" value="' + (disc > 0 ? disc : '') + '" placeholder="0" type="text"></td>'
       + '<td><select class="ws-cell-sel" data-field="vat_rate">'
@@ -4353,208 +4504,27 @@ var WS = {
       document.getElementById(panes[k]).style.display = (k === tab) ? 'flex' : 'none';
     });
     if (!silent) {
-      if (tab === 'chat') this.applyChPanel();
-    }
-  },
-
-  // Show tasks pane or messages pane based on activeCh
-  applyChPanel: function() {
-    var isTasks = (this.activeCh === 'tasks');
-    var msgs    = document.getElementById('wsMsgs');
-    var input   = document.querySelector('.ws-input-area');
-    var tPane   = document.getElementById('wsTasksPane');
-    if (msgs)   msgs.style.display   = isTasks ? 'none' : '';
-    if (input)  input.style.display  = isTasks ? 'none' : '';
-    if (tPane)  tPane.style.display  = isTasks ? 'flex' : 'none';
-    if (isTasks) {
-      this.loadTasks();
-    } else {
-      this.loadMessages();
-    }
-  },
-
-  // ── Messages ───────────────────────────────────────────────────────────────
-  loadMessages: function() {
-    var self = this;
-    var url;
-    if (this.kind === 'lead') {
-      url = '/counterparties/api/get_messages?lead_id=' + this.itemId + '&channel=' + this.activeCh;
-    } else {
-      var chatId = this.activeChatCpId || this.itemId;
-      url = '/counterparties/api/get_messages?id=' + chatId + '&channel=' + this.activeCh;
-    }
-    // For Viber: poll Alpha SMS for replies (including images) before loading messages
-    if (this.activeCh === 'viber' && this.itemId) {
-      var pollUrl;
-      if (this.kind === 'lead') {
-        pollUrl = '/counterparties/api/poll_viber_replies?lead_id=' + this.itemId;
-      } else {
-        pollUrl = '/counterparties/api/poll_viber_replies?id=' + (this.activeChatCpId || this.itemId);
+      if (tab === 'chat') ChatHub.applyChPanel();
+      if (tab === 'internal') {
+        if (!WS._teamChatInited) {
+          WsCpChat.init(WS.activeChatCpId || null);
+          WS._teamChatInited = true;
+        } else if (WS.activeChatCpId) {
+          WsCpChat.setCp(WS.activeChatCpId);
+        }
       }
-      fetch(pollUrl)
-        .then(function(r){ return r.json(); })
-        .then(function() {
-          fetch(url)
-            .then(function(r){ return r.json(); })
-            .then(function(d) {
-              if (d.ok) self.renderMessages(d.messages);
-            });
-        })
-        .catch(function() {
-          fetch(url)
-            .then(function(r){ return r.json(); })
-            .then(function(d) {
-              if (d.ok) self.renderMessages(d.messages);
-            });
-        });
-      return;
     }
-    fetch(url)
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) self.renderMessages(d.messages);
-      });
   },
 
-  isImageUrl: function(url) {
-    return url && /\.(jpg|jpeg|png|gif|webp)(\?|$)/i.test(url);
-  },
+  // ── Chat delegates → ChatHub ───────────────────────────────────────────────
+  applyChPanel:    function()       { ChatHub.applyChPanel(); },
 
-  renderMessages: function(msgs) {
-    var html = '';
-    if (!msgs || msgs.length === 0) {
-      html = '<div style="text-align:center;font-size:12px;color:#9ca3af;padding:20px 0">Повідомлень поки немає</div>';
-    } else {
-      var self = this;
-      msgs.forEach(function(m) {
-        var isOut = m.direction === 'out';
-        var mediaHtml = '';
-        // Якщо body = '📎 оригінальна_назва' — витягуємо для показу в посиланні
-        var origAttachName = '';
-        if (m.media_url && m.body && /^📎\s/u.test(m.body)) {
-          origAttachName = m.body.replace(/^📎\s*/u, '').trim();
-        }
-        if (m.media_url) {
-          // AlphaSMS stores real filename in body (e.g. "УКРАЇНА.pdf") for client-sent files.
-          // S3 URLs for non-images have no extension (or trailing dot). Detect type from body first.
-          var bodyIsFilename = m.body && /\.(jpg|jpeg|png|gif|webp|pdf|doc|docx|xls|xlsx|txt|ogg|oga|mp3|m4a|wav|opus)$/i.test(m.body.trim());
-          var isImgFromUrl   = self.isImageUrl(m.media_url);
-          var isImgFromBody  = bodyIsFilename && /\.(jpg|jpeg|png|gif|webp)$/i.test(m.body.trim());
-          var isAudio        = /\.(ogg|oga|mp3|m4a|wav|opus)(\?|$)/i.test(m.media_url)
-                             || (bodyIsFilename && /\.(ogg|oga|mp3|m4a|wav|opus)$/i.test(m.body.trim()));
-          // body is a "caption" only if it's not a raw filename and not a send placeholder
-          var hasCaption = m.body && !bodyIsFilename && !origAttachName
-                        && m.body !== '[файл]' && m.body !== '[фото]' && m.body !== '[медіа]';
-          var mbottom = hasCaption ? '6' : '0';
-          if (isImgFromUrl || isImgFromBody) {
-            mediaHtml = '<a href="' + self.esc(m.media_url) + '" target="_blank" rel="noopener">'
-                      + '<img src="' + self.esc(m.media_url) + '" style="max-width:220px;max-height:180px;border-radius:6px;display:block;margin-bottom:' + mbottom + 'px">'
-                      + '</a>';
-          } else if (isAudio) {
-            mediaHtml = '<audio controls style="max-width:220px;display:block;margin-bottom:' + mbottom + 'px">'
-                      + '<source src="' + self.esc(m.media_url) + '">'
-                      + '</audio>';
-          } else {
-            var parts   = m.media_url.split('/');
-            var storedName = parts[parts.length - 1].replace(/\.$/, '') || 'файл';
-            // Prefer real filename from body; fall back to origAttachName (📎 prefix) or URL hash
-            var fname   = (bodyIsFilename ? m.body.trim() : null) || origAttachName || storedName;
-            var extM    = fname.split('.').pop().toLowerCase();
-            var icons   = { pdf: '📄', doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', txt: '📃', ogg: '🎵', oga: '🎵', mp3: '🎵', m4a: '🎵', wav: '🎵' };
-            var ic      = icons[extM] || '📎';
-            var dlUrl   = '/counterparties/api/download_media?url=' + encodeURIComponent(m.media_url) + '&name=' + encodeURIComponent(fname);
-            var officeExts = ['doc','docx','xls','xlsx'];
-            var viewUrl = (officeExts.indexOf(extM) !== -1)
-                ? 'https://view.officeapps.live.com/op/view.aspx?src=' + encodeURIComponent(m.media_url)
-                : dlUrl;
-            mediaHtml = '<span style="display:inline-flex;align-items:center;gap:4px;margin-bottom:' + mbottom + 'px">'
-                      + '<a href="' + self.esc(viewUrl) + '" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:5px;text-decoration:none;color:inherit;background:rgba(0,0,0,.08);border-radius:6px;padding:5px 8px;font-size:12px">'
-                      + '<span>' + ic + '</span><span>' + self.esc(fname) + '</span>'
-                      + '</a>';
-            if (officeExts.indexOf(extM) !== -1) {
-                mediaHtml += '<a href="' + self.esc(dlUrl) + '" target="_blank" rel="noopener" title="Завантажити" style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;text-decoration:none;background:rgba(0,0,0,.08);border-radius:6px;font-size:13px">⬇</a>';
-            }
-            mediaHtml += '</span>';
-          }
-        }
-        // Show body as caption only if it's not a filename (already used as link label) and not a placeholder
-        var bodyText  = (hasCaption || (!m.media_url && m.body && m.body !== '[файл]' && m.body !== '[фото]' && m.body !== '[медіа]' && !origAttachName))
-                      ? '<div>' + self.linkify(self.esc(m.body).replace(/\\n/g,'<br>').replace(/\n/g,'<br>')) + '</div>'
-                      : '';
-        var mediaOnly = (m.media_url && !bodyText) ? ' media-only' : '';
-        var statusIcon = '';
-        if (isOut) {
-          var st = m.status || 'sent';
-          var svgTick = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,6 4.5,9 10.5,3"/></svg>';
-          var svgDblTick = '<svg viewBox="0 0 16 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,6 4,9 10,3"/><polyline points="6,6 9,9 15,3"/></svg>';
-          var svgCross  = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="2" y1="2" x2="10" y2="10"/><line x1="10" y1="2" x2="2" y2="10"/></svg>';
-          var svgClock  = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="6" cy="6" r="4.5"/><polyline points="6,3.5 6,6 7.5,7.5"/></svg>';
-          var iconHtml  = st === 'pending'   ? svgClock
-                        : st === 'sent'      ? svgTick
-                        : st === 'delivered' ? svgDblTick
-                        : st === 'read'      ? svgDblTick
-                        : st === 'failed'    ? svgCross
-                        : svgTick;
-          statusIcon = '<span class="ws-msg-status ' + st + '" title="' + self.esc(st) + '">' + iconHtml + '</span>';
-        }
-        html += '<div class="ws-msg-row ' + (isOut ? 'out' : 'in') + '">'
-              + '<div class="ws-bubble' + mediaOnly + '">' + mediaHtml + bodyText + '</div>'
-              + '<div class="ws-msg-meta">' + (isOut ? (m.operator_name || 'Оператор') : 'Клієнт') + ' · ' + self.formatTime(m.created_at) + statusIcon + '</div>'
-              + '</div>';
-      });
-    }
-    var container = document.getElementById('wsMsgs');
-    container.innerHTML = html;
-    container.scrollTop = container.scrollHeight;
+  // ── Messages (делегаты → ChatHub) ─────────────────────────────────────────
+  loadMessages:   function()     { ChatHub.loadMessages(); },
+  isImageUrl:     function(url)  { return ChatHub.isImageUrl(url); },
+  renderMessages: function(msgs) { ChatHub.renderMessages(msgs); },
 
-    // Update inbox unread badge
-    this.loadInbox();
-  },
-
-  // ── Send message ───────────────────────────────────────────────────────────
-  sendMessage: function() {
-    var self = this;
-    var inp  = document.getElementById('wsMsgInput');
-    var body = inp.value.trim();
-
-    // Allow sending if there's text OR an attachment (but not if file is still uploading)
-    if (!body && !this.attachedFile) return;
-    if (this.attachedFile && this.attachedFile.uploading) {
-      showToast('Зачекайте, файл ще завантажується…');
-      return;
-    }
-
-    var fd = new FormData();
-    fd.append('channel', this.activeCh);
-    fd.append('body', body || (this.attachedFile ? '[файл]' : ''));
-    if (this.attachedFile && this.attachedFile.url) {
-      fd.append('media_url', this.attachedFile.url);
-    }
-    if (this.kind === 'lead') {
-      fd.append('lead_id', this.itemId);
-    } else {
-      fd.append('id', this.activeChatCpId || this.itemId);
-    }
-
-    document.getElementById('wsSendBtn').disabled = true;
-    fetch('/counterparties/api/send_message', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        document.getElementById('wsSendBtn').disabled = false;
-        if (d.ok) {
-          inp.value = '';
-          document.getElementById('wsCharC').textContent = '';
-          self.removeAttach();
-          self.loadMessages();
-        } else {
-          showToast('Помилка: ' + (d.error || 'невідома'));
-        }
-      })
-      .catch(function() {
-        document.getElementById('wsSendBtn').disabled = false;
-        showToast('Помилка відправки');
-      });
-  },
+  sendMessage: function() { ChatHub.sendMessage(); },
 
   // ── Orders ─────────────────────────────────────────────────────────────────
   loadOrders: function() {
@@ -4675,289 +4645,26 @@ var WS = {
     document.getElementById('wsAiDraft').style.display = 'none';
   },
 
-  // ── Templates dropdown ─────────────────────────────────────────────────────
-  toggleTemplates: function(e) {
-    e.stopPropagation();
-    var picker = document.getElementById('wsTplPicker');
-    var isOpen = picker.classList.contains('open');
-    this.closeAllPickers();
-    if (!isOpen) {
-      picker.classList.add('open');
-      this.loadTplDropdown();
-    }
-  },
+  // ── Templates (делегаты → ChatHub) ────────────────────────────────────────
+  toggleTemplates: function(e)              { ChatHub.toggleTemplates(e); },
+  loadTplDropdown: function()               { ChatHub.loadTplDropdown(); },
+  insertTemplate:  function(body)           { ChatHub.insertTemplate(body); },
+  openTplManager:  function()               { ChatHub.openTplManager(); },
+  closeTplManager: function()               { ChatHub.closeTplManager(); },
+  loadTmList:      function()               { ChatHub.loadTmList(); },
+  newTmTemplate:   function()               { ChatHub.newTmTemplate(); },
+  editTmTemplate:  function(id,t,b,ch)      { ChatHub.editTmTemplate(id,t,b,ch); },
+  cancelTmEdit:    function()               { ChatHub.cancelTmEdit(); },
+  saveTmTemplate:  function()               { ChatHub.saveTmTemplate(); },
+  deleteTmTemplate:function(id)             { ChatHub.deleteTmTemplate(id); },
 
-  loadTplDropdown: function() {
-    var self = this;
-    var list = document.getElementById('wsTplList');
-    list.innerHTML = '<div class="ws-tpl-empty">Завантаження…</div>';
-    fetch('/counterparties/api/get_templates?channel=' + encodeURIComponent(this.activeCh))
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (!d.ok || !d.templates.length) {
-          list.innerHTML = '<div class="ws-tpl-empty">Немає шаблонів для цього каналу</div>';
-          return;
-        }
-        // Store bodies in array — avoid inline onclick (breaks when body contains ")
-        self._tplBodies = [];
-        var html = '';
-        d.templates.forEach(function(t, i) {
-          self._tplBodies.push(t.body);
-          html += '<div class="ws-tpl-item" data-tpl-idx="' + i + '">'
-                + '<div class="ws-tpl-item-title">' + self.esc(t.title) + '</div>'
-                + '<div class="ws-tpl-item-body">'  + self.esc(t.body)  + '</div>'
-                + '</div>';
-        });
-        list.innerHTML = html;
-        list.querySelectorAll('.ws-tpl-item').forEach(function(el) {
-          el.addEventListener('mousedown', function(ev) {
-            ev.preventDefault(); // prevent blur → picker close before insert
-            var idx = parseInt(el.getAttribute('data-tpl-idx'), 10);
-            self.insertTemplate(self._tplBodies[idx]);
-          });
-        });
-      });
-  },
-
-  insertTemplate: function(body) {
-    var inp = document.getElementById('wsMsgInput');
-    var cur = inp.value;
-    inp.value = cur ? cur + '\n' + body : body;
-    inp.dispatchEvent(new Event('input'));
-    inp.focus();
-    this.closeAllPickers();
-  },
-
-  // ── Template manager modal ─────────────────────────────────────────────────
-  openTplManager: function() {
-    this.closeAllPickers();
-    document.getElementById('wsTplModal').style.display = 'flex';
-    this.cancelTmEdit();
-    this.loadTmList();
-  },
-
-  closeTplManager: function() {
-    document.getElementById('wsTplModal').style.display = 'none';
-  },
-
-  loadTmList: function() {
-    var self = this;
-    var wrap = document.getElementById('wsTmList');
-    wrap.innerHTML = '';
-    fetch('/counterparties/api/get_templates')
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (!d.ok || !d.templates.length) {
-          wrap.innerHTML = '<div style="font-size:12px;color:#9ca3af;padding:4px 0">Шаблонів ще немає</div>';
-          return;
-        }
-        var html = '';
-        d.templates.forEach(function(t) {
-          html += '<div class="ws-tm-row">'
-                + '<div class="ws-tm-info">'
-                + '<div class="ws-tm-title">' + self.esc(t.title) + '</div>'
-                + '<div class="ws-tm-channels">' + self.esc(t.channels) + '</div>'
-                + '<div class="ws-tm-body-preview">' + self.esc(t.body) + '</div>'
-                + '</div>'
-                + '<div class="ws-tm-actions">'
-                + '<button class="ws-tm-btn" onclick="WS.editTmTemplate(' + t.id + ',' + JSON.stringify(t.title) + ',' + JSON.stringify(t.body) + ',' + JSON.stringify(t.channels) + ')">✏️</button>'
-                + '<button class="ws-tm-btn del" onclick="WS.deleteTmTemplate(' + t.id + ')">🗑</button>'
-                + '</div>'
-                + '</div>';
-        });
-        wrap.innerHTML = html;
-      });
-  },
-
-  newTmTemplate: function() {
-    document.getElementById('wsTmId').value    = '0';
-    document.getElementById('wsTmTitle').value = '';
-    document.getElementById('wsTmBody').value  = '';
-    document.getElementById('wsTmFormTitle').textContent = 'Новий шаблон';
-    document.querySelectorAll('[name="tmch"]').forEach(function(cb){ cb.checked = cb.value === 'viber'; });
-    document.getElementById('wsTmErr').style.display = 'none';
-    document.getElementById('wsTmForm').style.display = 'block';
-    document.getElementById('wsTmAddBtn').style.display = 'none';
-    document.getElementById('wsTmTitle').focus();
-  },
-
-  editTmTemplate: function(id, title, body, channels) {
-    document.getElementById('wsTmId').value    = id;
-    document.getElementById('wsTmTitle').value = title;
-    document.getElementById('wsTmBody').value  = body;
-    document.getElementById('wsTmFormTitle').textContent = 'Редагувати шаблон';
-    var chs = channels ? channels.split(',') : [];
-    document.querySelectorAll('[name="tmch"]').forEach(function(cb){ cb.checked = chs.indexOf(cb.value) !== -1; });
-    document.getElementById('wsTmErr').style.display = 'none';
-    document.getElementById('wsTmForm').style.display = 'block';
-    document.getElementById('wsTmAddBtn').style.display = 'none';
-  },
-
-  cancelTmEdit: function() {
-    document.getElementById('wsTmForm').style.display = 'none';
-    document.getElementById('wsTmAddBtn').style.display = 'inline-flex';
-    document.getElementById('wsTmErr').style.display = 'none';
-  },
-
-  saveTmTemplate: function() {
-    var self  = this;
-    var id    = document.getElementById('wsTmId').value;
-    var title = document.getElementById('wsTmTitle').value.trim();
-    var body  = document.getElementById('wsTmBody').value.trim();
-    var errEl = document.getElementById('wsTmErr');
-    if (!title || !body) {
-      errEl.textContent = 'Введіть назву і текст шаблону';
-      errEl.style.display = 'block';
-      return;
-    }
-    var fd = new FormData();
-    fd.append('id', id);
-    fd.append('title', title);
-    fd.append('body', body);
-    document.querySelectorAll('[name="tmch"]').forEach(function(cb){ if (cb.checked) fd.append('channels[]', cb.value); });
-    fetch('/counterparties/api/save_template', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (!d.ok) { errEl.textContent = d.error || 'Помилка'; errEl.style.display = 'block'; return; }
-        self.cancelTmEdit();
-        self.loadTmList();
-      });
-  },
-
-  deleteTmTemplate: function(id) {
-    if (!confirm('Видалити шаблон?')) return;
-    var self = this;
-    var fd = new FormData();
-    fd.append('id', id);
-    fetch('/counterparties/api/delete_template', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) self.loadTmList();
-        else showToast('Помилка видалення');
-      });
-  },
-
-  // ── Emoji picker ───────────────────────────────────────────────────────────
-  EMOJIS: ['😊','😂','🙏','👍','👌','🔥','❤️','✅','⚡','📦','🚀','💬',
-            '😅','🤝','💪','🎉','✨','⚠️','📞','✉️','🕐','💰','📄','🔎',
-            '😍','😎','🤔','😴','😤','🙌','👋','💡','📌','🎯','✔️','❌',
-            '💯','🌟','📱','🖥️','📊','🗓️','🔑','🏠','🚗','✈️','🌍','💎'],
-
-  initEmoji: function() {
-    var grid = document.getElementById('wsEmojiGrid');
-    var self = this;
-    this.EMOJIS.forEach(function(em) {
-      var btn = document.createElement('button');
-      btn.className = 'ws-emoji-btn';
-      btn.textContent = em;
-      btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        self.insertEmoji(em);
-      });
-      grid.appendChild(btn);
-    });
-    // Close all pickers on outside click
-    document.addEventListener('click', function(e) {
-      if (!e.target.closest('#wsEmojiPicker') && e.target.id !== 'wsEmojiBtn') {
-        document.getElementById('wsEmojiPicker').classList.remove('open');
-      }
-      if (!e.target.closest('#wsTplPicker') && e.target.id !== 'wsTplBtn') {
-        document.getElementById('wsTplPicker').classList.remove('open');
-      }
-    });
-  },
-
-  closeAllPickers: function() {
-    document.getElementById('wsEmojiPicker').classList.remove('open');
-    document.getElementById('wsTplPicker').classList.remove('open');
-  },
-
-  toggleEmoji: function(e) {
-    e.stopPropagation();
-    var isOpen = document.getElementById('wsEmojiPicker').classList.contains('open');
-    this.closeAllPickers();
-    if (!isOpen) document.getElementById('wsEmojiPicker').classList.add('open');
-  },
-
-  insertEmoji: function(em) {
-    var inp = document.getElementById('wsMsgInput');
-    var pos = inp.selectionStart || inp.value.length;
-    inp.value = inp.value.slice(0, pos) + em + inp.value.slice(pos);
-    inp.selectionStart = inp.selectionEnd = pos + em.length;
-    inp.focus();
-    document.getElementById('wsEmojiPicker').classList.remove('open');
-  },
-
-  // ── File attachment ────────────────────────────────────────────────────────
-  attachedFile: null,  // {url, name, is_image, uploading}
-
-  openFilePicker: function() {
-    document.getElementById('wsFileInput').value = '';
-    document.getElementById('wsFileInput').click();
-  },
-
-  onFileSelected: function(input) {
-    if (!input.files || !input.files[0]) return;
-    var file = input.files[0];
-    var self = this;
-
-    // Show preview immediately
-    this.attachedFile = { url: null, name: file.name, is_image: false, uploading: true };
-    this.renderAttachPreview(file);
-
-    // Upload
-    var fd = new FormData();
-    fd.append('file', file);
-    fetch('/counterparties/api/upload_message_file', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) {
-          self.attachedFile = { url: d.url, name: d.name, is_image: d.is_image, uploading: false };
-          self.renderAttachPreview(null);
-        } else {
-          showToast('Помилка завантаження: ' + (d.error || ''));
-          self.removeAttach();
-        }
-      })
-      .catch(function() {
-        showToast('Помилка завантаження файлу');
-        self.removeAttach();
-      });
-  },
-
-  renderAttachPreview: function(originalFile) {
-    var af      = this.attachedFile;
-    var preview = document.getElementById('wsAttachPreview');
-    var wrap    = document.getElementById('wsAttachThumbWrap');
-    var nameEl  = document.getElementById('wsAttachName');
-    var sizeEl  = document.getElementById('wsAttachSize');
-
-    nameEl.textContent = af.name;
-
-    if (af.uploading) {
-      sizeEl.innerHTML = '<span class="ws-attach-uploading">Завантаження…</span>';
-      wrap.innerHTML = '<div class="ws-attach-icon">📎</div>';
-    } else {
-      sizeEl.textContent = af.is_image ? 'Зображення готове' : 'Файл готовий';
-      if (af.is_image) {
-        wrap.innerHTML = '<img class="ws-attach-thumb" src="' + this.esc(af.url) + '" alt="">';
-      } else {
-        var ext = af.name.split('.').pop().toUpperCase();
-        var icons = { PDF: '📄', DOC: '📝', DOCX: '📝', XLS: '📊', XLSX: '📊', TXT: '📋' };
-        var ic = icons[ext] || '📎';
-        wrap.innerHTML = '<div class="ws-attach-icon">' + ic + '</div>';
-      }
-    }
-
-    preview.classList.add('visible');
-  },
-
-  removeAttach: function() {
-    this.attachedFile = null;
-    document.getElementById('wsAttachPreview').classList.remove('visible');
-    document.getElementById('wsAttachThumbWrap').innerHTML = '';
-    document.getElementById('wsFileInput').value = '';
-  },
+  // ── Emoji + File (делегаты → ChatHub) ────────────────────────────────────
+  closeAllPickers:    function()       { ChatHub.closeAllPickers(); },
+  toggleEmoji:        function(e)      { ChatHub.toggleEmoji(e); },
+  openFilePicker:     function()       { ChatHub.openFilePicker(); },
+  onFileSelected:     function(input)  { ChatHub.onFileSelected(input); },
+  renderAttachPreview:function(f)      { ChatHub.renderAttachPreview(f); },
+  removeAttach:       function()       { ChatHub.removeAttach(); },
 
   // ── New counterparty modal ─────────────────────────────────────────────────
   openNew: function() {
@@ -5000,270 +4707,33 @@ var WS = {
       });
   },
 
-  // ── Polling ────────────────────────────────────────────────────────────────
-  // ── Channel unread dots ────────────────────────────────────────────────────
-  updateChannelDots: function(unreadByChannel) {
-    document.querySelectorAll('.ws-ch-tab').forEach(function(btn) {
-      var ch = btn.dataset.ch;
-      var cnt = unreadByChannel[ch] || 0;
-      if (cnt > 0) {
-        btn.classList.add('has-unread');
-      } else {
-        btn.classList.remove('has-unread');
-      }
-    });
-  },
-
-  clearChannelDot: function(ch) {
-    var btn = document.querySelector('.ws-ch-tab[data-ch="' + ch + '"]');
-    if (btn) btn.classList.remove('has-unread');
-  },
+  // ── Channel dots (делегаты → ChatHub) ────────────────────────────────────
+  updateChannelDots: function(u)   { ChatHub.updateChannelDots(u); },
+  clearChannelDot:   function(ch)  { ChatHub.clearChannelDot(ch); },
 
   startPolling: function() {
     var self = this;
     this.stopPolling();
-    // Refresh current chat messages every 10s
-    this.pollTimer = setInterval(function() {
-      if (self.activeTab === 'chat') self.loadMessages();
-    }, 10000);
-    // Refresh inbox list (badges + new messages) every 20s
+    // Сообщения — ChatHub (10s)
+    ChatHub.startPolling();
+    // Инбокс — обновляем список (20s)
     this.inboxTimer = setInterval(function() {
       self.loadInbox();
     }, 20000);
   },
 
   stopPolling: function() {
-    if (this.pollTimer)  { clearInterval(this.pollTimer);  this.pollTimer  = null; }
+    ChatHub.stopPolling();
     if (this.inboxTimer) { clearInterval(this.inboxTimer); this.inboxTimer = null; }
   },
 
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  // ── Tasks ─────────────────────────────────────────────────────────────────
-
-  loadTasks: function() {
-    var self = this;
-    var url;
-    if (this.kind === 'lead') {
-      url = '/counterparties/api/get_tasks?lead_id=' + this.itemId;
-    } else {
-      url = '/counterparties/api/get_tasks?id=' + (this.activeChatCpId || this.itemId);
-    }
-    fetch(url)
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) self.renderTasks(d.tasks);
-      });
-  },
-
-  renderTasks: function(tasks) {
-    var self = this;
-    var list = document.getElementById('wsTasksList');
-    if (!list) return;
-
-    if (!tasks || tasks.length === 0) {
-      list.innerHTML = '<div class="ws-tasks-empty">Задач поки немає<br><span style="font-size:11px">Додайте першу задачу нижче</span></div>';
-      return;
-    }
-
-    var now = Date.now();
-    var html = '';
-    tasks.forEach(function(t) {
-      var priClass = 'ws-task-pri-' + Math.max(1, Math.min(5, parseInt(t.priority) || 3));
-      var icon = self.taskTypeIcon(t.task_type);
-      var dueHtml = self.taskDueHtml(t.due_at, t.status);
-      var isDone    = t.status === 'done';
-      var isSnoozed = t.status === 'snoozed';
-      var cardClass = 'ws-task-card' + (isDone ? ' done-card' : '') + (isSnoozed ? ' snoozed-card' : '');
-
-      var actsHtml = '';
-      if (!isDone) {
-        actsHtml += '<button class="ws-task-act done-btn" onclick="WS.doneTask(' + t.id + ')" title="Виконано">✓</button>';
-        if (!isSnoozed) {
-          actsHtml += '<button class="ws-task-act snooze-btn" onclick="WS.toggleSnoozeMenu(event,' + t.id + ')" title="Відкласти">💤</button>';
-        } else {
-          actsHtml += '<button class="ws-task-act snooze-btn" onclick="WS.wakeTask(' + t.id + ')" title="Зняти відкладення" style="color:#7c3aed">▶</button>';
-        }
-      }
-
-      var snoozedLbl = isSnoozed && t.snoozed_until
-        ? '<span class="ws-task-snoozed-lbl">💤 до ' + self.formatSnoozedUntil(t.snoozed_until) + '</span>' : '';
-
-      html += '<div class="' + cardClass + '">'
-        + '<div class="ws-task-pri-bar ' + priClass + '"></div>'
-        + '<div class="ws-task-body">'
-        + '<div class="ws-task-icon">' + icon + '</div>'
-        + '<div class="ws-task-content">'
-        + '<div class="ws-task-title">' + self.esc(t.title) + '</div>'
-        + '<div class="ws-task-meta">'
-        + '<span class="ws-task-type-lbl">' + self.taskTypeLabel(t.task_type) + '</span>'
-        + dueHtml + snoozedLbl
-        + '</div>'
-        + '</div>'
-        + '</div>'
-        + '<div class="ws-task-acts">' + actsHtml + '</div>'
-        + '</div>';
-    });
-
-    list.innerHTML = html;
-  },
-
-  taskDueHtml: function(dueAt, status) {
-    if (status === 'done') return '';
-    if (!dueAt) return '<span class="ws-task-due no-due">без дедлайну</span>';
-    var now    = Date.now();
-    var due    = new Date(dueAt).getTime();
-    var hoursLeft = (due - now) / 3600000;
-    var label  = this.formatDueAt(dueAt);
-    if (hoursLeft <= 0)     return '<span class="ws-task-due overdue">🔴 ' + label + '</span>';
-    if (hoursLeft < 4)      return '<span class="ws-task-due due-soon">🟠 ' + label + '</span>';
-    if (hoursLeft < 24)     return '<span class="ws-task-due due-today">🟡 ' + label + '</span>';
-    return '<span class="ws-task-due due-later">🟢 ' + label + '</span>';
-  },
-
-  formatDueAt: function(dueAt) {
-    var d   = new Date(dueAt);
-    var now = new Date();
-    var isToday    = d.toDateString() === now.toDateString();
-    var tomorrow   = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
-    var isTomorrow = d.toDateString() === tomorrow.toDateString();
-    var hhmm = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
-    if (isToday)    return 'Сьогодні ' + hhmm;
-    if (isTomorrow) return 'Завтра ' + hhmm;
-    // Past
-    var hoursAgo = (Date.now() - d.getTime()) / 3600000;
-    if (hoursAgo > 0) {
-      if (hoursAgo < 24) return 'Прострочено ' + Math.round(hoursAgo) + 'г';
-      return 'Прострочено ' + Math.round(hoursAgo / 24) + 'д';
-    }
-    var months = ['Січ','Лют','Бер','Кві','Тра','Чер','Лип','Сер','Вер','Жов','Лис','Гру'];
-    return d.getDate() + ' ' + months[d.getMonth()] + ' ' + hhmm;
-  },
-
-  formatSnoozedUntil: function(until) {
-    var d   = new Date(until);
-    var now = new Date();
-    var isToday = d.toDateString() === now.toDateString();
-    var hhmm = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
-    return isToday ? hhmm : (d.getDate() + '.' + ('0'+(d.getMonth()+1)).slice(-2) + ' ' + hhmm);
-  },
-
-  taskTypeIcon: function(type) {
-    var map = { call_back:'📞', follow_up:'💬', send_docs:'📄', payment:'💰', meeting:'📅', other:'✔' };
-    return map[type] || '✔';
-  },
-
-  taskTypeLabel: function(type) {
-    var map = { call_back:'Передзвонити', follow_up:'Нагадати', send_docs:'Надіслати документи', payment:'Платіж', meeting:'Зустріч', other:'Інше' };
-    return map[type] || 'Інше';
-  },
-
-  addTask: function() {
-    var self  = this;
-    var title = document.getElementById('wsTaskTitle').value.trim();
-    if (!title) { document.getElementById('wsTaskTitle').focus(); return; }
-    var btn   = document.getElementById('wsTaskAddBtn');
-    btn.disabled = true;
-    var fd = new FormData();
-    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
-    else                      fd.append('id', this.activeChatCpId || this.itemId);
-    fd.append('title',     title);
-    fd.append('task_type', document.getElementById('wsTaskType').value);
-    fd.append('priority',  document.getElementById('wsTaskPriority').value);
-    var dueVal = document.getElementById('wsTaskDue').value;
-    if (dueVal) fd.append('due_at', dueVal);
-    fetch('/counterparties/api/save_task', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        btn.disabled = false;
-        if (d.ok) {
-          document.getElementById('wsTaskTitle').value = '';
-          document.getElementById('wsTaskDue').value   = '';
-          self.renderTasks(d.tasks);
-          // Refresh inbox card task badge
-          self.refreshInboxCard();
-        } else {
-          showToast('Помилка: ' + (d.error || ''), true);
-        }
-      });
-  },
-
-  doneTask: function(taskId) {
-    var self = this;
-    var fd = new FormData();
-    fd.append('task_id', taskId);
-    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
-    else                      fd.append('id', this.activeChatCpId || this.itemId);
-    fetch('/counterparties/api/done_task', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) { self.renderTasks(d.tasks); self.refreshInboxCard(); }
-      });
-  },
-
-  toggleSnoozeMenu: function(e, taskId) {
-    e.stopPropagation();
-    // Remove any existing snooze menus
-    document.querySelectorAll('.ws-snooze-menu').forEach(function(m){ m.remove(); });
-    var btn = e.currentTarget;
-    var opts = [
-      { label: '1 година',      minutes: 60 },
-      { label: '4 години',      minutes: 240 },
-      { label: 'Завтра 9:00',   minutes: this.minutesUntilTomorrow9() },
-      { label: 'Через тиждень', minutes: 60 * 24 * 7 },
-    ];
-    var self = this;
-    var menu = document.createElement('div');
-    menu.className = 'ws-snooze-menu';
-    opts.forEach(function(o) {
-      var b = document.createElement('button');
-      b.className = 'ws-snooze-item';
-      b.textContent = o.label;
-      b.addEventListener('click', function(ev) {
-        ev.stopPropagation();
-        menu.remove();
-        self.snoozeTask(taskId, o.minutes);
-      });
-      menu.appendChild(b);
-    });
-    btn.style.position = 'relative';
-    btn.appendChild(menu);
-    var close = function() { menu.remove(); document.removeEventListener('click', close); };
-    setTimeout(function(){ document.addEventListener('click', close); }, 0);
-  },
-
-  snoozeTask: function(taskId, minutes) {
-    var self = this;
-    var fd = new FormData();
-    fd.append('task_id', taskId);
-    fd.append('minutes', minutes);
-    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
-    else                      fd.append('id', this.activeChatCpId || this.itemId);
-    fetch('/counterparties/api/snooze_task', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) { self.renderTasks(d.tasks); self.refreshInboxCard(); }
-      });
-  },
-
-  wakeTask: function(taskId) {
-    var self = this;
-    var fd = new FormData();
-    fd.append('task_id', taskId);
-    fd.append('wake', 1);
-    if (this.kind === 'lead') fd.append('lead_id', this.itemId);
-    else                      fd.append('id', this.activeChatCpId || this.itemId);
-    fetch('/counterparties/api/snooze_task', { method: 'POST', body: fd })
-      .then(function(r){ return r.json(); })
-      .then(function(d) {
-        if (d.ok) { self.renderTasks(d.tasks); self.refreshInboxCard(); }
-      });
-  },
-
-  minutesUntilTomorrow9: function() {
-    var now  = new Date();
-    var tom  = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 9, 0, 0);
-    return Math.max(60, Math.round((tom.getTime() - now.getTime()) / 60000));
-  },
+  // ── Tasks (делегаты → ChatHub) ────────────────────────────────────────────
+  loadTasks:        function()       { ChatHub.loadTasks(); },
+  renderTasks:      function(t)      { ChatHub.renderTasks(t); },
+  addTask:          function()       { ChatHub.addTask(); },
+  doneTask:         function(id)     { ChatHub.doneTask(id); },
+  toggleSnoozeMenu: function(e, id)  { ChatHub.toggleSnoozeMenu(e, id); },
+  wakeTask:         function(id)     { ChatHub.wakeTask(id); },
 
   // Refresh the task badge on the inbox card without full reload
   refreshInboxCard: function() {
@@ -5362,37 +4832,34 @@ var WS = {
     return map[s] || 'wsb-draft';
   },
 
+  // ── NP status label by state_define ──────────────────────────────────────
+  _npStatusLabel: function(dt) {
+    var sd = parseInt(dt.state_define, 10);
+    var map = {
+      1:'Чернетка', 2:'Видалено', 3:'Не знайдено',
+      4:'В місті відправника', 5:'В дорозі', 6:'В місті одержувача',
+      7:'У відділенні', 8:'У відділенні', 9:'Отримано',
+      10:'Повертається', 11:'Повернуто', 41:'В дорозі',
+      101:'Кур\'єр доставляє', 102:'Відмова', 103:'Повертається',
+      104:'Кур\'єр доставляє', 105:'У відділенні', 106:'Відмова'
+    };
+    return map[sd] || dt.state_name || '—';
+  },
+
   // ── Delivery progress helpers ─────────────────────────────────────────────
   // Returns { stage: 1..4, refused: bool, label: '' }
-  // Stages: 1=прийнято, 2=в дорозі, 3=у відділенні, 4=отримано
+  // Stages: 1=чернетка, 2=в дорозі, 3=у відділенні, 4=отримано
   _deliveryProgress: function(type, dt) {
     if (type === 'ttn_np') {
-      var sn = ((dt.state_name || '') + '').toLowerCase();
       var sd = parseInt(dt.state_define, 10);
-      // Refused/returned
-      if (sd === 102 || sd === 105 || sn.indexOf('відмов') !== -1 || sn.indexOf('отказ') !== -1) {
-        return { stage: 0, refused: true, label: 'Відмова' };
-      }
-      // Delivered to recipient (money transfer exclusion)
-      if ((sn.indexOf('отримано') !== -1 || sn.indexOf('получено') !== -1) &&
-          sn.indexOf('грош') === -1 && sn.indexOf('денеж') === -1 && sn.indexOf('переказ') === -1) {
-        return { stage: 4, label: 'Отримано' };
-      }
-      // At branch / parcel locker
-      if (sn.indexOf('прибув') !== -1 || sn.indexOf('прибыло') !== -1 || sn.indexOf('поштомат') !== -1) {
-        return { stage: 3, label: 'У відділенні' };
-      }
-      // NP received from sender
-      if (sn.indexOf('відправлення отримано') !== -1 || sn.indexOf('отправка получена') !== -1 ||
-          sn.indexOf('отправление получено') !== -1) {
-        return { stage: 2, label: 'В дорозі' };
-      }
-      // Order in processing / sender created
-      if (sn.indexOf('замовлення в обробці') !== -1 || sn.indexOf('самостійно створив') !== -1 ||
-          sn.indexOf('самостоятельно создал') !== -1) {
-        return { stage: 1, label: 'Обробка' };
-      }
-      return { stage: 0, label: dt.state_name || '' };
+      if (sd === 102 || sd === 106) return { stage: 0, refused: true, label: 'Відмова' };
+      if (sd === 10 || sd === 11 || sd === 103) return { stage: 0, refused: true, label: 'Повернення' };
+      if (sd === 9) return { stage: 4, label: 'Отримано' };
+      if (sd === 7 || sd === 8 || sd === 105) return { stage: 3, label: 'У відділенні' };
+      if (sd === 4 || sd === 5 || sd === 6 || sd === 41 || sd === 101 || sd === 104) return { stage: 2, label: 'В дорозі' };
+      if (sd === 1) return { stage: 1, label: 'Чернетка' };
+      if (sd === 2 || sd === 3) return { stage: 0, label: this._npStatusLabel(dt) };
+      return { stage: 0, label: this._npStatusLabel(dt) };
     }
     if (type === 'ttn_up') {
       var ls = (dt.lifecycle_status || '').toUpperCase();
@@ -5511,11 +4978,11 @@ var WS = {
     // ── Items table ───────────────────────────────────────────────────────────
     var itemsHtml = '<div class="ws-of-items-wrap"><table class="ws-of-items">'
       + '<colgroup>'
-      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col class="ws-of-col-price">'
+      + '<col class="ws-of-col-name"><col class="ws-of-col-qty"><col class="ws-of-col-unit"><col class="ws-of-col-price">'
       + '<col class="ws-of-col-disc"><col class="ws-of-col-vat"><col class="ws-of-col-sum"><col class="ws-of-col-del">'
       + '</colgroup>'
       + '<thead><tr>'
-      + '<th class="left">Товар</th><th>К-ть</th><th>Ціна</th>'
+      + '<th class="left">Товар</th><th>К-ть</th><th>Од.</th><th>Ціна</th>'
       + '<th title="Знижка %">Зн%</th><th>ПДВ</th><th>Сума</th><th></th>'
       + '</tr></thead><tbody>';
 
@@ -5541,6 +5008,7 @@ var WS = {
         +   shipNote
         + '</td>'
         + '<td><input class="ws-cell-input" data-field="quantity" value="' + qty + '" type="text"></td>'
+        + '<td class="ws-of-unit-cell">' + self.esc(it.unit || 'шт') + '</td>'
         + '<td><input class="ws-cell-input" data-field="price" value="' + parseFloat(it.price||0).toFixed(2) + '" type="text"></td>'
         + '<td><input class="ws-cell-input" data-field="discount_percent" value="' + (disc > 0 ? disc : '') + '" placeholder="0" type="text"></td>'
         + '<td><select class="ws-cell-sel" data-field="vat_rate">'
@@ -6222,6 +5690,9 @@ function showToast(msg, isError) {
 .ws-bottom-row-st.st-completed { color: #6b7280; }
 .ws-bottom-row-st.st-cancelled { color: #dc2626; }
 .ws-bottom-row-st.st-delivered { color: #16a34a; }
+.ws-bottom-row-st.st-draft    { color: #9ca3af; }
+.ws-bottom-row-st.st-transit  { color: #2563eb; }
+.ws-bottom-row-st.st-branch   { color: #ea580c; }
 .ws-bottom-empty { font-size: 10px; color: #d1d5db; padding: 6px 8px; }
 /* legacy */
 .ws-ctx-order-history-cnt {
@@ -6523,6 +5994,8 @@ function showToast(msg, isError) {
 /* Column widths */
 .ws-of-col-name { width: auto; }
 .ws-of-col-qty  { width: 38px; }
+.ws-of-col-unit { width: 28px; }
+.ws-of-unit-cell { font-size: 10px; color: #9ca3af; text-align: center; white-space: nowrap; }
 .ws-of-col-price{ width: 56px; }
 .ws-of-col-disc { width: 34px; }
 .ws-of-col-vat  { width: 38px; }

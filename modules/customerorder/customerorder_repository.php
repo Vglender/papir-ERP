@@ -477,35 +477,60 @@ public function searchProducts($query, $limit = 15)
         return Database::delete($this->dbName, 'customerorder_attr_value', array('id' => (int)$attrId));
     }
 
-    public function getHistory($orderId)
+    /**
+     * Записать событие в историю документа.
+     *
+     * @param int    $orderId
+     * @param string $eventType   'create'|'update'|'status_change'|'add_item'|...
+     * @param string $fieldName   имя поля (или null)
+     * @param mixed  $oldValue
+     * @param mixed  $newValue
+     * @param int    $employeeId  id из таблицы employee (или null для авто)
+     * @param string $comment
+     * @param array  $actorOverride  array(actor_type, actor_id, actor_label) — для webhook/cron/ai
+     */
+    public function addHistory($orderId, $eventType, $fieldName, $oldValue, $newValue, $employeeId, $comment, $actorOverride = array())
     {
-        $orderId = (int)$orderId;
+        if (!empty($actorOverride)) {
+            $params = array_merge(array(
+                'field_name' => $fieldName,
+                'old_value'  => $oldValue !== null ? (string)$oldValue : null,
+                'new_value'  => $newValue !== null ? (string)$newValue : null,
+                'comment'    => $comment,
+            ), $actorOverride);
+        } elseif ($employeeId) {
+            // Ищем display_name из auth_users по employee_id
+            $r = Database::fetchRow('Papir',
+                "SELECT u.display_name FROM auth_users u
+                 WHERE u.employee_id = " . (int)$employeeId . " LIMIT 1");
+            $label = ($r['ok'] && $r['row']) ? $r['row']['display_name'] : '';
+            if (!$label) {
+                $re = Database::fetchRow('Papir',
+                    "SELECT full_name FROM employee WHERE id = " . (int)$employeeId . " LIMIT 1");
+                $label = ($re['ok'] && $re['row']) ? $re['row']['full_name'] : 'Співробітник';
+            }
+            $params = array(
+                'field_name'  => $fieldName,
+                'old_value'   => $oldValue !== null ? (string)$oldValue : null,
+                'new_value'   => $newValue !== null ? (string)$newValue : null,
+                'actor_type'  => 'user',
+                'actor_id'    => (int)$employeeId,
+                'actor_label' => $label,
+                'comment'     => $comment,
+            );
+        } else {
+            $params = array(
+                'field_name'  => $fieldName,
+                'old_value'   => $oldValue !== null ? (string)$oldValue : null,
+                'new_value'   => $newValue !== null ? (string)$newValue : null,
+                'actor_type'  => 'system',
+                'actor_id'    => null,
+                'actor_label' => 'Система',
+                'comment'     => $comment,
+            );
+        }
 
-        $sql = "
-            SELECT
-                h.*,
-                e.`full_name` AS employee_name
-            FROM `customerorder_history` h
-            LEFT JOIN `employee` e ON e.`id` = h.`employee_id`
-            WHERE h.`customerorder_id` = {$orderId}
-            ORDER BY h.`id` DESC
-        ";
-
-        return Database::fetchAll($this->dbName, $sql);
-    }
-
-    public function addHistory($orderId, $eventType, $fieldName, $oldValue, $newValue, $employeeId, $comment)
-    {
-        return Database::insert($this->dbName, 'customerorder_history', array(
-            'customerorder_id' => (int)$orderId,
-            'event_type' => $eventType,
-            'field_name' => $fieldName,
-            'old_value' => $oldValue,
-            'new_value' => $newValue,
-            'employee_id' => $employeeId ? (int)$employeeId : null,
-            'comment' => $comment,
-            'created_at' => date('Y-m-d H:i:s'),
-        ));
+        return DocumentHistory::log('customerorder', $orderId, $eventType, $params);
     }
 
 // В CustomerOrderRepository.php

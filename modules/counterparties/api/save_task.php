@@ -36,6 +36,14 @@ if (!$newId) {
     exit;
 }
 
+// Fire trigger
+TriggerEngine::fire('task_created', array(
+    'task'            => $data,
+    'task_id'         => $newId,
+    'counterparty_id' => $cpId ?: 0,
+    'order_id'        => 0,
+));
+
 // Return fresh list
 if ($cpId) {
     $tasks = TaskRepository::getForCounterparty($cpId);

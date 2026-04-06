@@ -74,7 +74,7 @@ a:hover { text-decoration: underline; }
 body.has-shell:not(.ws-body) {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 98px);
+    min-height: 100vh;
 }
 body.has-shell:not(.ws-body) .app-footer { margin-top: auto; }
 body.ws-body {
@@ -750,3 +750,67 @@ body.has-shell .sticky-panel { top: var(--sticky-top); max-height: calc(100vh - 
     color: var(--text-muted); background: var(--bg-hover);
 }
 .filter-bar-gear svg { width: 14px; height: 14px; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   History Modal — HistoryModal.open(type, id)
+   ══════════════════════════════════════════════════════════════════════════ */
+.history-modal-box {
+    width: 900px;
+    max-width: 96vw;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+.history-modal-body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0 0 4px;
+}
+.history-modal-footer {
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: center;
+}
+.history-modal-loading,
+.history-modal-empty,
+.history-modal-error {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+.history-modal-error { color: var(--danger); }
+
+/* Таблица истории */
+.history-modal-table {
+    font-size: 12.5px;
+    table-layout: fixed;
+    width: 100%;
+}
+
+/* Актор: имя + badge под ним */
+.hist-td-actor { vertical-align: middle; line-height: 1.3; }
+
+/* Колонка "Позиція" — обрезается с тултипом */
+.hist-td-item  { overflow: hidden; }
+.hist-cell-clip {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Колонки "Було/Стало" — перенос слов, не ломают таблицу */
+.hist-td-val {
+    overflow: hidden;
+    word-break: break-word;
+    vertical-align: middle;
+}
+.hist-val-long {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    cursor: help;
+}

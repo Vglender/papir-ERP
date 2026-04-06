@@ -100,8 +100,9 @@ do {
 } while (count($batch) >= $pageSize);
 
 // ── Phase 2: Date-based fallback for locally-created calls ───────────────────
-// For courier calls in our DB that have a preferred_delivery_date,
-// link TTNs created on the same date (covers calls created in our CRM).
+// Only for calls where Phase 1 found NO TTNs via CarCall (NP doesn't have data yet).
+// If Phase 1 already linked TTNs — NP data is authoritative, skip date-matching
+// to avoid adding unrelated TTNs that happen to share the same date.
 
 $rCalls = \Database::fetchAll('Papir',
     "SELECT id, Barcode, preferred_delivery_date
@@ -111,7 +112,15 @@ $rCalls = \Database::fetchAll('Papir',
 
 if ($rCalls['ok']) {
     foreach ($rCalls['rows'] as $call) {
-        $callId   = (int)$call['id'];
+        $callId = (int)$call['id'];
+
+        // Skip if this call already has TTNs linked by Phase 1 (NP CarCall field)
+        $rExist = \Database::fetchRow('Papir',
+            "SELECT COUNT(*) AS cnt FROM np_courier_call_ttns WHERE courier_call_id = {$callId}");
+        if ($rExist['ok'] && !empty($rExist['row']['cnt']) && (int)$rExist['row']['cnt'] > 0) {
+            continue; // NP data is authoritative — don't add by date
+        }
+
         $callDate = \Database::escape('Papir', $call['preferred_delivery_date']);
 
         $rTtns = \Database::fetchAll('Papir',

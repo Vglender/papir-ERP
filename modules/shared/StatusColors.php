@@ -48,11 +48,14 @@ class StatusColors
 
         // ── ТТН Нова Пошта ─────────────────────────────────────────────────────
         'ttn_np' => array(
-            'created'    => array('Створено',    'badge-gray',    '#9ca3af'),
-            'in_transit' => array('В дорозі',    'badge-blue',    '#3b82f6'),
-            'delivered'  => array('Доставлено',  'badge-green',   '#16a34a'),
-            'returned'   => array('Повернено',   'badge-orange',  '#f59e0b'),
-            'deleted'    => array('Видалено',    'badge-red',     '#ef4444'),
+            'draft'      => array('Чернетка',     'badge-gray',    '#9ca3af'),
+            'created'    => array('Створено',     'badge-gray',    '#9ca3af'),
+            'in_transit' => array('В дорозі',     'badge-blue',    '#3b82f6'),
+            'at_branch'  => array('У відділенні',  'badge-orange',  '#ea580c'),
+            'delivered'  => array('Доставлено',   'badge-green',   '#16a34a'),
+            'returned'   => array('Повернення',   'badge-orange',  '#f59e0b'),
+            'refused'    => array('Відмова',      'badge-red',     '#ef4444'),
+            'deleted'    => array('Видалено',     'badge-red',     '#ef4444'),
         ),
 
         // ── Фінанси (платежі, каса) ────────────────────────────────────────────

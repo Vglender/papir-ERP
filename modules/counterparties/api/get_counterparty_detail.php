@@ -23,9 +23,12 @@ $stats        = $repo->getOrderStats($id);
 $recentOrders = $repo->getRecentOrders($id, 100);
 $allContacts  = $repo->getContacts($id);
 
-function cpAvailableChannels($phone, $email, $telegramChatId) {
+function cpAvailableChannels($phone, $email, $telegramChatId, $viberUnavailable = false) {
     $ch = array('note');
-    if ($phone)          { $ch[] = 'viber'; $ch[] = 'sms'; }
+    if ($phone) {
+        if (!$viberUnavailable) { $ch[] = 'viber'; }
+        $ch[] = 'sms';
+    }
     if ($email)          { $ch[] = 'email'; }
     if ($telegramChatId) { $ch[] = 'telegram'; }
     return $ch;
@@ -100,7 +103,8 @@ echo json_encode(array(
         'group_is_head'=> (bool)$cp['group_is_head'],
         'status'   => (int)$cp['status'],
         'telegram_chat_id'   => $cp['telegram_chat_id'],
-        'available_channels' => cpAvailableChannels($phone, $email, $cp['telegram_chat_id']),
+        'viber_unavailable'  => (bool)$cp['viber_unavailable'],
+        'available_channels' => cpAvailableChannels($phone, $email, $cp['telegram_chat_id'], (bool)$cp['viber_unavailable']),
     ),
     'stats' => array(
         'order_count' => (int)$stats['order_count'],
