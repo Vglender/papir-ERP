@@ -517,6 +517,22 @@ if (isset($_POST['options_seat'])) {
                 if ($seatsArr) $npProps['OptionsSeat'] = $seatsArr;
             }
         } else {
+            // Простий режим — згенерувати OptionsSeat з Weight/SeatsAmount
+            // НП API вимагає OptionsSeat навіть без детальних розмірів
+            $simpleWeight = $curWeight;
+            $simpleSeats  = $curSeats;
+            $perSeatW     = $simpleSeats > 1 ? round($simpleWeight / $simpleSeats, 2) : $simpleWeight;
+            $seatsArr     = array();
+            for ($i = 0; $i < $simpleSeats; $i++) {
+                $seatsArr[] = array(
+                    'weight'           => (string)$perSeatW,
+                    'volumetricWidth'  => '0',
+                    'volumetricLength' => '0',
+                    'volumetricHeight' => '0',
+                    'volumetricVolume' => '0',
+                );
+            }
+            $npProps['OptionsSeat'] = $seatsArr;
             $dbUpd['options_seat']    = null;
             $dbUpd['manual_handling'] = 0;
         }
