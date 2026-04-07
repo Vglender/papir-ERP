@@ -526,10 +526,10 @@ if (isset($_POST['options_seat'])) {
             for ($i = 0; $i < $simpleSeats; $i++) {
                 $seatsArr[] = array(
                     'weight'           => (string)$perSeatW,
-                    'volumetricWidth'  => '0',
-                    'volumetricLength' => '0',
-                    'volumetricHeight' => '0',
-                    'volumetricVolume' => '0',
+                    'volumetricWidth'  => '1',
+                    'volumetricLength' => '1',
+                    'volumetricHeight' => '1',
+                    'volumetricVolume' => '0.01',
                 );
             }
             $npProps['OptionsSeat'] = $seatsArr;
