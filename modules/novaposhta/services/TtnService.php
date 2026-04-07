@@ -455,7 +455,7 @@ class TtnService
         $result = array(
             'order_id'             => $orderId,
             'sum_total'            => $order['sum_total'],
-            'backward_money_hint'  => (float)$order['sum_total'],
+            'backward_money_hint'  => self::calcBackwardMoneyHint($order),
             'recipient'            => $recipient,
             'sender_ref'           => $senderRef,
             'senders'              => SenderRepository::getAll(),
@@ -812,6 +812,41 @@ class TtnService
      * 1-2 items: "ART ShortName xQty" (2 items separated by " // ")
      * 3+ items:  "Замовлення №{number}"
      */
+    /**
+     * Розрахувати суму накладеного платежу для ТТН.
+     * COD тільки якщо спосіб оплати = накладений платіж (cash_on_delivery)
+     * І немає вхідної оплати (sum_paid = 0).
+     */
+    private static function calcBackwardMoneyHint($order)
+    {
+        $pmId = isset($order['payment_method_id']) ? (int)$order['payment_method_id'] : 0;
+        // cash_on_delivery = id 4
+        $isCod = false;
+        if ($pmId) {
+            $r = \Database::fetchRow('Papir',
+                "SELECT code FROM payment_method WHERE id = {$pmId} LIMIT 1");
+            $isCod = ($r['ok'] && !empty($r['row']) && $r['row']['code'] === 'cash_on_delivery');
+        }
+        if (!$isCod) return 0;
+
+        // Є оплата — не потрібен наложений платіж
+        $sumPaid = isset($order['sum_paid']) ? (float)$order['sum_paid'] : 0;
+        if ($sumPaid > 0) return 0;
+
+        // Перевірити через document_link (надійніше)
+        $orderId = (int)$order['id'];
+        $r = \Database::fetchRow('Papir',
+            "SELECT COALESCE(SUM(dl.linked_sum), 0) AS total
+             FROM document_link dl
+             WHERE dl.from_type IN ('paymentin','cashin')
+               AND dl.to_type = 'customerorder'
+               AND dl.to_id = {$orderId}");
+        $realPaid = ($r['ok'] && !empty($r['row'])) ? (float)$r['row']['total'] : 0;
+        if ($realPaid > 0) return 0;
+
+        return (float)$order['sum_total'];
+    }
+
     public static function buildDescription($orderId, $orderNumber, $maxLen = 36)
     {
         $r = \Database::fetchAll('Papir',
