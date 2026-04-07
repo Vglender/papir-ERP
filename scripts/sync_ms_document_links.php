@@ -19,6 +19,7 @@
 
 require_once __DIR__ . '/../modules/database/database.php';
 require_once __DIR__ . '/../modules/moysklad/moysklad_api.php';
+require_once __DIR__ . '/../modules/customerorder/services/OrderFinanceHelper.php';
 
 $dryRun  = in_array('--dry-run', $argv);
 $fullSync = in_array('--full', $argv); // загрузить ВСЕ документы без фильтра по дате
@@ -373,6 +374,25 @@ if (!$dryRun) {
 
     // to_id для purchaseorder — пока нет таблицы, пропускаем
     // to_id для invoiceout, demand, invoicein, supply — пока нет таблиц, пропускаем
+
+    // Перерахувати payment/shipment статуси для всіх замовлень,
+    // які отримали нові або оновлені зв'язки з платежами/відвантаженнями
+    out('Перерахунок payment/shipment статусів замовлень...');
+    $rOrders = Database::fetchAll('Papir',
+        "SELECT DISTINCT dl.to_id
+         FROM document_link dl
+         WHERE dl.to_type = 'customerorder'
+           AND dl.to_id IS NOT NULL
+           AND dl.from_type IN ('paymentin', 'cashin', 'demand')
+           AND dl.created_at >= NOW() - INTERVAL 48 HOUR");
+    $recalcCount = 0;
+    if ($rOrders['ok'] && !empty($rOrders['rows'])) {
+        foreach ($rOrders['rows'] as $row) {
+            OrderFinanceHelper::recalc((int)$row['to_id']);
+            $recalcCount++;
+        }
+    }
+    out('  Перераховано замовлень: ' . $recalcCount);
 
     out('Backfill завершено.');
 

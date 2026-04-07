@@ -3,7 +3,7 @@
  * POST /counterparties/api/save_order_delivery
  * Create or update an order_delivery record (courier/pickup delivery fact).
  * For TTN-based carriers (Nova Poshta, Ukrposhta) use save_ttn_manual instead.
- * Auto-advances order to 'shipped' when delivery is sent/delivered and demand exists.
+ * Fires order_delivery_created trigger for scenario processing.
  */
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../counterparties_bootstrap.php';
@@ -77,34 +77,20 @@ if ($id > 0) {
     $id = (int)$r['insert_id'];
 }
 
-// Auto-advance order to 'shipped' when delivery is sent/delivered and demand exists
-if (in_array($status, array('sent', 'delivered')) && $orderId > 0) {
+// Fire trigger event for scenarios
+if ($orderId > 0) {
     $rOrd = \Database::fetchRow('Papir',
-        "SELECT status FROM customerorder WHERE id={$orderId} AND deleted_at IS NULL");
+        "SELECT * FROM customerorder WHERE id={$orderId} LIMIT 1");
     if ($rOrd['ok'] && !empty($rOrd['row'])) {
-        $curStatus = $rOrd['row']['status'];
-        $preShip   = array('draft','new','confirmed','waiting_payment','in_progress');
-        if (in_array($curStatus, $preShip)) {
-            $rDem = \Database::fetchRow('Papir',
-                "SELECT COUNT(*) AS cnt FROM document_link dl
-                 JOIN demand d ON (d.id_ms=dl.from_ms_id OR (dl.from_ms_id IS NULL AND d.id=dl.from_id))
-                 WHERE dl.from_type='demand' AND dl.to_type='customerorder' AND dl.to_id={$orderId}
-                   AND d.deleted_at IS NULL AND d.status NOT IN ('cancelled','returned')");
-            $demCnt = ($rDem['ok'] && !empty($rDem['row'])) ? (int)$rDem['row']['cnt'] : 0;
-            if ($demCnt > 0) {
-                \Database::update('Papir','customerorder',array('status'=>'shipped'),array('id'=>$orderId));
-                \Database::insert('Papir','customerorder_history',array(
-                    'customerorder_id' => $orderId,
-                    'event_type'       => 'status_change',
-                    'field_name'       => 'status',
-                    'old_value'        => $curStatus,
-                    'new_value'        => 'shipped',
-                    'is_auto'          => 1,
-                    'comment'          => 'Автоматичний перехід: зареєстровано доставку',
-                ));
-                \Papir\Crm\AuthService::log('status_change','customerorder',$orderId,'shipped');
-            }
-        }
+        $order = $rOrd['row'];
+        TriggerEngine::fire('order_delivery_created', array(
+            'order'           => $order,
+            'order_id'        => $orderId,
+            'counterparty_id' => (int)$order['counterparty_id'],
+            'delivery_status' => $status,
+            'delivery_id'     => $id,
+        ));
+        TaskQueueRunner::runPending();
     }
 }
 

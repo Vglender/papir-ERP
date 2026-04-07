@@ -693,6 +693,7 @@ var SC = {
             ['create_task', '📌 Створити задачу оператору'],
             ['change_status','🔄 Змінити статус заказу'],
             ['create_demand','📦 Створити відвантаження'],
+            ['set_next_action','➡️ Встановити наступну дію'],
             ['wait',         '⏳ Очікувати']
         ];
         var execOpts = [
@@ -779,7 +780,8 @@ var SC = {
         var execLbl = {robot:'🤖 Робот', operator:'👤 Оператор', ai:'✨ AI'}[exec] || exec;
         var actLbl  = {send_message:'Повідомлення', send_invoice:'Рахунок',
                        create_task:'Задача оператору', change_status:'Зміна статусу',
-                       create_demand:'Відвантаження', wait:'Очікування'}[action] || action;
+                       create_demand:'Відвантаження', set_next_action:'Наступна дія',
+                       wait:'Очікування'}[action] || action;
         var meta = document.getElementById('scStepMeta' + idx);
         if (meta) {
             meta.textContent = execLbl + ' · ' + actLbl + (delay > 0 ? ' · через ' + delay + ' хв' : '');
@@ -875,6 +877,13 @@ var SC = {
             html += '</select>';
         }
 
+        if (action === 'set_next_action') {
+            html += '<label>Код дії</label>'
+                + '<input type="text" class="sc-na-action" placeholder="напр. ship, call, confirm" value="'+(params.action||'')+'">'
+                + '<label style="margin-top:8px;display:block">Підпис кнопки</label>'
+                + '<input type="text" class="sc-na-label" placeholder="напр. Відправити, Зателефонувати" value="'+(params.label||'')+'">';
+        }
+
         if (action === 'wait') {
             html = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0">Крок-пауза — час очікування задається полем «Затримка» вище.</div>';
         }
@@ -910,6 +919,10 @@ var SC = {
         }
         if (action === 'change_status') {
             params.status = step.querySelector('.sc-new-status') ? step.querySelector('.sc-new-status').value : '';
+        }
+        if (action === 'set_next_action') {
+            params.action = step.querySelector('.sc-na-action') ? step.querySelector('.sc-na-action').value : '';
+            params.label  = step.querySelector('.sc-na-label')  ? step.querySelector('.sc-na-label').value  : '';
         }
         return params;
     },
@@ -1090,7 +1103,7 @@ var SC = {
                 var html = '';
                 d.items.forEach(function(q) {
                     var cls = {pending:'sc-queue-pending',done:'sc-queue-done',failed:'sc-queue-failed',running:'sc-queue-running'}[q.status] || '';
-                    var actLbl = {send_message:'Повідомлення',send_invoice:'Рахунок',create_task:'Задача',change_status:'Статус',wait:'Пауза'}[q.action_type] || q.action_type;
+                    var actLbl = {send_message:'Повідомлення',send_invoice:'Рахунок',create_task:'Задача',change_status:'Статус',set_next_action:'Наступна дія',wait:'Пауза'}[q.action_type] || q.action_type;
                     var who = q.counterparty_name ? q.counterparty_name : '—';
                     var time = q.status === 'done' ? SC.fmtTime(q.done_at) : SC.fmtTime(q.fire_at);
                     html += '<div class="sc-queue-row">'

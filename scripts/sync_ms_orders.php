@@ -11,13 +11,14 @@
  *   2. UPDATE  — змінені замовлення (ms.updated > наш updated_at)
  *   3. counterparty_id — резолвить ms.agent → counterparty.id_ms → counterparty.id
  *   4. status  — маппінг UUID стану → наш enum
- *   5. payment_status / shipment_status — розраховуються з payedSum/shippedSum/sum
+ *   5. payment_status / shipment_status — розраховуються з локальних документів (document_link + demand)
  */
 
 $_lockFp = fopen('/tmp/sync_ms_orders.lock', 'c');
 if (!flock($_lockFp, LOCK_EX | LOCK_NB)) { echo date('[H:i:s] ') . 'Already running, exit.' . PHP_EOL; exit(0); }
 
 require_once __DIR__ . '/../modules/database/database.php';
+require_once __DIR__ . '/../modules/customerorder/services/OrderFinanceHelper.php';
 
 $dryRun    = in_array('--dry-run', $argv);
 $logFile   = '/tmp/sync_ms_orders.log';
@@ -77,27 +78,7 @@ function resolveStatus($stateUuid) {
     return isset($stateMap[$stateUuid]) ? $stateMap[$stateUuid] : 'completed';
 }
 
-// ── Розрахунок payment_status ─────────────────────────────────────────────────
-
-function resolvePaymentStatus($payedSum, $sum) {
-    $payedSum = (float)$payedSum;
-    $sum      = (float)$sum;
-    if ($payedSum <= 0)           return 'not_paid';
-    if ($payedSum >= $sum - 0.01) return 'paid';
-    return 'partially_paid';
-}
-
-// ── Розрахунок shipment_status ────────────────────────────────────────────────
-
-function resolveShipmentStatus($shippedSum, $reservedSum, $sum) {
-    $shippedSum  = (float)$shippedSum;
-    $reservedSum = (float)$reservedSum;
-    $sum         = (float)$sum;
-    if ($shippedSum >= $sum - 0.01 && $sum > 0) return 'shipped';
-    if ($shippedSum > 0)                         return 'partially_shipped';
-    if ($reservedSum > 0)                        return 'reserved';
-    return 'not_shipped';
-}
+// payment_status / shipment_status — тепер розраховуються через OrderFinanceHelper::recalc()
 
 // ── Реєстрація в background_jobs ─────────────────────────────────────────────
 
@@ -177,14 +158,9 @@ while (true) {
         $updatedMs = $row['updated'] ? (string)$row['updated'] : '';
 
         $sum         = (float)$row['sum'];
-        $payedSum    = (float)$row['payedSum'];
-        $shippedSum  = (float)$row['shippedSum'];
-        $reservedSum = (float)$row['reservedSum'];
         $vatSum      = (float)$row['vatSum'];
 
         $status          = resolveStatus(trim((string)$row['state']));
-        $paymentStatus   = resolvePaymentStatus($payedSum, $sum);
-        $shipmentStatus  = resolveShipmentStatus($shippedSum, $reservedSum, $sum);
 
         $agentMs    = trim((string)$row['agent']);
         $cpId       = ($agentMs !== '' && isset($cpMap[$agentMs])) ? $cpMap[$agentMs] : null;
@@ -223,17 +199,21 @@ while (true) {
                 $r2 = Database::query('Papir',
                     "UPDATE customerorder SET
                      number={$numberS}, external_code={$extCodeS}, moment={$momentSql},
-                     applicable={$applicable}, sum_total={$sum}, sum_paid={$payedSum},
-                     sum_shipped={$shippedSum}, sum_reserved={$reservedSum}, sum_vat={$vatSum},
+                     applicable={$applicable}, sum_total={$sum}, sum_vat={$vatSum},
                      counterparty_id={$cpIdSql}, organization_id={$orgIdSql},
                      manager_employee_id = IF(manager_employee_id IS NULL, {$empIdSql}, manager_employee_id),
                      status='{$status}',
-                     payment_status='{$paymentStatus}', shipment_status='{$shipmentStatus}',
                      sales_channel={$channelS}, description={$descS},
                      sync_state='synced', updated_at={$updatedSql}
                      WHERE id_ms={$idMsS}"
                 );
                 if (!$r2['ok']) { $stats['errors']++; continue; }
+                // Перерахувати payment/shipment із локальних документів
+                $localRow = Database::fetchRow('Papir',
+                    "SELECT id FROM customerorder WHERE id_ms={$idMsS} LIMIT 1");
+                if ($localRow['ok'] && !empty($localRow['row'])) {
+                    OrderFinanceHelper::recalc((int)$localRow['row']['id']);
+                }
             }
             $existing[$idMs] = array('updated_at' => $updatedMs, 'has_cp' => ($cpId !== null));
             $stats['updated']++;
@@ -248,16 +228,21 @@ while (true) {
                  (uuid, id_ms, source, external_code, number, moment, applicable,
                   counterparty_id, organization_id, manager_employee_id,
                   status, payment_status, shipment_status,
-                  sum_total, sum_paid, sum_shipped, sum_reserved, sum_vat,
+                  sum_total, sum_vat,
                   sales_channel, description, sync_state, updated_at)
                  VALUES
                  ('{$uuid}', {$idMsS}, 'moysklad', {$extCodeS}, {$numberS}, {$momentSql},
                   {$applicable}, {$cpIdSql}, {$orgIdSql}, {$empIdSql},
-                  '{$status}', '{$paymentStatus}', '{$shipmentStatus}',
-                  {$sum}, {$payedSum}, {$shippedSum}, {$reservedSum}, {$vatSum},
+                  '{$status}', 'not_paid', 'not_shipped',
+                  {$sum}, {$vatSum},
                   {$channelS}, {$descS}, 'synced', {$updatedSql})"
             );
             if (!$r2['ok']) { $stats['errors']++; continue; }
+            // Перерахувати payment/shipment із локальних документів
+            $lastId = Database::fetchRow('Papir', "SELECT LAST_INSERT_ID() AS id");
+            if ($lastId['ok'] && !empty($lastId['row']['id'])) {
+                OrderFinanceHelper::recalc((int)$lastId['row']['id']);
+            }
         }
 
         $existing[$idMs] = array('updated_at' => $updatedMs, 'has_cp' => ($cpId !== null));

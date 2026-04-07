@@ -14,6 +14,7 @@ require_once __DIR__ . '/../../moysklad/src/WebhookCpHelper.php';
 require_once __DIR__ . '/../MsAttributesParser.php';
 require_once __DIR__ . '/../../shared/DocumentHistory.php';
 require_once __DIR__ . '/../../counterparties/counterparties_bootstrap.php';
+require_once __DIR__ . '/../services/OrderFinanceHelper.php';
 
 function mswhk_order_log($msg) {
     @file_put_contents('/var/www/papir/storage/ms_webhook_customerorder.log',
@@ -106,9 +107,6 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
     if ($msId === '') { $errors[] = 'Document missing id'; return; }
 
     $sumTotal    = isset($doc['sum'])         ? round((float)$doc['sum']         / 100, 2) : 0.0;
-    $sumPaid     = isset($doc['payedSum'])    ? round((float)$doc['payedSum']    / 100, 2) : 0.0;
-    $sumShipped  = isset($doc['shippedSum'])  ? round((float)$doc['shippedSum']  / 100, 2) : 0.0;
-    $sumReserved = isset($doc['reservedSum']) ? round((float)$doc['reservedSum'] / 100, 2) : 0.0;
 
     // Контрагент — найти или создать
     $counterpartyId = null;
@@ -145,25 +143,8 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         if ($r['ok'] && !empty($r['row'])) $managerEmployeeId = (int)$r['row']['id'];
     }
 
-    // payment_status
-    if ($sumPaid <= 0) {
-        $paymentStatus = 'not_paid';
-    } elseif ($sumPaid >= $sumTotal && $sumTotal > 0) {
-        $paymentStatus = 'paid';
-    } else {
-        $paymentStatus = 'partially_paid';
-    }
-
-    // shipment_status
-    if ($sumShipped <= 0 && $sumReserved <= 0) {
-        $shipmentStatus = 'not_shipped';
-    } elseif ($sumShipped <= 0 && $sumReserved > 0) {
-        $shipmentStatus = 'reserved';
-    } elseif ($sumShipped > 0 && $sumShipped < $sumTotal) {
-        $shipmentStatus = 'partially_shipped';
-    } else {
-        $shipmentStatus = 'shipped';
-    }
+    // payment_status / shipment_status — розраховуються після upsert
+    // через OrderFinanceHelper::recalc() із локальних документів
 
     // Атрибути: спосіб доставки та оплати
     // МС повертає attributes як plain array (не {rows:[...]}), тому перевіряємо обидва варіанти
@@ -185,13 +166,9 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         'source'          => 'moysklad',
         'sync_state'      => 'synced',
         'external_code'   => $extCode,
-        'sum_paid'        => $sumPaid,
-        'sum_shipped'     => $sumShipped,
-        'sum_reserved'    => $sumReserved,
+        'sum_total'       => $sumTotal,
         'description'     => $desc,
         'wait_call'       => $waitCall,
-        'payment_status'  => $paymentStatus,
-        'shipment_status' => $shipmentStatus,
     );
 
     if ($parsedAttrs['delivery_method_id'] !== null) $data['delivery_method_id'] = $parsedAttrs['delivery_method_id'];
@@ -224,6 +201,7 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
                 'comment'     => 'webhook МС',
             ));
         }
+        OrderFinanceHelper::recalc($localId);
         mswhk_order_log('Updated order id=' . $localId . ' ms=' . $msId . ' status=' . $status);
     } else {
         $isNew = true;
@@ -236,6 +214,7 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         $ins = Database::insert('Papir', 'customerorder', $data);
         if (!$ins['ok']) { $errors[] = 'Insert failed for ' . $msId; return; }
         $localId = (int)$ins['insert_id'];
+        OrderFinanceHelper::recalc($localId);
         mswhk_order_log('Inserted order id=' . $localId . ' ms=' . $msId);
 
         // Fire order_created trigger

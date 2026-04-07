@@ -19,6 +19,8 @@
 $_lockFp = fopen('/tmp/sync_ms_document_links_from_mirror.lock', 'c');
 if (!flock($_lockFp, LOCK_EX | LOCK_NB)) { echo date('[H:i:s] ') . 'Already running, exit.' . PHP_EOL; exit(0); }
 
+require_once __DIR__ . '/../modules/customerorder/services/OrderFinanceHelper.php';
+
 require_once __DIR__ . '/../modules/database/database.php';
 
 $dryRun  = in_array('--dry-run', $argv);
@@ -228,6 +230,23 @@ if (!$dryRun) {
 
     // from_id для customerorder (purchaseorder.customerOrders → from=purchaseorder, но нет таблицы)
     // demand → to_id при salesreturn (нет таблицы demand в Papir пока)
+
+    // Перерахувати payment/shipment статуси замовлень із новими зв'язками
+    out('Перерахунок payment/shipment статусів замовлень...');
+    $rOrders = Database::fetchAll('Papir',
+        "SELECT DISTINCT dl.to_id
+         FROM document_link dl
+         WHERE dl.to_type = 'customerorder'
+           AND dl.to_id IS NOT NULL
+           AND dl.from_type IN ('paymentin', 'cashin', 'demand')");
+    $recalcCount = 0;
+    if ($rOrders['ok'] && !empty($rOrders['rows'])) {
+        foreach ($rOrders['rows'] as $row) {
+            OrderFinanceHelper::recalc((int)$row['to_id']);
+            $recalcCount++;
+        }
+    }
+    out('  Перераховано замовлень: ' . $recalcCount);
 
     out('Backfill завершено (інші таблиці з\'являться при імпорті demand/supply/salesreturn).');
 

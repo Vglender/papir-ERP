@@ -4,7 +4,7 @@
  * Запускается кроном каждые 5 минут.
  *
  * Поддерживаемые action_type:
- *   robot:    send_message, send_invoice (stub), change_status (stub), wait
+ *   robot:    send_message, send_invoice (stub), change_status, set_next_action, wait
  *   operator: create_task
  */
 class TaskQueueRunner
@@ -73,6 +73,9 @@ class TaskQueueRunner
                     break;
                 case 'create_demand':
                     list($ok, $note) = self::doCreateDemand($item, $params);
+                    break;
+                case 'set_next_action':
+                    list($ok, $note) = self::doSetNextAction($item, $params);
                     break;
                 case 'wait':
                     $ok   = true;
@@ -273,6 +276,30 @@ class TaskQueueRunner
             "UPDATE customerorder SET status='{$newStatus}', updated_at=NOW() WHERE id={$orderId}"
         );
         return array(true, "Status changed to {$newStatus}");
+    }
+
+    private static function doSetNextAction($item, $params)
+    {
+        $orderId = (int)$item['order_id'];
+        if (!$orderId) return array(false, 'No order_id');
+
+        $action = isset($params['action']) ? trim($params['action']) : '';
+        $label  = isset($params['label'])  ? trim($params['label'])  : $action;
+
+        if ($action === '' && $label === '') {
+            // Очистити наступну дію
+            Database::query('Papir',
+                "UPDATE customerorder SET next_action=NULL, next_action_label=NULL, updated_at=NOW()
+                 WHERE id={$orderId}");
+            return array(true, 'Next action cleared');
+        }
+
+        $actionSql = Database::escape('Papir', $action);
+        $labelSql  = Database::escape('Papir', $label);
+        Database::query('Papir',
+            "UPDATE customerorder SET next_action='{$actionSql}', next_action_label='{$labelSql}', updated_at=NOW()
+             WHERE id={$orderId}");
+        return array(true, "Next action set: {$label}");
     }
 
     // ── Next step scheduling ──────────────────────────────────────────────────

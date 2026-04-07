@@ -22,6 +22,7 @@ if (!flock($_lockFp, LOCK_EX | LOCK_NB)) {
 }
 
 require_once __DIR__ . '/../modules/database/database.php';
+require_once __DIR__ . '/../modules/customerorder/services/OrderFinanceHelper.php';
 
 $dryRun    = in_array('--dry-run', $argv);
 $logFile   = '/tmp/sync_ms_demand.log';
@@ -187,6 +188,7 @@ while (true) {
                 }
                 $existing[$idMs]['updated_at'] = $updatedMs;
                 $stats['updated']++;
+                if ($orderId) OrderFinanceHelper::recalc((int)$orderId);
             }
 
             // Синк позицій якщо кількість відрізняється
@@ -223,6 +225,7 @@ while (true) {
 
         $existing[$idMs] = array('id' => $demandId ?: 0, 'updated_at' => $updatedMs);
         $stats['inserted']++;
+        if ($orderId) OrderFinanceHelper::recalc((int)$orderId);
 
         // Позиції для нового запису
         $msCount = isset($msItemCounts[$idMs]) ? $msItemCounts[$idMs] : 0;

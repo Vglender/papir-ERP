@@ -7,6 +7,7 @@ require_once __DIR__ . '/customerorder_service.php';
 require_once __DIR__ . '/customerorder_controller.php';
 require_once __DIR__ . '/services/CustomerOrderMsSync.php';
 require_once __DIR__ . '/../shared/DocumentHistory.php';
+require_once __DIR__ . '/services/OrderFinanceHelper.php';
 
 $dbConfigs = require __DIR__ . '/../database/config/databases.php';
 Database::init($dbConfigs);

@@ -115,6 +115,36 @@ class TriggerEngine
             return ($r['ok'] && $r['row'] && (int)$r['row']['cnt'] === 0) ? '1' : '0';
         }
 
+        // order.has_shipment_tracking → '1' якщо є активна ТТН (НП/УП) або доставка (sent/delivered)
+        if ($key === 'order.has_shipment_tracking') {
+            $ordId = isset($context['order_id']) ? (int)$context['order_id'] : 0;
+            if (!$ordId) return '0';
+            $cnt = 0;
+            // ТТН Нова Пошта
+            $r = Database::fetchRow('Papir',
+                "SELECT COUNT(*) AS cnt FROM document_link dl
+                 JOIN ttn_novaposhta tn ON tn.id = dl.from_id
+                 WHERE dl.from_type='ttn_np' AND dl.to_type='customerorder' AND dl.to_id={$ordId}
+                   AND (tn.deletion_mark IS NULL OR tn.deletion_mark = 0)
+                   AND tn.state_define NOT IN (102, 105)
+                   AND LOWER(tn.state_name) NOT LIKE '%відмов%'
+                   AND LOWER(tn.state_name) NOT LIKE '%отказ%'");
+            if ($r['ok'] && !empty($r['row'])) $cnt += (int)$r['row']['cnt'];
+            // ТТН Укрпошта
+            $r = Database::fetchRow('Papir',
+                "SELECT COUNT(*) AS cnt FROM document_link dl
+                 JOIN ttn_ukrposhta tu ON tu.id = dl.from_id
+                 WHERE dl.from_type='ttn_up' AND dl.to_type='customerorder' AND dl.to_id={$ordId}
+                   AND tu.lifecycle_status NOT IN ('RETURNED','RETURNING','CANCELLED','DELETED')");
+            if ($r['ok'] && !empty($r['row'])) $cnt += (int)$r['row']['cnt'];
+            // order_delivery (кур'єр/самовивіз)
+            $r = Database::fetchRow('Papir',
+                "SELECT COUNT(*) AS cnt FROM order_delivery od
+                 WHERE od.customerorder_id={$ordId} AND od.status IN ('sent','delivered')");
+            if ($r['ok'] && !empty($r['row'])) $cnt += (int)$r['row']['cnt'];
+            return $cnt > 0 ? '1' : '0';
+        }
+
         // ── Звичайні поля контексту ───────────────────────────────────────────
 
         $parts = explode('.', $key, 2);

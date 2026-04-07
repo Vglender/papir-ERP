@@ -311,23 +311,44 @@ require_once __DIR__ . '/../../shared/layout.php';
             margin-left: 6px;
         }
 
-        /* Payment / shipment mini-badges */
-        .ws-of-mini-badge {
-            display: inline-flex; align-items: center;
-            font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px;
-            white-space: nowrap; flex-shrink: 0; user-select: none;
+        /* Payment / shipment icon indicators */
+        .status-icon {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 26px; height: 26px; border-radius: 50%;
+            flex-shrink: 0; cursor: default;
+            transition: transform .1s;
         }
+        .status-icon:hover { transform: scale(1.15); }
+        .status-icon svg { width: 14px; height: 14px; }
+
+        /* Payment colors */
         .wsof-pay-none     { background: #fee2e2; color: #991b1b; }
         .wsof-pay-partial  { background: #fef3c7; color: #92400e; }
         .wsof-pay-done     { background: #dcfce7; color: #15803d; }
         .wsof-pay-overdue  { background: #fee2e2; color: #7f1d1d; }
         .wsof-pay-refund   { background: #f3e8ff; color: #6b21a8; }
+        /* Shipment colors */
         .wsof-ship-none     { background: #f3f4f6; color: #6b7280; }
         .wsof-ship-reserved { background: #dbeafe; color: #1e40af; }
         .wsof-ship-partial  { background: #fef3c7; color: #92400e; }
         .wsof-ship-done     { background: #e0f2fe; color: #0369a1; }
         .wsof-ship-delivered{ background: #dcfce7; color: #15803d; }
         .wsof-ship-returned { background: #fee2e2; color: #9a3412; }
+
+        /* Next action hint */
+        .next-action-hint {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 11px; font-weight: 500; padding: 3px 10px;
+            border-radius: 6px; cursor: pointer; white-space: nowrap;
+            background: #f0f6ff; color: #2563eb; border: 1px solid #bfdbfe;
+            font-family: inherit; transition: background .12s;
+        }
+        .next-action-hint:hover { background: #dbeafe; border-color: #93c5fd; }
+        .next-action-hint.next-action-empty {
+            background: #f3f4f6; color: #9ca3af; border-color: #e5e7eb; cursor: default;
+        }
+        .next-action-hint.next-action-empty:hover { background: #f3f4f6; border-color: #e5e7eb; }
+        .next-action-hint svg { flex-shrink: 0; }
 
         /* header meta row: status select + planned date */
         .doc-meta-row {
@@ -1038,6 +1059,8 @@ require_once __DIR__ . '/../../shared/layout.php';
 <div class="page-shell">
 
     <form method="post" action="/customerorder/save">
+        <?php require_once __DIR__ . '/../../shared/CsrfService.php'; ?>
+        <?= CsrfService::field() ?>
         <?php if (!$isNew): ?>
             <input type="hidden" name="id" value="<?= (int)$order['id'] ?>">
         <?php endif; ?>
@@ -1181,16 +1204,32 @@ require_once __DIR__ . '/../../shared/layout.php';
                     </ul>
                 </div>
 
-                <!-- Payment status badge (read-only) -->
-                <span class="ws-of-mini-badge <?= h($paymentStatus['badge_cls']) ?>" title="Статус оплати">₴ <?= h($paymentStatus['label']) ?></span>
+                <!-- Payment status icon -->
+                <span class="status-icon <?= h($paymentStatus['badge_cls']) ?>" title="Оплата: <?= h($paymentStatus['label']) ?>">
+                    <svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l1-2h10l1 2" stroke="currentColor" stroke-width="1.4"/><path d="M6 8h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 6v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+                </span>
 
-                <!-- Shipment status badge (read-only) -->
-                <span class="ws-of-mini-badge <?= h($shipmentStatus['badge_cls']) ?>" title="Статус відвантаження">📦 <?= h($shipmentStatus['label']) ?></span>
+                <!-- Shipment status icon -->
+                <span class="status-icon <?= h($shipmentStatus['badge_cls']) ?>" title="Відвантаження: <?= h($shipmentStatus['label']) ?>">
+                    <svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="10" height="8" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M11 6h2.5l2 2.5V11h-4.5V6z" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="12.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="12.5" cy="12.5" r="1.5" stroke="currentColor" stroke-width="1.2"/></svg>
+                </span>
 
-                <!-- Planned shipment date — compact, no big field -->
-                <div class="planned-date-wrap" style="margin-left:10px;">
-                    <svg class="planned-date-icon" id="plannedDateIcon" width="13" height="13" viewBox="0 0 16 16" fill="none" style="color:var(--text-light)" title="Обрати дату відвантаження"><rect x="1" y="3" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
-                    <span>Відвантаження:</span>
+                <!-- Next action hint (from scenario) -->
+                <?php
+                $_dynamicAction = !empty($order['next_action']) ? $order['next_action'] : null;
+                $_dynamicLabel  = !empty($order['next_action_label']) ? $order['next_action_label'] : null;
+                $_hasAction     = ($_dynamicAction !== null);
+                ?>
+                <button type="button" class="next-action-hint<?= $_hasAction ? '' : ' next-action-empty' ?>" id="nextActionBtn"
+                        data-next-action="<?= h($_dynamicAction ?: '') ?>"
+                        title="<?= $_hasAction ? 'Наступна дія: ' . h($_dynamicLabel) : 'Немає призначених дій' ?>">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M10 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <?= $_hasAction ? h($_dynamicLabel) : 'Немає дій' ?>
+                </button>
+
+                <!-- Planned shipment date -->
+                <div class="planned-date-wrap" style="margin-left:6px;">
+                    <svg class="planned-date-icon" id="plannedDateIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" style="color:var(--text-light);cursor:pointer" title="Планова дата відвантаження"><rect x="2" y="4" width="20" height="17" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M7 2v4M17 2v4M2 10h20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M8 15l3 3 5-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     <input type="date" name="planned_shipment_at" id="planned_shipment_at" value="<?= h($plannedShipDate) ?>">
                 </div>
 
@@ -1198,14 +1237,12 @@ require_once __DIR__ . '/../../shared/layout.php';
                 <!-- Shipment action buttons -->
                 <div class="ship-actions-row">
                     <button type="button" id="newTtnNpBtn" class="ship-action-btn ship-action-btn--np" title="Створити ТТН Нова Пошта">
-                        <span class="ship-action-plus">+</span>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        ТТН Нова Пошта
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v4h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                        ТТН
                     </button>
-                    <button type="button" id="newDeliveryBtn" class="ship-action-btn ship-action-btn--del" title="Додати самовивіз / кур'єрську доставку">
+                    <button type="button" id="newDeliveryBtn" class="ship-action-btn ship-action-btn--del" title="Самовивіз або кур'єрська доставка">
                         <span class="ship-action-plus">+</span>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        Самовивіз / доставка
+                        Доставка
                     </button>
                 </div>
                 <?php endif; ?>
@@ -1401,7 +1438,7 @@ require_once __DIR__ . '/../../shared/layout.php';
         <!-- Tabs -->
         <div class="tabs-bar">
             <button class="tab-btn active" data-tab="positions">Позиції</button>
-            <button class="tab-btn" data-tab="related">Пов'язані документи <span class="tab-badge">1</span></button>
+            <button class="tab-btn" data-tab="related">Пов'язані документи <?php if ($relatedDocsCount > 0): ?><span class="tab-badge" id="relatedDocsBadge"><?= $relatedDocsCount ?></span><?php endif; ?></button>
             <button class="tab-btn" data-tab="files">Файли</button>
             <button class="tab-btn" data-tab="tasks">Задачі</button>
             <button class="tab-btn" data-tab="events">Події</button>
@@ -1728,6 +1765,9 @@ var _stateItems = <?= json_encode(array_values($items)) ?>.map(function(it) {
 });
 var _state    = { order: <?= json_encode(!empty($order) ? $order : new stdClass()) ?>, items: _stateItems };
 var _original = JSON.parse(JSON.stringify(_state));
+var _deliveryMethods = <?= json_encode(array_map(function($dm) {
+    return array('id' => (int)$dm['id'], 'code' => $dm['code'], 'name' => $dm['name_uk'], 'has_ttn' => (int)$dm['has_ttn']);
+}, $deliveryMethods)) ?>;
 
 /* ══ HELPERS ══ */
 function toFloat(v, fallback) {
@@ -2539,6 +2579,21 @@ var RelDocsGraph = (function() {
                 }
                 wrap.style.display = 'block';
                 render(data);
+                // update badge with actual count (nodes minus the order itself)
+                var cnt = (data.nodes || []).filter(function(n){ return !n.current && n.type !== 'overflow'; }).length;
+                var badge = document.getElementById('relatedDocsBadge');
+                if (badge) {
+                    badge.textContent = cnt;
+                    badge.style.display = cnt > 0 ? '' : 'none';
+                } else if (cnt > 0) {
+                    var tabBtn = document.querySelector('.tab-btn[data-tab="related"]');
+                    if (tabBtn) {
+                        var sp = document.createElement('span');
+                        sp.className = 'tab-badge'; sp.id = 'relatedDocsBadge';
+                        sp.textContent = cnt;
+                        tabBtn.appendChild(sp);
+                    }
+                }
             })
             .catch(function() {
                 loading.style.display = 'none';
@@ -3677,7 +3732,7 @@ var ShipmentsPanel = (function() {
 var DeliveryModal = (function() {
     var _orderId = <?php echo (int)(isset($order['id']) ? $order['id'] : 0); ?>;
 
-    function open(existing) {
+    function open(existing, preselectedMethodId) {
         var modal    = document.getElementById('newDeliveryModal');
         var title    = document.getElementById('newDeliveryModalTitle');
         var idEl     = document.getElementById('ndDeliveryId');
@@ -3697,6 +3752,7 @@ var DeliveryModal = (function() {
         } else {
             title.textContent = 'Нове відправлення';
             idEl.value = '0';
+            if (preselectedMethodId && methodEl) methodEl.value = preselectedMethodId;
             if (statusEl) statusEl.value = 'pending';
             if (commentEl) commentEl.value = '';
         }
