@@ -400,6 +400,20 @@ if (!$contactSenderRef) {
     $contactSenderRef = $sender['Ref'];
 }
 
+// ── Apply POST overrides for weight/seats (simple mode) ──────────────────
+$curWeight = (float)($ttn['weight'] ?: 0.5);
+$curSeats  = (int)($ttn['seats_amount'] ?: 1);
+if (isset($_POST['weight'])) {
+    $curWeight = (float)$_POST['weight'];
+    if ($curWeight <= 0) $curWeight = 0.5;
+    $dbUpd['weight'] = $curWeight;
+}
+if (isset($_POST['seats_amount'])) {
+    $curSeats = (int)$_POST['seats_amount'];
+    if ($curSeats <= 0) $curSeats = 1;
+    $dbUpd['seats_amount'] = $curSeats;
+}
+
 // ── Build full NP update payload ──────────────────────────────────────────
 $npProps = array(
     'Ref'              => $ttn['ref'],
@@ -420,8 +434,8 @@ $npProps = array(
     'PaymentMethod'    => $ttn['payment_method'] ?: 'Cash',
     'PayerType'        => $ttn['payer_type']     ?: 'Recipient',
     'CargoType'        => 'Cargo',
-    'Weight'           => (float)($ttn['weight']       ?: 0.5),
-    'SeatsAmount'      => (int)  ($ttn['seats_amount'] ?: 1),
+    'Weight'           => $curWeight,
+    'SeatsAmount'      => $curSeats,
     'Description'      => $ttn['description'] ?: 'Товар',
     'Cost'             => (int)  ($ttn['declared_value'] ?: $ttn['cost'] ?: 1),
 );
