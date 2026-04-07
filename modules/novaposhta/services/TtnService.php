@@ -283,6 +283,12 @@ class TtnService
         $sumEsc  = (float)$sum;
         $last9Esc = \Database::escape('Papir', $last9);
 
+        // Дата ТТН для фільтру ±7 днів
+        $rTtn = \Database::fetchRow('Papir',
+            "SELECT moment FROM ttn_novaposhta WHERE id = " . (int)$ttnId . " LIMIT 1");
+        $ttnDate = ($rTtn['ok'] && !empty($rTtn['row']['moment'])) ? $rTtn['row']['moment'] : date('Y-m-d H:i:s');
+        $ttnDateEsc = \Database::escape('Papir', $ttnDate);
+
         $finalStatuses = "'completed','cancelled'";
 
         $r = \Database::fetchAll('Papir',
@@ -294,6 +300,8 @@ class TtnService
                AND co.status NOT IN ({$finalStatuses})
                AND co.deleted_at IS NULL
                AND ABS(co.sum_total - {$sumEsc}) < 1
+               AND co.moment BETWEEN DATE_SUB('{$ttnDateEsc}', INTERVAL 7 DAY)
+                                 AND DATE_ADD('{$ttnDateEsc}', INTERVAL 7 DAY)
              ORDER BY co.id DESC
              LIMIT 3"
         );

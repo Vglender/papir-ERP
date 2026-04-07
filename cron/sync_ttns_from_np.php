@@ -142,7 +142,7 @@ foreach ($senders as $sender) {
                         $ttnId = (int)$rIns['insert_id'];
                         $sum = (!empty($mapped['backward_delivery_money']) && $mapped['backward_delivery_money'] > 0)
                             ? (float)$mapped['backward_delivery_money']
-                            : (float)(isset($mapped['cost']) ? $mapped['cost'] : 0);
+                            : (float)(isset($mapped['declared_value']) ? $mapped['declared_value'] : 0);
                         \Papir\Crm\TtnService::autoMatchOrder($ttnId, $mapped['recipients_phone'], $sum);
                     }
                 }
