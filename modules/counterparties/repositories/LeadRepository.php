@@ -196,6 +196,7 @@ class LeadRepository
                  SELECT lead_id, COUNT(*) AS cnt
                  FROM cp_messages
                  WHERE lead_id IS NOT NULL AND direction = 'in' AND read_at IS NULL
+                   AND channel != 'note'
                  GROUP BY lead_id
              ) unr ON unr.lead_id = l.id
              WHERE l.status IN ('new','working')

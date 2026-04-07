@@ -80,7 +80,7 @@ if ($mode === 'general') {
         "SELECT tm.from_employee_id, COUNT(*) AS cnt
          FROM team_messages tm
          LEFT JOIN team_message_reads tmr ON tmr.message_id = tm.id AND tmr.employee_id = {$myEmpId}
-         WHERE tm.to_employee_id = {$myEmpId} AND tm.counterparty_id IS NULL AND tmr.message_id IS NULL
+         WHERE tm.to_employee_id = {$myEmpId} AND tmr.message_id IS NULL
          GROUP BY tm.from_employee_id");
     if ($rU['ok']) {
         foreach ($rU['rows'] as $row) {

@@ -97,7 +97,7 @@ class SenderRepository
     {
         $e = \Database::escape('Papir', $senderRef);
         $r = \Database::fetchAll('Papir',
-            "SELECT cp.id, cp.Ref, cp.sender_ref, cp.full_name, cp.phone, cp.updated_at,
+            "SELECT cp.id, cp.Ref, cp.sender_ref, cp.full_name, cp.phone, cp.is_default, cp.updated_at,
                     COUNT(t.id) AS ttn_count
              FROM np_sender_contact_persons cp
              LEFT JOIN ttn_novaposhta t
@@ -105,9 +105,34 @@ class SenderRepository
                    AND t.sender_ref COLLATE utf8mb4_0900_ai_ci = cp.sender_ref
                    AND t.deletion_mark = 0
              WHERE cp.sender_ref = '{$e}'
-             GROUP BY cp.id, cp.Ref, cp.sender_ref, cp.full_name, cp.phone, cp.updated_at
-             ORDER BY ttn_count DESC, cp.full_name");
+             GROUP BY cp.id, cp.Ref, cp.sender_ref, cp.full_name, cp.phone, cp.is_default, cp.updated_at
+             ORDER BY cp.is_default DESC, ttn_count DESC, cp.full_name");
         return ($r['ok']) ? $r['rows'] : array();
+    }
+
+    public static function getDefaultContact($senderRef)
+    {
+        $e = \Database::escape('Papir', $senderRef);
+        $r = \Database::fetchRow('Papir',
+            "SELECT * FROM np_sender_contact_persons
+             WHERE sender_ref = '{$e}' AND is_default = 1 LIMIT 1");
+        if ($r['ok'] && $r['row']) return $r['row'];
+        // Fallback: first contact
+        $r2 = \Database::fetchRow('Papir',
+            "SELECT * FROM np_sender_contact_persons
+             WHERE sender_ref = '{$e}' ORDER BY id LIMIT 1");
+        return ($r2['ok'] && $r2['row']) ? $r2['row'] : null;
+    }
+
+    public static function setDefaultContact($senderRef, $contactRef)
+    {
+        $es = \Database::escape('Papir', $senderRef);
+        $ec = \Database::escape('Papir', $contactRef);
+        \Database::query('Papir',
+            "UPDATE np_sender_contact_persons SET is_default = 0 WHERE sender_ref = '{$es}'");
+        \Database::query('Papir',
+            "UPDATE np_sender_contact_persons SET is_default = 1
+             WHERE sender_ref = '{$es}' AND Ref = '{$ec}'");
     }
 
     public static function setDefaultAddress($senderRef, $addressRef)

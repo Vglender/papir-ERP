@@ -22,9 +22,14 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
 
 /* Contacts */
 .contact-list    { display: flex; flex-direction: column; gap: 4px; }
-.contact-row     { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.contact-row     { display: flex; align-items: center; gap: 8px; font-size: 13px;
+                   padding: 4px 8px; border: 1px solid transparent; border-radius: 6px; }
+.contact-row.is-default { background: #f0fdf4; border-color: #bbf7d0; }
 .contact-name    { font-weight: 500; color: #1e293b; }
 .contact-phone   { color: #64748b; font-family: monospace; font-size: 12px; }
+.contact-set-btn { font-size: 11px; color: #0d9488; background: none; border: none;
+                   cursor: pointer; padding: 2px 6px; border-radius: 4px; white-space: nowrap; flex-shrink: 0; }
+.contact-set-btn:hover { background: #f0fdfa; }
 
 /* Addresses */
 .addr-list       { display: flex; flex-direction: column; gap: 5px; }
@@ -147,7 +152,7 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
             <span class="text-muted fs-12">Немає</span>
           <?php else: ?>
             <?php foreach ($contacts as $c): ?>
-              <div class="contact-row" data-ref="<?php echo ViewHelper::h($c['Ref']); ?>">
+              <div class="contact-row <?php echo $c['is_default'] ? 'is-default' : ''; ?>" data-ref="<?php echo ViewHelper::h($c['Ref']); ?>">
                 <span class="contact-name"><?php echo ViewHelper::h($c['full_name']); ?></span>
                 <?php if ($c['phone']): ?>
                   <span class="contact-phone"><?php echo ViewHelper::h($c['phone']); ?></span>
@@ -155,6 +160,12 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
                 <?php if ($c['ttn_count'] > 0): ?>
                   <span class="badge badge-blue contact-ttn-badge" title="Використовується в ТТН"
                         style="font-size:10px;margin-left:4px"><?php echo (int)$c['ttn_count']; ?> ТТН</span>
+                <?php endif; ?>
+                <?php if ($c['is_default']): ?>
+                  <span class="badge badge-green" style="font-size:10px;margin-left:auto">default</span>
+                <?php else: ?>
+                  <button class="contact-set-btn" data-sender="<?php echo ViewHelper::h($sRef); ?>"
+                          data-ref="<?php echo ViewHelper::h($c['Ref']); ?>">Зробити default</button>
                 <?php endif; ?>
                 <button class="contact-del-btn" data-sender="<?php echo ViewHelper::h($sRef); ?>"
                         data-ref="<?php echo ViewHelper::h($c['Ref']); ?>" title="Видалити">&#x2715;</button>
@@ -385,16 +396,22 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
                         cl.innerHTML = '<span class="text-muted fs-12">Немає</span>';
                     } else {
                         cl.innerHTML = res.sender.contacts.map(function (c) {
+                            var isDef = c.is_default == 1 || c.is_default === true;
                             var ttnBadge = (c.ttn_count > 0)
                                 ? '<span class="badge badge-blue contact-ttn-badge" title="Використовується в ТТН" style="font-size:10px;margin-left:4px">' + esc(String(c.ttn_count)) + ' ТТН</span>'
                                 : '';
-                            return '<div class="contact-row" data-ref="' + esc(c.Ref) + '">' +
+                            return '<div class="contact-row ' + (isDef ? 'is-default' : '') + '" data-ref="' + esc(c.Ref) + '">' +
                                 '<span class="contact-name">' + esc(c.full_name) + '</span>' +
                                 (c.phone ? '<span class="contact-phone">' + esc(c.phone) + '</span>' : '') +
                                 ttnBadge +
+                                (isDef
+                                    ? '<span class="badge badge-green" style="font-size:10px;margin-left:auto">default</span>'
+                                    : '<button class="contact-set-btn" data-sender="' + esc(ref) + '" data-ref="' + esc(c.Ref) + '">Зробити default</button>'
+                                ) +
                                 '<button class="contact-del-btn" data-sender="' + esc(ref) + '" data-ref="' + esc(c.Ref) + '" title="Видалити">&#x2715;</button>' +
                                 '</div>';
                         }).join('');
+                        bindContactSetDefault(cl);
                         bindContactDel(cl);
                     }
                 }
@@ -546,8 +563,10 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
                 row.dataset.ref = esc(res.contact.Ref);
                 row.innerHTML = '<span class="contact-name">' + esc(res.contact.full_name) + '</span>' +
                     (res.contact.phone ? '<span class="contact-phone">' + esc(res.contact.phone) + '</span>' : '') +
+                    '<button class="contact-set-btn" data-sender="' + esc(ref) + '" data-ref="' + esc(res.contact.Ref) + '">Зробити default</button>' +
                     '<button class="contact-del-btn" data-sender="' + esc(ref) + '" data-ref="' + esc(res.contact.Ref) + '" title="Видалити">&#x2715;</button>';
                 list.appendChild(row);
+                bindContactSetDefault(row);
                 bindContactDel(row);
                 // Update count
                 var countEl = document.querySelector('.contact-count-' + ref);
@@ -556,6 +575,57 @@ $csVer = filemtime('/var/www/papir/modules/shared/ui.css');
             .catch(function () { btn.disabled = false; err.textContent = 'Помилка мережі'; err.style.display = 'block'; });
         });
     });
+
+    // ── Set default contact ────────────────────────────────────────────
+    function renderContactList(list, sRef, newDefaultRef) {
+        var rows = list.querySelectorAll('.contact-row');
+        var html = '';
+        rows.forEach(function (row) {
+            var rRef    = row.dataset.ref;
+            var isDef   = (rRef === newDefaultRef);
+            var name    = row.querySelector('.contact-name');
+            var phone   = row.querySelector('.contact-phone');
+            var ttnBadge = row.querySelector('.contact-ttn-badge');
+            html += '<div class="contact-row ' + (isDef ? 'is-default' : '') + '" data-ref="' + esc(rRef) + '">' +
+                '<span class="contact-name">' + (name ? name.innerHTML : '') + '</span>' +
+                (phone ? '<span class="contact-phone">' + phone.innerHTML + '</span>' : '') +
+                (ttnBadge ? ttnBadge.outerHTML : '') +
+                (isDef
+                    ? '<span class="badge badge-green" style="font-size:10px;margin-left:auto">default</span>'
+                    : '<button class="contact-set-btn" data-sender="' + esc(sRef) + '" data-ref="' + esc(rRef) + '">Зробити default</button>'
+                ) +
+                '<button class="contact-del-btn" data-sender="' + esc(sRef) + '" data-ref="' + esc(rRef) + '" title="Видалити">&#x2715;</button>' +
+                '</div>';
+        });
+        list.innerHTML = html;
+        bindContactSetDefault(list);
+        bindContactDel(list);
+    }
+
+    function bindContactSetDefault(container) {
+        (container || document).querySelectorAll('.contact-set-btn').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var sRef = btn.dataset.sender;
+                var cRef = btn.dataset.ref;
+                btn.textContent = '…';
+                btn.disabled = true;
+
+                fetch('/novaposhta/api/set_default_contact', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'sender_ref=' + encodeURIComponent(sRef) + '&contact_ref=' + encodeURIComponent(cRef)
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (!res.ok) { btn.textContent = 'Помилка'; return; }
+                    var list = document.getElementById('contactList_' + sRef);
+                    if (!list) return;
+                    renderContactList(list, sRef, cRef);
+                });
+            });
+        });
+    }
+    bindContactSetDefault();
 
     function bindContactDel(container) {
         (container || document).querySelectorAll('.contact-del-btn').forEach(function (btn) {

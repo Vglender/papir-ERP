@@ -237,6 +237,7 @@ class Router
 		'/novaposhta/api/refresh_sender'        => '/modules/novaposhta/api/refresh_sender.php',
 		'/novaposhta/api/save_sender_settings'  => '/modules/novaposhta/api/save_sender_settings.php',
 		'/novaposhta/api/set_default_address' => '/modules/novaposhta/api/set_default_address.php',
+		'/novaposhta/api/set_default_contact' => '/modules/novaposhta/api/set_default_contact.php',
 		'/novaposhta/api/set_default_sender'    => '/modules/novaposhta/api/set_default_sender.php',
 		'/novaposhta/api/save_contact_person'   => '/modules/novaposhta/api/save_contact_person.php',
 		'/novaposhta/api/delete_contact_person' => '/modules/novaposhta/api/delete_contact_person.php',

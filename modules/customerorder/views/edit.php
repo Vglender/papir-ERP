@@ -120,7 +120,8 @@ $title     = 'Замовлення' . ($isNew ? '' : ' #' . (int)$order['id']);
 $activeNav = 'sales';
 $subNav    = 'orders';
 $extraCss  = '<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">';
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/modules/shared/ttn-detail-modal.css?v=' . filemtime('/var/www/papir/modules/shared/ttn-detail-modal.css') . '">';
 require_once __DIR__ . '/../../shared/layout.php';
 ?>
 <style>
@@ -1083,8 +1084,10 @@ require_once __DIR__ . '/../../shared/layout.php';
                 <button type="button" class="btn" id="btnOpenChat"
                         onclick="ChatModal.open(<?= (int)$currentCpId ?>)"
                         title="Відкрити чат з контрагентом">💬 Чат</button>
-                <?php else: ?>
-                <button type="button" class="btn" disabled title="Спочатку оберіть контрагента">📤 Надіслати ▾</button>
+                <?php endif; ?>
+                <?php if (!empty($order['id'])): ?>
+                <button type="button" class="btn" id="btnShareOrder"
+                        title="Надіслати замовлення співробітнику">📨 Співробітнику</button>
                 <?php endif; ?>
                 <label class="check-label">
                     <input type="checkbox" id="applicable" name="applicable" value="1" <?= checked_attr(field_value($order, 'applicable', 1)) ?>>
@@ -2446,12 +2449,16 @@ var RelDocsGraph = (function() {
                 });
             });
 
-            if (node.url) {
+            (function(n) {
                 g.addEventListener('click', function(e) {
                     e.stopPropagation();
-                    window.location.href = node.url;
+                    if (n.type === 'ttn_np' && n.entity_id && typeof TtnDetailModal !== 'undefined') {
+                        TtnDetailModal.open(n.entity_id);
+                    } else if (n.url) {
+                        window.location.href = n.url;
+                    }
                 });
-            }
+            }(node));
 
             // ── unlink button (×) for non-current, non-overflow nodes ─────────
             if (!isCurrent && !isOverflow) {
@@ -3225,6 +3232,8 @@ makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', 
 <?php require_once __DIR__ . '/../../shared/print-modal.php'; ?>
 <script src="/modules/shared/history-modal.js?v=<?= filemtime(__DIR__ . '/../../shared/history-modal.js') ?>"></script>
 <script src="/modules/shared/chat-modal.js?v=<?= filemtime(__DIR__ . '/../../shared/chat-modal.js') ?>"></script>
+<script src="/modules/shared/ttn-detail-modal.js?v=<?= filemtime(__DIR__ . '/../../shared/ttn-detail-modal.js') ?>"></script>
+<script src="/modules/shared/share-order.js?v=<?= filemtime(__DIR__ . '/../../shared/share-order.js') ?>"></script>
 <?php if (!empty($currentCpId) && !$isNew): ?>
 
 <!-- ══ COMPOSE MODAL ══════════════════════════════════════════════════ -->
@@ -3649,6 +3658,16 @@ var ShipmentsPanel = (function() {
         if (ttnBtn) ttnBtn.addEventListener('click', function() { NpTtnModal.open(window._orderId); });
         var ndBtn  = document.getElementById('newDeliveryBtn');
         if (ndBtn)  ndBtn.addEventListener('click', function() { DeliveryModal.open(null); });
+        var shareBtn = document.getElementById('btnShareOrder');
+        if (shareBtn) shareBtn.addEventListener('click', function() {
+            ShareOrder.open({
+                orderId: <?= (int)$order['id'] ?>,
+                orderNumber: '<?= h(field_value($order, 'number', field_value($order, 'id'))) ?>',
+                orderDate: '<?= h(field_value($order, 'moment', '')) ?>',
+                orderSum: '<?= h(field_value($order, 'sum', '0.00')) ?>',
+                counterpartyId: <?= (int)$currentCpId ?>
+            });
+        });
     });
 
     return { load: load, reload: reload };
@@ -3769,14 +3788,7 @@ var NpTtnModal = (function() {
             return '<option value="' + esc(s.Ref) + '"' + sel + '>' + esc(s.Description) + '</option>';
         }).join('');
 
-        var stOpts = [
-            ['WarehouseWarehouse', 'Відділення → Відділення'],
-            ['WarehouseDoors',     'Відділення → Адреса'],
-            ['DoorsWarehouse',     'Адреса → Відділення'],
-            ['DoorsDoor',          'Адреса → Адреса'],
-        ].map(function(o) {
-            return '<option value="' + o[0] + '">' + o[1] + '</option>';
-        }).join('');
+        // ServiceType auto-detected from sender address + recipient delivery
 
         var html = '';
 
@@ -3798,10 +3810,10 @@ var NpTtnModal = (function() {
 
         html += '<label class="np-field-label">Місто одержувача</label>';
         html += '<div class="np-ac-wrap"><input type="text" id="npCityInput" class="np-inp" value="' + esc(recipient.city_hint||'') + '" placeholder="Введіть місто…" autocomplete="off">';
-        html += '<input type="hidden" id="npCityRef" value=""><div class="np-ac-dd" id="npCityDd"></div></div>';
+        html += '<input type="hidden" id="npCityRef" value="' + esc(recipient.city_ref||'') + '"><div class="np-ac-dd" id="npCityDd"></div></div>';
 
         html += '<div id="npWhSection"><label class="np-field-label">Відділення / Поштомат</label>';
-        html += '<div class="np-ac-wrap"><input type="text" id="npWhInput" class="np-inp" value="' + esc(recipient.address_hint||'') + '" placeholder="Відділення або поштомат…" autocomplete="off">';
+        html += '<div class="np-ac-wrap"><input type="text" id="npWhInput" class="np-inp" value="' + esc(recipient.np_warehouse_desc||recipient.address_hint||'') + '" placeholder="Відділення або поштомат…" autocomplete="off">';
         html += '<input type="hidden" id="npWhRef" value="' + esc(recipient.np_warehouse_ref||'') + '"><div class="np-ac-dd" id="npWhDd"></div></div></div>';
 
         html += '<div id="npAddrSection" style="display:none"><label class="np-field-label">Вулиця</label>';
@@ -3812,13 +3824,17 @@ var NpTtnModal = (function() {
 
         // Cargo
         html += '<div class="np-form-section">Вантаж</div>';
-        html += '<label class="np-field-label" style="margin-top:0">Тип доставки</label>';
-        html += '<select id="npServiceType" class="np-inp" style="height:auto;padding:4px 7px;">' + stOpts + '</select>';
+        html += '<label class="np-field-label" style="margin-top:0">Доставка одержувачу</label>';
+        html += '<select id="npRecipientDelivery" class="np-inp" style="height:auto;padding:4px 7px;"><option value="Warehouse">На відділення / поштомат</option><option value="Doors">На адресу</option></select>';
+        html += '<input type="hidden" id="npServiceType" value="WarehouseWarehouse">';
+        html += '<div id="npServiceTypeInfo" style="font-size:11px;color:#9ca3af;margin-top:4px"></div>';
         html += '<div class="np-2col" style="margin-top:8px">';
         html += '<div><label class="np-field-label" style="margin-top:0">Вага (кг)</label><input type="number" id="npWeight" class="np-inp" value="0.5" step="0.1" min="0.1"></div>';
         html += '<div><label class="np-field-label" style="margin-top:0">Місць</label><input type="number" id="npSeats" class="np-inp" value="1" step="1" min="1"></div>';
         html += '</div>';
-        html += '<label class="np-field-label">Опис</label><input type="text" id="npDesc" class="np-inp" value="Товар">';
+        html += '<div id="npSeatsDetail" style="display:none;margin-top:8px"><label class="np-field-label" style="margin-top:0">Розміри по місцях</label><div id="npSeatsRows"></div></div>';
+        html += '<label class="np-field-label">Опис вантажу</label><input type="text" id="npDesc" class="np-inp" value="' + esc(data.description_hint || 'Канцтовари') + '" maxlength="36">';
+        html += '<label class="np-field-label">Додаткова інформація</label><input type="text" id="npAddInfo" class="np-inp" value="' + esc(data.additional_info_hint || '') + '">';
         html += '<label class="np-field-label">Оголошена вартість (грн)</label><input type="number" id="npCost" class="np-inp" value="1" min="1">';
 
         // Payment
@@ -3850,18 +3866,25 @@ var NpTtnModal = (function() {
     function bindFormEvents(data) {
         document.getElementById('npTtnCancelBtn').addEventListener('click', close);
 
-        // Service type toggle
-        var stSel = document.getElementById('npServiceType');
-        function toggleDelivery() {
-            var v = stSel.value;
-            var isAddr = (v === 'WarehouseDoors' || v === 'DoorsDoor');
-            document.getElementById('npWhSection').style.display   = isAddr ? 'none' : '';
-            document.getElementById('npAddrSection').style.display = isAddr ? '' : 'none';
+        // ── Service type auto-detection
+        var _senderAddrType = 'street';
+        var rcpDeliverySel = document.getElementById('npRecipientDelivery');
+        var stHidden = document.getElementById('npServiceType');
+        var stInfo = document.getElementById('npServiceTypeInfo');
+        function updateServiceType() {
+            var sP = (_senderAddrType === 'warehouse') ? 'Warehouse' : 'Doors';
+            var rP = rcpDeliverySel.value;
+            stHidden.value = sP + rP;
+            var lb = {WarehouseWarehouse:'Відділення → Відділення',WarehouseDoors:'Відділення → Адреса',DoorsWarehouse:'Адреса → Відділення',DoorsDoors:'Адреса → Адреса'};
+            stInfo.textContent = lb[stHidden.value] || stHidden.value;
+            var isRA = (rP === 'Doors');
+            document.getElementById('npWhSection').style.display = isRA ? 'none' : '';
+            document.getElementById('npAddrSection').style.display = isRA ? '' : 'none';
         }
-        stSel.addEventListener('change', toggleDelivery);
-        toggleDelivery();
+        rcpDeliverySel.addEventListener('change', updateServiceType);
+        updateServiceType();
 
-        // Sender addresses
+        // ── Sender addresses
         function loadSenderAddresses(senderRef) {
             var addrSel = document.getElementById('npSenderAddr');
             if (!addrSel) return;
@@ -3873,17 +3896,42 @@ var NpTtnModal = (function() {
                         addrSel.innerHTML = '<option value="">Адреси не знайдено</option>'; return;
                     }
                     addrSel.innerHTML = res.addresses.map(function(a) {
-                        var s = a.is_default ? ' selected' : '';
-                        return '<option value="' + esc(a.Ref) + '"' + s
-                            + ' data-city="' + esc(a.CityRef||'') + '"'
-                            + ' data-city-desc="' + esc(a.CityDescription||'') + '">'
-                            + esc(a.Description||a.Ref) + '</option>';
+                        var s = (a.is_default === 1 || a.is_default === '1') ? ' selected' : '';
+                        return '<option value="' + esc(a.Ref) + '"' + s + ' data-city="' + esc(a.CityRef||'') + '" data-city-desc="' + esc(a.CityDescription||'') + '" data-type="' + esc(a.address_type||'street') + '">' + esc(a.Description||a.Ref) + '</option>';
                     }).join('');
+                    onSenderAddrChange();
                 });
         }
+        function onSenderAddrChange() {
+            var addrSel = document.getElementById('npSenderAddr');
+            if (!addrSel || addrSel.selectedIndex < 0) return;
+            var opt = addrSel.options[addrSel.selectedIndex];
+            _senderAddrType = (opt && opt.dataset.type) ? opt.dataset.type : 'street';
+            updateServiceType();
+        }
+        document.getElementById('npSenderAddr').addEventListener('change', onSenderAddrChange);
         var senderSel = document.getElementById('npSenderRef');
         if (senderSel.value) loadSenderAddresses(senderSel.value);
         senderSel.addEventListener('change', function(){ loadSenderAddresses(this.value); });
+
+        // ── Per-seat dimensions
+        var seatsInput = document.getElementById('npSeats'), seatsDetail = document.getElementById('npSeatsDetail'), seatsRows = document.getElementById('npSeatsRows'), weightInput = document.getElementById('npWeight');
+        function renderSeatsRows() {
+            var n = parseInt(seatsInput.value) || 1;
+            if (n <= 1) { seatsDetail.style.display = 'none'; return; }
+            seatsDetail.style.display = '';
+            var perW = Math.round((parseFloat(weightInput.value) || 0.5) / n * 100) / 100;
+            var html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:4px;font-size:11px;color:#9ca3af;margin-bottom:4px"><span>Вага</span><span>Довж</span><span>Шир</span><span>Вис</span><span>Ручна</span></div>';
+            for (var i = 0; i < n; i++) {
+                var ex = seatsRows.querySelector('.seat-row[data-idx="' + i + '"]');
+                var w=ex?ex.querySelector('.seat-w').value:perW, l=ex?ex.querySelector('.seat-l').value:'', wi=ex?ex.querySelector('.seat-wi').value:'', h=ex?ex.querySelector('.seat-h').value:'', m=ex?ex.querySelector('.seat-m').checked:false;
+                html += '<div class="seat-row" data-idx="'+i+'" style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:4px;margin-bottom:3px;align-items:center"><input type="number" class="np-inp seat-w" value="'+esc(w)+'" step="0.1" min="0.1" placeholder="кг"><input type="number" class="np-inp seat-l" value="'+esc(l)+'" step="1" min="0" placeholder="см"><input type="number" class="np-inp seat-wi" value="'+esc(wi)+'" step="1" min="0" placeholder="см"><input type="number" class="np-inp seat-h" value="'+esc(h)+'" step="1" min="0" placeholder="см"><input type="checkbox" class="seat-m" title="Ручна обробка"'+(m?' checked':'') +' style="width:16px;height:16px;cursor:pointer"></div>';
+            }
+            seatsRows.innerHTML = html;
+        }
+        seatsInput.addEventListener('change', renderSeatsRows);
+        seatsInput.addEventListener('input', renderSeatsRows);
+        renderSeatsRows();
 
         // Autocomplete helper
         function makeAc(inpId, ddId, hiddenId, fetchFn, renderFn) {
@@ -3977,13 +4025,17 @@ var NpTtnModal = (function() {
             var serviceType = (document.getElementById('npServiceType') || {}).value || 'WarehouseWarehouse';
             var whRef       = (document.getElementById('npWhRef')       || {}).value || '';
 
-            if (!senderRef)   { errDiv.textContent = 'Оберіть відправника';         errDiv.style.display = ''; return; }
-            if (!senderAddr)  { errDiv.textContent = 'Оберіть адресу відправки';    errDiv.style.display = ''; return; }
-            if (!cityRcpRef)  { errDiv.textContent = 'Оберіть місто одержувача';    errDiv.style.display = ''; return; }
-            if (!phone)       { errDiv.textContent = 'Введіть телефон одержувача';  errDiv.style.display = ''; return; }
-            if (weight <= 0)  { errDiv.textContent = 'Вага повинна бути > 0';       errDiv.style.display = ''; return; }
-            if ((serviceType === 'WarehouseWarehouse' || serviceType === 'DoorsWarehouse') && !whRef) {
-                errDiv.textContent = 'Оберіть відділення одержувача'; errDiv.style.display = ''; return;
+            if (!senderRef)   { errDiv.textContent = 'Оберіть відправника';         errDiv.style.display = 'block'; return; }
+            if (!cityRcpRef)  { errDiv.textContent = 'Оберіть місто одержувача';    errDiv.style.display = 'block'; return; }
+            if (!phone)       { errDiv.textContent = 'Введіть телефон одержувача';  errDiv.style.display = 'block'; return; }
+            if (weight <= 0)  { errDiv.textContent = 'Вага повинна бути > 0';       errDiv.style.display = 'block'; return; }
+            var isRcpWh = (serviceType === 'WarehouseWarehouse' || serviceType === 'DoorsWarehouse');
+            if (isRcpWh && !whRef) { errDiv.textContent = 'Оберіть відділення одержувача'; errDiv.style.display = 'block'; return; }
+            if (!isRcpWh) {
+                var stRef = ((document.getElementById('npStreetRef')||{}).value||'');
+                var bld = ((document.getElementById('npBuilding')||{}).value||'').trim();
+                if (!stRef) { errDiv.textContent = 'Оберіть вулицю одержувача'; errDiv.style.display = 'block'; return; }
+                if (!bld) { errDiv.textContent = 'Введіть номер будинку'; errDiv.style.display = 'block'; return; }
             }
 
             var addrOpt = addrSel ? addrSel.options[addrSel.selectedIndex] : null;
@@ -3993,6 +4045,10 @@ var NpTtnModal = (function() {
             var dateVal   = (document.getElementById('npDate') || {}).value || '';
             var dateParts = dateVal.split('-');
             var dateNp    = dateParts.length === 3 ? dateParts[2]+'.'+dateParts[1]+'.'+dateParts[0] : '';
+
+            var seatsN = parseInt(((document.getElementById('npSeats')||{}).value||'1'))||1;
+            var optionsSeat = [];
+            if (seatsN > 1) { document.querySelectorAll('#npSeatsRows .seat-row').forEach(function(row) { optionsSeat.push({weight:parseFloat(row.querySelector('.seat-w').value)||0,length:parseInt(row.querySelector('.seat-l').value)||0,width:parseInt(row.querySelector('.seat-wi').value)||0,height:parseInt(row.querySelector('.seat-h').value)||0,manual:row.querySelector('.seat-m').checked?1:0}); }); }
 
             btn.disabled = true; btn.textContent = 'Створення…';
 
@@ -4017,15 +4073,18 @@ var NpTtnModal = (function() {
                 'recipient_building='      + encodeURIComponent(((document.getElementById('npBuilding')||{}).value||'').trim()),
                 'recipient_flat='          + encodeURIComponent(((document.getElementById('npFlat')||{}).value||'').trim()),
                 'weight='                  + weight,
-                'seats_amount='            + (parseInt(((document.getElementById('npSeats')||{}).value||'1'))||1),
+                'seats_amount='            + seatsN,
                 'cargo_type=Cargo',
-                'description='             + encodeURIComponent(((document.getElementById('npDesc')||{}).value||'Товар').trim()),
+                'description='             + encodeURIComponent(((document.getElementById('npDesc')||{}).value||'Канцтовари').trim()),
+                'additional_info='         + encodeURIComponent(((document.getElementById('npAddInfo')||{}).value||'').trim()),
                 'cost='                    + (parseInt(((document.getElementById('npCost')||{}).value||'1'))||1),
                 'payment_method='          + encodeURIComponent(((document.getElementById('npPayMethod')||{}).value||'Cash')),
                 'payer_type='              + encodeURIComponent(((document.getElementById('npPayerType')||{}).value||'Recipient')),
                 'backward_delivery_money=' + (parseFloat(((document.getElementById('npBackMoney')||{}).value||'0'))||0),
                 'date='                    + encodeURIComponent(dateNp),
-            ].join('&');
+            ];
+            if (optionsSeat.length > 0) body.push('options_seat=' + encodeURIComponent(JSON.stringify(optionsSeat)));
+            body = body.join('&');
 
             fetch('/novaposhta/api/create_ttn', {
                 method: 'POST',
@@ -4034,16 +4093,19 @@ var NpTtnModal = (function() {
             }).then(function(r){ return r.json(); }).then(function(res) {
                 btn.disabled = false; btn.textContent = 'Створити ТТН';
                 if (!res.ok) {
-                    errDiv.textContent = res.error || 'Невідома помилка'; errDiv.style.display = ''; return;
+                    errDiv.textContent = res.error || 'Невідома помилка'; errDiv.style.display = 'block'; return;
                 }
                 close();
                 ShipmentsPanel.reload();
                 _relDocsLoaded = false;
                 RelDocsGraph.load(_orderId);
                 showToast('ТТН ' + (res.int_doc_number || '') + ' створено ✓');
+                if (res.ttn_id && typeof TtnDetailModal !== 'undefined') {
+                    TtnDetailModal.open(res.ttn_id);
+                }
             }).catch(function() {
                 btn.disabled = false; btn.textContent = 'Створити ТТН';
-                errDiv.textContent = 'Помилка з\'єднання'; errDiv.style.display = '';
+                errDiv.textContent = 'Помилка з\'єднання'; errDiv.style.display = 'block';
             });
         });
     }
@@ -4057,4 +4119,23 @@ var NpTtnModal = (function() {
 }());
 </script>
 <?php endif; ?>
+
+<script>
+// ── TTN Detail Modal — init on order edit page ──────────────────────────
+(function() {
+    if (typeof TtnDetailModal === 'undefined') return;
+    var orderId = <?php echo (int)(isset($order['id']) ? $order['id'] : 0); ?>;
+    TtnDetailModal.init();
+    function reloadGraph() {
+        _relDocsLoaded = false;
+        if (typeof RelDocsGraph !== 'undefined' && orderId) {
+            RelDocsGraph.load(orderId);
+        }
+        if (typeof ShipmentsPanel !== 'undefined') ShipmentsPanel.reload();
+    }
+    TtnDetailModal.onDelete = reloadGraph;
+    TtnDetailModal.onSave   = reloadGraph;
+}());
+</script>
+
 <?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

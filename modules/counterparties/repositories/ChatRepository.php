@@ -51,7 +51,8 @@ class ChatRepository
         // Update counterparty activity: last_activity_at + unread_count for inbound messages
         if ($cid > 0) {
             $direction = isset($data['direction']) ? $data['direction'] : 'out';
-            $unreadSql = ($direction === 'in') ? ', unread_count = unread_count + 1' : '';
+            $channel = isset($data['channel']) ? $data['channel'] : '';
+            $unreadSql = ($direction === 'in' && $channel !== 'note') ? ', unread_count = unread_count + 1' : '';
             Database::query('Papir',
                 "UPDATE counterparty SET last_activity_at = NOW(){$unreadSql} WHERE id = {$cid}");
         }
@@ -65,6 +66,7 @@ class ChatRepository
         $r   = Database::fetchRow('Papir',
             "SELECT COUNT(*) AS cnt FROM cp_messages
              WHERE counterparty_id = {$cid} AND direction = 'in' AND read_at IS NULL
+               AND channel != 'note'
                AND (scheduled_at IS NULL OR scheduled_at <= NOW())");
         return ($r['ok'] && $r['row']) ? (int)$r['row']['cnt'] : 0;
     }
@@ -86,6 +88,7 @@ class ChatRepository
                 SELECT COUNT(*) FROM cp_messages
                 WHERE counterparty_id = {$cid}
                   AND direction = 'in' AND read_at IS NULL
+                  AND channel != 'note'
                   AND (scheduled_at IS NULL OR scheduled_at <= NOW())
              ) WHERE id = {$cid}");
     }

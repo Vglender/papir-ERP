@@ -332,6 +332,13 @@ function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)
             if ($pr['ok'] && !empty($pr['row'])) {
                 $productId = (int)$pr['row']['product_id'];
                 if ($sku === '') $sku = (string)$pr['row']['product_article'];
+            } elseif ($sku !== '') {
+                // Fallback: lookup by article (SKU) when id_ms not found in product_papir
+                $pr2 = Database::fetchRow('Papir',
+                    "SELECT product_id FROM product_papir WHERE product_article = '" . Database::escape('Papir', $sku) . "' LIMIT 1");
+                if ($pr2['ok'] && !empty($pr2['row'])) {
+                    $productId = (int)$pr2['row']['product_id'];
+                }
             }
         }
 

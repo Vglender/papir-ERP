@@ -1194,6 +1194,7 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
 
 <script src="/modules/shared/chip-search.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chip-search.js'); ?>"></script>
 <script src="/modules/shared/chat-hub.js?v=<?php echo filemtime(__DIR__ . '/../../shared/chat-hub.js'); ?>"></script>
+<script src="/modules/shared/share-order.js?v=<?php echo filemtime(__DIR__ . '/../../shared/share-order.js'); ?>"></script>
 <script>
 var WS = {
 
@@ -1366,8 +1367,8 @@ var WS = {
       if (unread > 0) { chatBadge.textContent = unread > 99 ? '99+' : unread; chatBadge.classList.add('visible'); }
       else { chatBadge.textContent = ''; chatBadge.classList.remove('visible'); }
     }
-    // Orders badge: leads + CPs with 'new' order status
-    var newCount = this.inboxData.leads.length;
+    // Orders badge: CPs with 'new' order status (leads excluded — they only appear in chat)
+    var newCount = 0;
     this.inboxData.counterparties.forEach(function(c) {
       if (c.last_order_status === 'new') newCount++;
     });
@@ -1437,24 +1438,20 @@ var WS = {
     self.restoreSelection(inboxEl);
   },
 
-  // ── Orders mode: leads + CPs with real orders, tiered by status ────────────
+  // ── Orders mode: CPs with real orders, tiered by status (leads excluded) ───
   renderInboxOrders: function() {
     var self  = this;
     var query = document.getElementById('wsSearch').value.trim().toLowerCase();
-    var leads = this.inboxData.leads;
     var cps   = this.inboxData.counterparties;
-
-    // Leads фільтруємо клієнтськи (їх мало); CPs вже відфільтровані сервером
-    if (query) {
-      leads = leads.filter(function(l) {
-        return (l.display_name && l.display_name.toLowerCase().indexOf(query) !== -1)
-            || (l.phone && l.phone.indexOf(query) !== -1)
-            || (l.email && l.email.toLowerCase().indexOf(query) !== -1);
-      });
-    }
 
     // Only CPs with real orders (exclude draft and null)
     var orderCps = cps.filter(function(c) {
+      if (query) {
+        var match = (c.name && c.name.toLowerCase().indexOf(query) !== -1)
+                 || (c.phone && c.phone.indexOf(query) !== -1)
+                 || (c.email && c.email.toLowerCase().indexOf(query) !== -1);
+        if (!match) return false;
+      }
       return c.last_order_status && c.last_order_status !== 'draft';
     });
 
@@ -1478,10 +1475,6 @@ var WS = {
 
     var html = '';
 
-    if (leads.length > 0) {
-      html += '<div class="ws-tier urgent"><span class="ws-tier-dot"></span>Нові звернення (' + leads.length + ')</div>';
-      leads.forEach(function(l) { html += self.renderLeadCard(l); });
-    }
     if (newCps.length > 0) {
       html += '<div class="ws-tier attention"><span class="ws-tier-dot"></span>Нові замовлення (' + newCps.length + ')</div>';
       newCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
@@ -1507,7 +1500,7 @@ var WS = {
       doneCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
     }
 
-    if (!leads.length && !orderCps.length) {
+    if (!orderCps.length) {
       html = '<div class="ws-no-items">Замовлень не знайдено</div>';
     }
 
@@ -2675,7 +2668,7 @@ var WS = {
       ['WarehouseWarehouse', 'Відділення → Відділення'],
       ['WarehouseDoors',     'Відділення → Адреса'],
       ['DoorsWarehouse',     'Адреса → Відділення'],
-      ['DoorsDoor',          'Адреса → Адреса'],
+      ['DoorsDoors',          'Адреса → Адреса'],
     ];
     var stHtml = stOpts.map(function(o){
       var sel = (o[0] === 'WarehouseWarehouse') ? ' selected' : '';
@@ -2805,7 +2798,7 @@ var WS = {
     var stSel = document.getElementById('npServiceType');
     function toggleDeliverySection() {
       var st = stSel.value;
-      var isAddr = (st === 'WarehouseDoors' || st === 'DoorsDoor');
+      var isAddr = (st === 'WarehouseDoors' || st === 'DoorsDoors');
       document.getElementById('npWhSection').style.display    = isAddr ? 'none' : '';
       document.getElementById('npAddrSection').style.display  = isAddr ? ''     : 'none';
     }
@@ -3173,6 +3166,11 @@ var WS = {
       + self.shipStatusBadge(order.shipment_status)
       + '<span class="ws-of-head-sep"></span>'
       + '<div class="ws-of-head-btns">'
+      + '<a href="/customerorder/edit?id=' + order.id + '" target="_blank" class="ws-of-head-btn ws-of-icon-btn" title="Відкрити повну форму замовлення">'
+      +   '<svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">'
+      +   '<path d="M14 8.5V13a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1h4.5"/>'
+      +   '<path d="M10 2h4v4"/><path d="M7 9L14 2"/>'
+      +   '</svg></a>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOaSendBtn" title="Надіслати клієнту / команди">' + svgSend + '</button>'
       + '<button type="button" class="ws-of-head-btn ws-of-icon-btn" id="wsOaPrintBtn" onclick="PrintModal.open(\'order\',' + order.id + ',0)" title="Друкувати документ">' + svgPrint2 + '</button>'
       + (cpPhone ? '<a href="tel:' + self.esc(cpPhone) + '" class="ws-of-head-btn ws-of-icon-btn" title="Подзвонити ' + self.esc(cpPhone) + '">' + svgPhone + '</a>' : '')
@@ -5455,6 +5453,13 @@ var WS = {
         + '<span class="ws-cmd-shortcut">' + cmd.shortcut + '</span>'
         + '</div>';
     });
+    html += '<div style="border-top:1px solid #f3f4f6;margin:4px 0"></div>'
+      + '<div class="ws-cmd-menu-head">👤 Команда</div>'
+      + '<div class="ws-cmd-item" data-cmd="share_employee">'
+      + '<span class="ws-cmd-icon">📨</span>'
+      + '<span class="ws-cmd-label">Надіслати співробітнику</span>'
+      + '<span class="ws-cmd-shortcut"></span>'
+      + '</div>';
     html += '</div>';
 
     var wrap = document.createElement('div');
@@ -5473,6 +5478,17 @@ var WS = {
       item.addEventListener('click', function() {
         menu.remove();
         var cmd = item.dataset.cmd;
+
+        if (cmd === 'share_employee') {
+          ShareOrder.open({
+            orderId:        order.id,
+            orderNumber:    order.number || String(order.id),
+            orderDate:      order.moment ? order.moment.substr(0, 10) : '',
+            orderSum:       order.sum_total || '0',
+            counterpartyId: self.itemId || 0
+          });
+          return;
+        }
 
         // Switch to chat tab first
         var chatTab = document.querySelector('.ws-hub-tab[data-tab="chat"]');

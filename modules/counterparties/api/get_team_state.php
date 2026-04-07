@@ -46,12 +46,12 @@ if ($cpId > 0) {
     $cpUnread = ($rCp['ok'] && $rCp['row']) ? (int)$rCp['row']['cnt'] : 0;
 }
 
-// Unread pure DMs (no cp context — cp-context DMs are handled in workspace team tab)
+// Unread DMs (including those with cp context — so shared orders are counted)
 $rDm = Database::fetchAll('Papir',
     "SELECT tm.from_employee_id, COUNT(*) AS cnt
      FROM team_messages tm
      LEFT JOIN team_message_reads tmr ON tmr.message_id = tm.id AND tmr.employee_id = {$myEmpId}
-     WHERE tm.to_employee_id = {$myEmpId} AND tm.counterparty_id IS NULL AND tmr.message_id IS NULL
+     WHERE tm.to_employee_id = {$myEmpId} AND tmr.message_id IS NULL
      GROUP BY tm.from_employee_id");
 $dmUnread = array();
 foreach ($rDm['ok'] ? $rDm['rows'] : array() as $row) {

@@ -67,6 +67,17 @@ $r = Database::fetchAll('Papir', "SELECT product_id, id_ms FROM product_papir WH
 if ($r['ok']) foreach ($r['rows'] as $row) $productMap[$row['id_ms']] = (int)$row['product_id'];
 out('Товарів з id_ms: ' . count($productMap));
 
+// ── Fallback map: ms.product.id_ms → product_article → product_papir.product_id
+out('Завантаження fallback map (артикул)...');
+$articleToProductId = array(); // product_article → product_id
+$r = Database::fetchAll('Papir', "SELECT product_id, product_article FROM product_papir WHERE product_article IS NOT NULL AND product_article != ''");
+if ($r['ok']) foreach ($r['rows'] as $row) $articleToProductId[$row['product_article']] = (int)$row['product_id'];
+
+$msIdToArticle = array(); // ms id_ms → product_article
+$r = Database::fetchAll('ms', "SELECT id_ms, product_article FROM product WHERE id_ms IS NOT NULL AND product_article IS NOT NULL AND product_article != ''");
+if ($r['ok']) foreach ($r['rows'] as $row) $msIdToArticle[$row['id_ms']] = $row['product_article'];
+out('Fallback: MS товарів з артикулом: ' . count($msIdToArticle));
+
 // ── Кількість наших позицій по замовленням ────────────────────────────────────
 
 out('Завантаження кількості існуючих позицій...');
@@ -180,6 +191,13 @@ while ($offset < $totalToSync) {
             $productMsId = trim((string)$pos['product_id']);
             $productId   = ($productMsId !== '' && isset($productMap[$productMsId]))
                            ? $productMap[$productMsId] : null;
+            // Fallback: resolve via ms.product article → product_papir
+            if ($productId === null && $productMsId !== '' && isset($msIdToArticle[$productMsId])) {
+                $art = $msIdToArticle[$productMsId];
+                if (isset($articleToProductId[$art])) {
+                    $productId = $articleToProductId[$art];
+                }
+            }
             $productIdSql  = $productId ? $productId : 'NULL';
             $productMsIdSql = nullOrStr($productMsId, 36);
 

@@ -38,6 +38,7 @@ $params = array(
     'seats_amount'             => isset($_POST['seats_amount'])             ? (int)$_POST['seats_amount']             : 1,
     'cargo_type'               => isset($_POST['cargo_type'])               ? trim($_POST['cargo_type'])               : 'Cargo',
     'description'              => isset($_POST['description'])              ? trim($_POST['description'])              : 'Товар',
+    'additional_info'          => isset($_POST['additional_info'])          ? trim($_POST['additional_info'])          : '',
     'cost'                     => isset($_POST['cost'])                     ? (int)$_POST['cost']                     : 1,
     // Payment
     'payment_method'           => isset($_POST['payment_method'])           ? trim($_POST['payment_method'])           : 'Cash',

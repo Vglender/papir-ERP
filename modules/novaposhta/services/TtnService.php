@@ -16,7 +16,7 @@ class TtnService
      *   recipient_first_name, recipient_last_name, recipient_phone,
      *   weight, seats_amount, description, cost (declared value),
      *   payment_method (Cash|NonCash), payer_type (Sender|Recipient|ThirdPerson),
-     *   service_type (WarehouseWarehouse|WarehouseDoors|DoorsWarehouse|DoorsDoor),
+     *   service_type (WarehouseWarehouse|WarehouseDoors|DoorsWarehouse|DoorsDoors),
      *   backward_delivery_money (0 = no COD),
      *   customerorder_id (optional), demand_id (optional)
      */
@@ -34,6 +34,10 @@ class TtnService
 
         $np = new NovaPoshta($sender['api']);
 
+        // Auto-convert Latin names to Cyrillic
+        foreach (array('recipient_first_name', 'recipient_last_name', 'recipient_middle_name') as $_nk) {
+            if (!empty($params[$_nk])) $params[$_nk] = self::latinToCyrillic($params[$_nk]);
+        }
         // 1. Ensure recipient NP counterparty exists
         $recipientResult = self::ensureRecipient($np, $params, $senderRef);
         if (!$recipientResult['ok']) {
@@ -53,14 +57,16 @@ class TtnService
         $serviceType = isset($params['service_type']) ? $params['service_type'] : 'WarehouseWarehouse';
         $senderAddrRef = isset($params['sender_address_ref']) ? $params['sender_address_ref'] : '';
 
-        // Resolve ContactSender — must be contact person ref, not org counterparty ref
+        // Resolve ContactSender + SendersPhone from np_sender_contact_persons
         $senderPhone = self::normalizePhone(isset($params['sender_phone']) ? $params['sender_phone'] : '');
         $contactSenderRef = null;
+
+        // 1. If explicit sender_phone provided — find matching contact
         if ($senderPhone) {
             $eSPhone = \Database::escape('Papir', $senderPhone);
             $eSRef   = \Database::escape('Papir', $senderRef);
             $rCs = \Database::fetchRow('Papir',
-                "SELECT Ref FROM np_sender_contact_persons
+                "SELECT Ref, phone FROM np_sender_contact_persons
                  WHERE sender_ref = '{$eSRef}'
                    AND REGEXP_REPLACE(phone,'[^0-9]','') LIKE '%{$eSPhone}'
                  LIMIT 1");
@@ -68,16 +74,33 @@ class TtnService
                 $contactSenderRef = $rCs['row']['Ref'];
             }
         }
+        // 2. Use default contact person from sender settings
         if (!$contactSenderRef) {
-            $eSRef = \Database::escape('Papir', $senderRef);
-            $rCs = \Database::fetchRow('Papir',
-                "SELECT Ref FROM np_sender_contact_persons WHERE sender_ref = '{$eSRef}' LIMIT 1");
-            if ($rCs['ok'] && !empty($rCs['row']['Ref'])) {
-                $contactSenderRef = $rCs['row']['Ref'];
+            $defContact = SenderRepository::getDefaultContact($senderRef);
+            if ($defContact) {
+                $contactSenderRef = $defContact['Ref'];
+                if (!$senderPhone && !empty($defContact['phone'])) {
+                    $senderPhone = self::normalizePhone($defContact['phone']);
+                }
             }
         }
+        // 3. Fallback: sender's own Ref (org-level)
         if (!$contactSenderRef) {
-            $contactSenderRef = $sender['Ref'];
+            $contactSenderRef = $sender['contact_ref'] ?: $sender['Ref'];
+        }
+
+        // Auto-resolve sender address if not provided
+        if (!$senderAddrRef) {
+            $defAddr = SenderRepository::getDefaultAddress($senderRef);
+            if ($defAddr) {
+                $senderAddrRef = $defAddr['Ref'];
+                if (empty($params['city_sender_ref']) && !empty($defAddr['CityRef'])) {
+                    $params['city_sender_ref'] = $defAddr['CityRef'];
+                }
+                if (empty($params['city_sender_desc']) && !empty($defAddr['CityDescription'])) {
+                    $params['city_sender_desc'] = $defAddr['CityDescription'];
+                }
+            }
         }
 
         $docProps = array(
@@ -98,6 +121,7 @@ class TtnService
             'Weight'          => isset($params['weight'])         ? (float)$params['weight']  : 0.5,
             'SeatsAmount'     => isset($params['seats_amount'])   ? (int)$params['seats_amount'] : 1,
             'Description'     => isset($params['description'])    ? $params['description']    : 'Товар',
+            'AdditionalInformation' => isset($params['additional_info']) ? $params['additional_info'] : '',
             'Cost'            => isset($params['cost'])           ? (int)$params['cost']      : 1,
             'DateTime'        => isset($params['date'])           ? $params['date'] : date('d.m.Y'),
         );
@@ -150,6 +174,22 @@ class TtnService
                 }
             }
         }
+        // Default OptionsSeat when CargoType=Cargo and not provided
+        if ($docProps['CargoType'] === 'Cargo' && empty($docProps['OptionsSeat'])) {
+            $totalWeight = (float)$docProps['Weight'];
+            $seatsN = max(1, (int)$docProps['SeatsAmount']);
+            $perSeatWeight = round($totalWeight / $seatsN, 2);
+            $defaultSeats = array();
+            for ($i = 0; $i < $seatsN; $i++) {
+                $defaultSeats[] = array(
+                    'weight'           => (string)$perSeatWeight,
+                    'volumetricWidth'  => '1',
+                    'volumetricLength' => '1',
+                    'volumetricHeight' => '1',
+                );
+            }
+            $docProps['OptionsSeat'] = $defaultSeats;
+        }
 
         $r = $np->call('InternetDocument', 'save', $docProps);
         if (!$r['ok']) {
@@ -189,6 +229,7 @@ class TtnService
             'cost_on_site'             => isset($npDoc['CostOnSite']) ? (float)$npDoc['CostOnSite'] : null,
             'backward_delivery_money'  => $backMoney > 0 ? $backMoney : 0,
             'description'              => isset($params['description'])    ? $params['description']    : null,
+            'additional_information'    => isset($params['additional_info']) ? $params['additional_info'] : null,
             'declared_value'           => isset($params['cost'])           ? (int)$params['cost']      : null,
             'weight'                   => $docProps['Weight'],
             'seats_amount'             => $docProps['SeatsAmount'],
@@ -333,6 +374,7 @@ class TtnService
         // Don't delete manual TTNs via API
         if (strpos($ttn['ref'], 'manual_') === 0) {
             TtnRepository::markDeleted($ttnId);
+            self::unlinkFromDocuments($ttnId);
             return array('ok' => true);
         }
 
@@ -343,13 +385,26 @@ class TtnService
             if (strpos($r['error'], 'invalid DocumentBarcodes') !== false
              || strpos($r['error'], 'invalid DocumentRefs')     !== false) {
                 TtnRepository::markDeleted($ttnId);
+                self::unlinkFromDocuments($ttnId);
                 return array('ok' => true);
             }
             return array('ok' => false, 'error' => $r['error']);
         }
 
         TtnRepository::markDeleted($ttnId);
+        self::unlinkFromDocuments($ttnId);
         return array('ok' => true);
+    }
+
+    /**
+     * Remove all document_link records for a deleted TTN.
+     */
+    private static function unlinkFromDocuments($ttnId)
+    {
+        $ttnId = intval($ttnId);
+        \Database::query('Papir',
+            "DELETE FROM document_link WHERE from_type='ttn_np' AND from_id={$ttnId}"
+        );
     }
 
     // ── Prefill form data from order ─────────────────────────────────────────
@@ -390,6 +445,12 @@ class TtnService
         // Prefill from oc_order if available (number like "12345OFF" / "12345MFF")
         $ocData = self::getOcOrderData($order['number'], $order['source']);
 
+        // Sender default address
+        $senderDefaultAddr = null;
+        if ($senderRef) {
+            $senderDefaultAddr = SenderRepository::getDefaultAddress($senderRef);
+        }
+
         $result = array(
             'order_id'             => $orderId,
             'sum_total'            => $order['sum_total'],
@@ -398,6 +459,11 @@ class TtnService
             'sender_ref'           => $senderRef,
             'senders'              => SenderRepository::getAll(),
             'existing_ttns'        => $existingTtns,
+            'sender_address_ref'   => $senderDefaultAddr ? $senderDefaultAddr['Ref'] : '',
+            'city_sender_ref'      => $senderDefaultAddr ? ($senderDefaultAddr['CityRef'] ?: '') : '',
+            'city_sender_desc'     => $senderDefaultAddr ? ($senderDefaultAddr['CityDescription'] ?: '') : '',
+            'description_hint'     => 'Канцтовари',
+            'additional_info_hint' => self::buildDescription($orderId, $order['number'], 100),
         );
 
         // If oc_order has data — enrich recipient
@@ -423,6 +489,76 @@ class TtnService
             }
         }
 
+        // Resolve city_ref from city_hint via local cache or NP API
+        $cityHint = isset($result['recipient']['city_hint']) ? $result['recipient']['city_hint'] : '';
+        if ($cityHint && empty($result['recipient']['city_ref'])) {
+            $cities = NpReferenceRepository::searchCities($cityHint, 1);
+            if (empty($cities) && $senderRef) {
+                // Try NP API
+                $sender = SenderRepository::getByRef($senderRef);
+                if ($sender) {
+                    $np = new NovaPoshta($sender['api']);
+                    $rCity = $np->call('Address', 'getCities', array(
+                        'FindByString' => $cityHint,
+                        'Limit' => 5,
+                        'Page'  => 1,
+                    ));
+                    if ($rCity['ok'] && !empty($rCity['data'])) {
+                        foreach ($rCity['data'] as $c) {
+                            NpReferenceRepository::upsertCity(array(
+                                'Ref'                       => $c['Ref'],
+                                'Description'               => isset($c['Description']) ? $c['Description'] : '',
+                                'DescriptionRu'             => isset($c['DescriptionRu']) ? $c['DescriptionRu'] : '',
+                                'Area'                      => isset($c['Area']) ? $c['Area'] : '',
+                                'SettlementTypeDescription' => isset($c['SettlementTypeDescription']) ? $c['SettlementTypeDescription'] : '',
+                                'IsBranch'                  => isset($c['IsBranch']) ? $c['IsBranch'] : 0,
+                            ));
+                        }
+                        $cities = array(array('Ref' => $rCity['data'][0]['Ref'], 'Description' => $rCity['data'][0]['Description']));
+                    }
+                }
+            }
+            if (!empty($cities)) {
+                $result['recipient']['city_ref'] = $cities[0]['Ref'];
+                if (empty($cityHint)) {
+                    $result['recipient']['city_hint'] = $cities[0]['Description'];
+                }
+            }
+        }
+
+        // Resolve warehouse_ref from address_hint
+        $addrHint   = isset($result['recipient']['address_hint']) ? $result['recipient']['address_hint'] : '';
+        $cityRef    = isset($result['recipient']['city_ref']) ? $result['recipient']['city_ref'] : '';
+        $whRef      = isset($result['recipient']['np_warehouse_ref']) ? $result['recipient']['np_warehouse_ref'] : '';
+        if ($cityRef && $addrHint && empty($whRef)) {
+            $warehouses = NpReferenceRepository::searchWarehouses($cityRef, $addrHint, 1);
+            if (empty($warehouses) && $senderRef) {
+                // Try NP API — load all warehouses for city
+                $sender = $sender ?: SenderRepository::getByRef($senderRef);
+                if ($sender) {
+                    $np = isset($np) ? $np : new NovaPoshta($sender['api']);
+                    $rWh = $np->callAllPages('Address', 'getWarehouses', array('CityRef' => $cityRef));
+                    if ($rWh['ok'] && !empty($rWh['data'])) {
+                        foreach ($rWh['data'] as $wh) {
+                            NpReferenceRepository::upsertWarehouse($wh);
+                        }
+                        $warehouses = NpReferenceRepository::searchWarehouses($cityRef, $addrHint, 1);
+                    }
+                }
+            }
+            if (!empty($warehouses)) {
+                $result['recipient']['np_warehouse_ref'] = $warehouses[0]['Ref'];
+                $result['recipient']['np_warehouse_desc'] = 'Відд. №' . $warehouses[0]['Number']
+                    . (!empty($warehouses[0]['ShortAddress']) ? ': ' . $warehouses[0]['ShortAddress'] : '');
+            }
+        }
+
+        // Auto-convert Latin names to Cyrillic for NP API
+        foreach (array('first_name', 'last_name', 'middle_name') as $_k) {
+            if (!empty($result['recipient'][$_k])) {
+                $result['recipient'][$_k] = self::latinToCyrillic($result['recipient'][$_k]);
+            }
+        }
         return array('ok' => true, 'data' => $result);
     }
 
@@ -494,11 +630,9 @@ class TtnService
     {
         $counterpartyId = !empty($params['counterparty_id']) ? (int)$params['counterparty_id'] : 0;
 
-        // Check cache
-        if ($counterpartyId) {
-            $cached = NpCounterpartyRepository::getNpRefForCounterparty($counterpartyId, $senderRef);
-            if ($cached) return array('ok' => true, 'ref' => $cached);
-        }
+        // Always call CounterpartyGeneral.save() — it's idempotent and returns
+        // both Ref (Recipient) and ContactPerson.Ref (ContactRecipient).
+        // The cache only stores Ref but we need ContactPerson.Ref too.
 
         $isOrg = (!empty($params['recipient_type']) && $params['recipient_type'] === 'Organization');
 
@@ -608,8 +742,181 @@ class TtnService
     private static function parseNpDate($dateStr)
     {
         if (!$dateStr) return null;
-        // NP returns dates in various formats; try to parse
         $ts = strtotime($dateStr);
         return $ts ? date('Y-m-d H:i:s', $ts) : null;
+    }
+
+    // ── Latin → Cyrillic transliteration ───────────────────────────────
+
+    /**
+     * Convert Latin text to Ukrainian Cyrillic (reverse KMU 2010).
+     * Leaves Cyrillic chars untouched.
+     */
+    public static function latinToCyrillic($text)
+    {
+        if (!$text || !preg_match('/[a-zA-Z]/', $text)) return $text;
+        return preg_replace_callback('/[a-zA-Z]+/', function($m) {
+            return self::convertWordToCyr($m[0]);
+        }, $text);
+    }
+
+    private static function convertWordToCyr($word)
+    {
+        static $map4 = array('Shch'=>'Щ','shch'=>'щ','SHCH'=>'Щ');
+        static $map2 = array(
+            'Sh'=>'Ш','sh'=>'ш','SH'=>'Ш', 'Ch'=>'Ч','ch'=>'ч','CH'=>'Ч',
+            'Zh'=>'Ж','zh'=>'ж','ZH'=>'Ж', 'Kh'=>'Х','kh'=>'х','KH'=>'Х',
+            'Ts'=>'Ц','ts'=>'ц','TS'=>'Ц', 'Yu'=>'Ю','yu'=>'ю','YU'=>'Ю',
+            'Ya'=>'Я','ya'=>'я','YA'=>'Я', 'Ye'=>'Є','ye'=>'є','YE'=>'Є',
+            'Yi'=>'Ї','yi'=>'ї','YI'=>'Ї', 'Yo'=>'Йо','yo'=>'йо','YO'=>'ЙО',
+            'Ia'=>'Я','ia'=>'я','IA'=>'Я', 'Iu'=>'Ю','iu'=>'ю','IU'=>'Ю',
+            'Ie'=>'Є','ie'=>'є','IE'=>'Є',
+        );
+        static $up = array(
+            'A'=>'А','B'=>'Б','V'=>'В','H'=>'Г','G'=>'Ґ','D'=>'Д','E'=>'Е',
+            'Z'=>'З','Y'=>'И','I'=>'І','K'=>'К','L'=>'Л','M'=>'М','N'=>'Н',
+            'O'=>'О','P'=>'П','R'=>'Р','S'=>'С','T'=>'Т','U'=>'У','F'=>'Ф',
+            'W'=>'В','J'=>'Й',
+        );
+        static $lo = array(
+            'a'=>'а','b'=>'б','v'=>'в','h'=>'г','g'=>'ґ','d'=>'д','e'=>'е',
+            'z'=>'з','y'=>'и','i'=>'і','k'=>'к','l'=>'л','m'=>'м','n'=>'н',
+            'o'=>'о','p'=>'п','r'=>'р','s'=>'с','t'=>'т','u'=>'у','f'=>'ф',
+            'w'=>'в','j'=>'й',
+        );
+
+        $result = '';
+        $len = strlen($word);
+        $i = 0;
+        while ($i < $len) {
+            if ($i + 4 <= $len && isset($map4[$c = substr($word, $i, 4)])) {
+                $result .= $map4[$c]; $i += 4; continue;
+            }
+            if ($i + 2 <= $len && isset($map2[$c = substr($word, $i, 2)])) {
+                $result .= $map2[$c]; $i += 2; continue;
+            }
+            $ch = $word[$i];
+            $result .= isset($up[$ch]) ? $up[$ch] : (isset($lo[$ch]) ? $lo[$ch] : $ch);
+            $i++;
+        }
+        return $result;
+    }
+
+        // ── TTN Description builder ─────────────────────────────────────────
+
+    /**
+     * Build TTN description from order items.
+     * NP API Description limit: 36 chars.
+     *
+     * 1-2 items: "ART ShortName xQty" (2 items separated by " // ")
+     * 3+ items:  "Замовлення №{number}"
+     */
+    public static function buildDescription($orderId, $orderNumber, $maxLen = 36)
+    {
+        $r = \Database::fetchAll('Papir',
+            "SELECT product_name, sku, quantity
+             FROM customerorder_item
+             WHERE customerorder_id = " . (int)$orderId . "
+             ORDER BY line_no, id");
+
+        // Order number without Latin suffix for NP
+        $numOnly = preg_replace('/[a-zA-Z]+$/', '', $orderNumber);
+        $fallback = mb_substr('Замовлення №' . $numOnly, 0, $maxLen);
+
+        if (!$r['ok'] || empty($r['rows'])) {
+            return $fallback;
+        }
+
+        $items = $r['rows'];
+        if (count($items) > 2) {
+            return $fallback;
+        }
+
+        if (count($items) === 1) {
+            return self::shortenItem($items[0], $maxLen);
+        }
+
+        // 2 items
+        $sep = ' // ';
+        $half = intval(($maxLen - mb_strlen($sep)) / 2);
+        $d1 = self::shortenItem($items[0], $half);
+        $d2 = self::shortenItem($items[1], $half);
+        $result = $d1 . $sep . $d2;
+        return mb_strlen($result) > $maxLen ? mb_substr($result, 0, $maxLen) : $result;
+    }
+
+    private static function shortenItem($item, $maxLen)
+    {
+        $qty  = (int)$item['quantity'] ?: intval($item['quantity']);
+        $name = trim($item['product_name']);
+        // Remove Latin chars and parenthesized Latin codes — NP rejects them
+        $name = preg_replace('/\([^)]*[a-zA-Z][^)]*\)/', '', $name);
+        $name = preg_replace('/[a-zA-Z0-9]+-[a-zA-Z0-9]+/', '', $name);
+        $name = preg_replace('/[a-zA-Z]+/', '', $name);
+        $name = preg_replace('/\s{2,}/u', ' ', trim($name));
+
+        $qtyStr = ($qty > 1) ? ' ' . $qty . 'шт' : '';
+
+        // Try full name (no article — NP rejects Latin)
+        $full = $name . $qtyStr;
+        if (mb_strlen($full) <= $maxLen) return $full;
+
+        // Shorten name
+        $name = self::shortenName($name);
+        $full = $name . $qtyStr;
+        if (mb_strlen($full) <= $maxLen) return $full;
+
+        // Truncate name to fit
+        $avail = $maxLen - mb_strlen($qtyStr);
+        if ($avail > 3) {
+            return mb_substr($name, 0, $avail) . $qtyStr;
+        }
+        return mb_substr($name . $qtyStr, 0, $maxLen);
+    }
+
+    private static function shortenName($name)
+    {
+        // Remove common filler
+        $remove = array(
+            'тверда палітурка', 'м\'яка палітурка',
+            'тверда обкладинка', 'м\'яка обкладинка',
+            'газетний папір', 'офсетний папір',
+            'з голограмою', 'с голограмою', 'з голок.',
+        );
+        foreach ($remove as $w) {
+            $name = preg_replace('/,?\s*' . preg_quote($w, '/') . '\s*/iu', ' ', $name);
+        }
+
+        // Shorten common words (no dots/slashes — NP rejects them)
+        $short = array(
+            'Книга обліку'      => 'Кн обл',
+            'Журнал обліку'     => 'Журн обл',
+            'Особиста медична книжка' => 'Ос мед книжка',
+            'Учнівський квиток' => 'Учн квиток',
+            'військового майна' => 'війс майна',
+            'військовослужбовцям' => 'військовосл',
+            'амбулаторного прийому' => 'амб прийому',
+            'медичного пункту'  => 'мед пункту',
+            'направлених на стаціонарне лікування' => 'напр стац лік',
+            'що потребують систематичного лікарського спостереження' => '',
+            'контролю за якістю приготування їжі' => 'контр якості їжі',
+            'що видається в тимчасове користування' => 'тимч корист',
+            'що видається'      => '',
+            'виданого'          => '',
+            ', 100арк'          => '',
+            '100№'              => '100шт',
+            'бланк'             => '',
+            'додаток'           => '',
+            'ассорті'           => 'асорті',
+        );
+        foreach ($short as $from => $to) {
+            $name = preg_replace('/' . preg_quote($from, '/') . '/iu', $to, $name);
+        }
+
+        // Clean up spaces
+        $name = preg_replace('/\s{2,}/u', ' ', $name);
+        $name = preg_replace('/,\s*,/u', ',', $name);
+        $name = trim($name, ' ,');
+        return $name;
     }
 }
