@@ -367,6 +367,13 @@ if (count($resolvedUpd) > 1) {
 // Look up contact person from np_sender_contact_persons matching sender phone.
 $contactSenderRef = null;
 $senderPhone = \Papir\Crm\TtnService::normalizePhone((string)$ttn['phone_sender']);
+// Fallback: якщо phone_sender не збережено — взяти з дефолтного контакту відправника
+if (!$senderPhone && !empty($ttn['sender_ref'])) {
+    $defContact = \Papir\Crm\SenderRepository::getDefaultContact($ttn['sender_ref']);
+    if ($defContact && !empty($defContact['phone'])) {
+        $senderPhone = \Papir\Crm\TtnService::normalizePhone($defContact['phone']);
+    }
+}
 if ($senderPhone) {
     $eSenderPhone = \Database::escape('Papir', $senderPhone);
     $eSenderRef   = \Database::escape('Papir', $ttn['sender_ref']);

@@ -3906,7 +3906,7 @@ var NpTtnModal = (function() {
         html += '<label class="np-field-label">Накладений платіж (грн), 0 = без</label>';
         html += '<input type="number" id="npBackMoney" class="np-inp" value="' + esc(data.backward_money_hint || 0) + '" min="0" step="0.01">';
         html += '<label class="np-field-label">Дата відправки</label>';
-        html += '<input type="date" id="npDate" class="np-inp" value="' + (new Date().toISOString().slice(0,10)) + '">';
+        html += '<input type="date" id="npDate" class="np-inp" value="' + (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })() + '">';
 
         html += '<div id="npTtnError" class="np-form-error"></div>';
 

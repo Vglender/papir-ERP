@@ -209,6 +209,7 @@ class TtnService
             'estimated_delivery_date'  => isset($npDoc['EstimatedDeliveryDate']) ? self::parseNpDate($npDoc['EstimatedDeliveryDate']) : null,
             'sender_ref'               => $senderRef,
             'sender_address_ref'       => $senderAddrRef ?: null,
+            'phone_sender'             => $senderPhone ?: null,
             'city_sender_desc'         => isset($params['city_sender_desc'])    ? $params['city_sender_desc']    : null,
             'city_sender_ref'          => isset($params['city_sender_ref'])     ? $params['city_sender_ref']     : null,
             'city_recipient_desc'      => isset($params['city_recipient_desc']) ? $params['city_recipient_desc'] : null,
