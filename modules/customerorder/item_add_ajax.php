@@ -11,8 +11,12 @@ $repository = new CustomerOrderRepository();
 $service = new CustomerOrderService($repository);
 $controller = new CustomerOrderController($service);
 
-// временно
-$employeeId = 1;
+$currentUser = \Papir\Crm\AuthService::getCurrentUser();
+if (!$currentUser) {
+    echo json_encode(array('ok' => false, 'error' => 'unauthorized'), JSON_UNESCAPED_UNICODE);
+    exit;
+}
+$employeeId = (int)$currentUser['employee_id'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(array(

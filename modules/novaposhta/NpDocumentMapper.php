@@ -121,6 +121,7 @@ class NpDocumentMapper
             'scan_sheet_ref'            => $scanSheetRef,
             'car_call'                  => !empty($doc['CarCall']) ? $doc['CarCall'] : null,
             'additional_information'    => !empty($doc['AdditionalInformation']) ? $doc['AdditionalInformation'] : null,
+            'is_printed'                => (isset($doc['Printed']) && $doc['Printed'] == '1') ? 1 : 0,
             'deletion_mark'             => (isset($doc['DeletionMark']) && $doc['DeletionMark'] == '1') ? 1 : 0,
             'updated_at'                => date('Y-m-d H:i:s'),
         );
@@ -162,11 +163,13 @@ class NpDocumentMapper
             'payer_type'               => $mapped['payer_type'],
             'updated_at'               => date('Y-m-d H:i:s'),
         );
-        // scan_sheet_ref: set only when NP has a value and DB currently has none
-        if ($mapped['scan_sheet_ref'] && !$existingScanSheetRef) {
+        // is_printed: always update (NP is source of truth)
+        $upd['is_printed'] = $mapped['is_printed'];
+        // scan_sheet_ref: always update from NP (source of truth), but don't clear if NP returns null
+        if ($mapped['scan_sheet_ref']) {
             $upd['scan_sheet_ref'] = $mapped['scan_sheet_ref'];
         }
-        // car_call: always update (НП is the source of truth)
+        // car_call: always update (NP is source of truth)
         $upd['car_call'] = $mapped['car_call'];
         return $upd;
     }

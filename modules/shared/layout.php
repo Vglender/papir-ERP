@@ -67,6 +67,7 @@ $_nav = array(
               array('key' => 'moysklad', 'label' => 'МойСклад',        'url' => '#'),
               array('key' => 'merchant', 'label' => 'Google Merchant', 'url' => '/integr/merchant'),
               array('key' => 'ai',       'label' => 'AI',              'url' => '/ai'),
+              array('key' => 'ukrsib',   'label' => 'УкрСибБанк',     'url' => '/ukrsib_token_status'),
           )),
     array('key' => 'analytics', 'label' => 'Аналітика', 'color' => '#db2777',
           'items' => array(
@@ -134,6 +135,7 @@ $_icons = array(
 <title><?php echo $_pageTitle; ?></title>
 <link rel="icon" href="/assets/images/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/modules/shared/ui.css?v=<?php echo filemtime(__DIR__ . '/ui.css'); ?>">
+<script src="/modules/shared/ui.js?v=<?php echo filemtime(__DIR__ . '/ui.js'); ?>"></script>
 <?php if (!empty($extraCss)) { foreach ((array)$extraCss as $_css) { echo $_css . "\n"; } } ?>
 </head>
 <body class="<?php echo $_bodyClass; ?>">

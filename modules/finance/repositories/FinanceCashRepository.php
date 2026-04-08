@@ -28,6 +28,11 @@ class FinanceCashRepository
             $where[] = "fc.moment <= '{$dt} 23:59:59'";
         }
 
+        // unmatched: показати тільки нерозпізнані (НЕРАЗОБРАННОЕ або без контрагента)
+        if (!empty($params['unmatched'])) {
+            $where[] = "(cp.id IS NULL OR cp.name = 'НЕРАЗОБРАННОЕ')";
+        }
+
         $search = isset($params['search']) ? trim($params['search']) : '';
         if ($search !== '') {
             $chipSep = (strpos($search, '|||') !== false) ? '/\s*\|\|\|\s*/u' : '/\s*,\s*/u';

@@ -1,3 +1,10 @@
 [29-Mar-2026 19:20:00 Europe/Kiev] [customerorder_service.php:625] {"customerorder_id":"131074","product_id":"1","quantity":"1","vat_rate":20}
 [29-Mar-2026 19:20:18 Europe/Kiev] [customerorder_service.php:625] {"customerorder_id":"131074","product_id":638,"quantity":1,"product_name":"Бумага офсетная (ф.А3, пл.60 г\/м, 1000л)","sku":"MF638","unit":"пач","price":840,"vat_rate":20,"stock_quantity":20,"reserved_stock_quantity":0,"expected_quantity":0,"weight":7.5}
 [01-Apr-2026 20:45:04 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 221
+[03-Apr-2026 14:58:08 Europe/Kiev] PHP Fatal error:  Cannot redeclare ld_statusLabel() (previously declared in /var/www/papir/modules/customerorder/api/get_linked_docs.php:12) in /var/www/papir/modules/customerorder/api/get_linked_docs.php on line 23
+[04-Apr-2026 01:22:15 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 225
+[04-Apr-2026 01:22:38 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 225
+[04-Apr-2026 01:23:58 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 225
+[04-Apr-2026 01:24:24 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 225
+[04-Apr-2026 01:25:48 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 225
+[04-Apr-2026 01:32:04 Europe/Kiev] PHP Notice:  Undefined index: bg in /var/www/papir/modules/shared/layout.php on line 225

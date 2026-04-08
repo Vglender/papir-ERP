@@ -4,6 +4,7 @@ class BankPaymentCollector
 {
     protected $config;
     protected $accountsMap;
+    protected $bankErrors = [];
 
     public function __construct(array $config, array $accountsMap)
     {
@@ -14,6 +15,7 @@ class BankPaymentCollector
     public function collect($dateFrom)
     {
         $data = [];
+        $this->bankErrors = [];
 
         $mono = $this->collectMono($dateFrom);
         $pb   = $this->collectPrivatUr($dateFrom);
@@ -22,6 +24,11 @@ class BankPaymentCollector
         $data = array_merge($data, $mono, $pb, $ukrsib);
 
         return $data;
+    }
+
+    public function getBankErrors()
+    {
+        return $this->bankErrors;
     }
 	
 	protected function generatePaymentName($index = 0, $moment = null)
@@ -188,6 +195,12 @@ class BankPaymentCollector
 
         foreach ($result as $value) {
             if (!empty($value['_error'])) {
+                $this->bankErrors[] = [
+                    'bank'  => 'ukrsib',
+                    'error' => $value['_error'],
+                    'http_code'  => isset($value['_http_code']) ? $value['_http_code'] : '',
+                    'raw'        => isset($value['_raw']) ? $value['_raw'] : '',
+                ];
                 continue;
             }
 

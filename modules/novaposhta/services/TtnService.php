@@ -329,6 +329,11 @@ class TtnService
             'link_type' => 'shipment',
         ));
 
+        // Clear "ship" next_action since TTN is now linked
+        \Database::query('Papir',
+            "UPDATE customerorder SET next_action=NULL, next_action_label=NULL, updated_at=NOW()
+             WHERE id={$orderId} AND next_action='ship'");
+
         return $orderId;
     }
 
@@ -425,7 +430,8 @@ class TtnService
     {
         $rOrder = \Database::fetchRow('Papir',
             "SELECT co.id, co.number, co.source, co.sum_total, co.organization_id,
-                    co.counterparty_id, co.contact_person_id
+                    co.counterparty_id, co.contact_person_id,
+                    co.payment_method_id, co.sum_paid
              FROM customerorder co
              WHERE co.id = " . (int)$orderId . " AND co.deleted_at IS NULL LIMIT 1");
 

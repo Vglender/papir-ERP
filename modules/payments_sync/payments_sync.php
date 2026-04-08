@@ -95,12 +95,55 @@ try {
 		return $ukrsib->getStatements($dateFrom);
 	}
 
+	function notifyAdminBankErrors(array $bankErrors)
+	{
+		$robotEmployeeId = 5;  // Василь Робот
+		$adminEmployeeId = 1;  // Адмін
+
+		$lines = [];
+		foreach ($bankErrors as $err) {
+			$bank = isset($err['bank']) ? $err['bank'] : 'unknown';
+			$msg  = isset($err['error']) ? $err['error'] : 'unknown error';
+			$http = isset($err['http_code']) && $err['http_code'] !== '' ? ' (HTTP ' . $err['http_code'] . ')' : '';
+			$lines[] = strtoupper($bank) . ': ' . $msg . $http;
+		}
+
+		$body = "Помилка імпорту банківських платежів:\n"
+			. implode("\n", $lines)
+			. "\n\nМожливо, потрібна повторна авторизація: /ukrsib_token_status";
+
+		// Не дублировать — проверяем, не отправляли ли уже сегодня
+		$today = date('Y-m-d');
+		$check = Database::fetchRow('Papir',
+			"SELECT id FROM team_messages
+			 WHERE from_employee_id = {$robotEmployeeId}
+			   AND to_employee_id = {$adminEmployeeId}
+			   AND body LIKE '%Помилка імпорту банківських платежів%'
+			   AND DATE(created_at) = '{$today}'
+			 LIMIT 1");
+
+		if ($check['ok'] && !empty($check['row'])) {
+			return; // уже уведомляли сегодня
+		}
+
+		Database::insert('Papir', 'team_messages', [
+			'from_employee_id' => $robotEmployeeId,
+			'to_employee_id'   => $adminEmployeeId,
+			'body'             => $body,
+		]);
+	}
+
 	try {
 		$rawDateFrom = getCliOption('date_from', '');
 		$dateFrom = resolveDateFrom($rawDateFrom);
 
 		$service = new PaymentsSyncService();
 		$result = $service->sync($dateFrom);
+
+		// Уведомить админа в team_messages при ошибках банковского API
+		if (!empty($result['bank_errors'])) {
+			notifyAdminBankErrors($result['bank_errors']);
+		}
 
 		print_r($result);
 	} catch (Throwable $e) {

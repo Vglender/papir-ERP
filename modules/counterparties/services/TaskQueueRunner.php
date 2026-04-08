@@ -19,20 +19,26 @@ class TaskQueueRunner
              WHERE status='snoozed' AND snoozed_until <= NOW()"
         );
 
-        // Fetch pending queue items that are due
-        $r = Database::fetchAll('Papir',
-            "SELECT * FROM cp_task_queue
-             WHERE status='pending' AND fire_at <= NOW()
-             ORDER BY fire_at ASC
-             LIMIT " . self::BATCH
-        );
-        if (!$r['ok'] || empty($r['rows'])) return 0;
-
         $processed = 0;
-        foreach ($r['rows'] as $item) {
-            self::runItem($item);
-            $processed++;
+        $maxPasses = 5; // prevent infinite loops
+
+        // Re-fetch after each pass: scenario steps schedule follow-up tasks
+        // during execution, so a single SELECT misses them.
+        for ($pass = 0; $pass < $maxPasses; $pass++) {
+            $r = Database::fetchAll('Papir',
+                "SELECT * FROM cp_task_queue
+                 WHERE status='pending' AND fire_at <= NOW()
+                 ORDER BY fire_at ASC
+                 LIMIT " . self::BATCH
+            );
+            if (!$r['ok'] || empty($r['rows'])) break;
+
+            foreach ($r['rows'] as $item) {
+                self::runItem($item);
+                $processed++;
+            }
         }
+
         return $processed;
     }
 

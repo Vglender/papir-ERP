@@ -15,6 +15,15 @@ function ukrsib_uuid_v4()
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
 }
 
+function ukrsib_config()
+{
+    static $config = null;
+    if ($config === null) {
+        $config = require __DIR__ . '/../ukrsib_config.php';
+    }
+    return $config;
+}
+
 function ukrsib_token_read()
 {
     $ukrsib = ukrsib_config();
@@ -90,10 +99,10 @@ function formatIntervalDays($expiresAt)
     $minutes = floor(($seconds % 3600) / 60);
 
     if ($seconds <= 0) {
-        return 'Токен истёк';
+        return 'Токен закінчився';
     }
 
-    return $days . ' дн. ' . $hours . ' ч. ' . $minutes . ' мин.';
+    return $days . ' дн. ' . $hours . ' год. ' . $minutes . ' хв.';
 }
 
 function getTokenStatusClass($expiresAt)
@@ -118,26 +127,35 @@ function getTokenStatusClass($expiresAt)
 function getTokenStatusText($expiresAt)
 {
     if (empty($expiresAt)) {
-        return 'Токен отсутствует';
+        return 'Токен відсутній';
     }
 
     $seconds = (int)$expiresAt - time();
 
     if ($seconds <= 0) {
-        return 'Токен истёк';
+        return 'Токен закінчився';
     }
 
     if ($seconds <= 3 * 86400) {
-        return 'Срок действия скоро закончится';
+        return 'Термін дії скоро закінчиться';
     }
 
     if ($seconds <= 7 * 86400) {
-        return 'Нужно обновить в ближайшие дни';
+        return 'Потрібно оновити найближчими днями';
     }
 
-    return 'Токен действителен';
+    return 'Токен дійсний';
 }
 
+function ukrsib_decode_jwt_exp($jwt)
+{
+    $parts = explode('.', $jwt);
+    if (count($parts) < 2) return 0;
+    $payload = json_decode(base64_decode(strtr($parts[1], '-_', '+/')), true);
+    return isset($payload['exp']) ? (int)$payload['exp'] : 0;
+}
+
+// ── Redirect to bank auth ────────────────────────────────────────────────────
 if (isset($_GET['start']) && $_GET['start'] == '1') {
     $clientCode = ukrsib_uuid_v4();
 
@@ -149,15 +167,8 @@ if (isset($_GET['start']) && $_GET['start'] == '1') {
     header('Location: ' . ukrsib_get_authorize_url_by_client_code($clientCode));
     exit;
 }
-function ukrsib_config()
-{
-    static $config = null;
-    if ($config === null) {
-        $config = require __DIR__ . '/../ukrsib_config.php';
-    }
-    return $config;
-}
 
+// ── Data ─────────────────────────────────────────────────────────────────────
 $token = ukrsib_token_read();
 $clientCodeData = ukrsib_client_code_read();
 
@@ -171,212 +182,115 @@ $clientCodeExists = !empty($clientCodeData['client_code']);
 $accessPreview = $tokenExists ? substr($token['access_token'], 0, 40) . '...' : '—';
 $refreshPreview = $tokenExists ? substr($token['refresh_token'], 0, 40) . '...' : '—';
 
+// Refresh token expiry from JWT
+$refreshExpiresAt = $tokenExists ? ukrsib_decode_jwt_exp($token['refresh_token']) : 0;
+
+// ── Layout ───────────────────────────────────────────────────────────────────
+$title     = 'УкрСибБанк';
+$activeNav = 'integr';
+$subNav    = 'ukrsib';
+require_once __DIR__ . '/../../shared/layout.php';
 ?>
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>UKRSIB Token Status</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-            background: #f3f5f7;
-            color: #1f2937;
-        }
-        .wrap {
-            max-width: 980px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
-        .card {
-            background: #fff;
-            border-radius: 16px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.08);
-            padding: 28px;
-            margin-bottom: 24px;
-        }
-        .title {
-            font-size: 28px;
-            font-weight: 700;
-            margin: 0 0 8px;
-        }
-        .subtitle {
-            color: #6b7280;
-            margin: 0 0 24px;
-            font-size: 14px;
-        }
-        .status-box {
-            border-radius: 14px;
-            padding: 18px 20px;
-            color: #fff;
-            margin-bottom: 24px;
-        }
-        .status-green { background: #16a34a; }
-        .status-orange { background: #ea580c; }
-        .status-red { background: #dc2626; }
-        .status-gray { background: #6b7280; }
 
-        .status-title {
-            font-size: 20px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
-        .status-text {
-            font-size: 14px;
-            opacity: 0.95;
-        }
-        .grid {
-            display: grid;
-            grid-template-columns: 220px 1fr;
-            gap: 12px 18px;
-            align-items: start;
-        }
-        .label {
-            color: #6b7280;
-            font-weight: 600;
-            font-size: 14px;
-        }
-        .value {
-            font-size: 14px;
-            word-break: break-word;
-        }
-        .mono {
-            font-family: Consolas, Monaco, monospace;
-            font-size: 13px;
-            background: #f9fafb;
-            border: 1px solid #e5e7eb;
-            padding: 10px 12px;
-            border-radius: 10px;
-        }
-        .buttons {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-top: 24px;
-        }
-        .btn {
-            display: inline-block;
-            padding: 12px 18px;
-            border-radius: 10px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 14px;
-            transition: 0.2s ease;
-        }
-        .btn-primary {
-            background: #2563eb;
-            color: #fff;
-        }
-        .btn-primary:hover {
-            background: #1d4ed8;
-        }
-        .btn-secondary {
-            background: #111827;
-            color: #fff;
-        }
-        .btn-secondary:hover {
-            background: #000;
-        }
-        .btn-light {
-            background: #e5e7eb;
-            color: #111827;
-        }
-        .btn-light:hover {
-            background: #d1d5db;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 0 0 18px;
-        }
-        .hint {
-            margin-top: 18px;
-            padding: 14px 16px;
-            border-radius: 10px;
-            background: #eff6ff;
-            color: #1e3a8a;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        @media (max-width: 700px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body>
-<div class="wrap">
+<style>
+    .ukrsib-wrap { max-width: 980px; margin: 28px auto; padding: 0 20px; }
+    .ukrsib-card { background: #fff; border-radius: 16px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); padding: 28px; margin-bottom: 24px; }
+    .ukrsib-title { font-size: 22px; font-weight: 700; margin: 0 0 6px; }
+    .ukrsib-subtitle { color: #6b7280; margin: 0 0 20px; font-size: 13px; }
+    .ukrsib-status-box { border-radius: 14px; padding: 18px 20px; color: #fff; margin-bottom: 24px; }
+    .ukrsib-status-box.status-green { background: #16a34a; }
+    .ukrsib-status-box.status-orange { background: #ea580c; }
+    .ukrsib-status-box.status-red { background: #dc2626; }
+    .ukrsib-status-box.status-gray { background: #6b7280; }
+    .ukrsib-status-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .ukrsib-status-text { font-size: 13px; opacity: 0.95; }
+    .ukrsib-grid { display: grid; grid-template-columns: 200px 1fr; gap: 10px 16px; align-items: start; }
+    .ukrsib-label { color: #6b7280; font-weight: 600; font-size: 13px; }
+    .ukrsib-value { font-size: 13px; word-break: break-word; }
+    .ukrsib-mono { font-family: Consolas, Monaco, monospace; font-size: 12px; background: #f9fafb; border: 1px solid #e5e7eb; padding: 8px 10px; border-radius: 8px; }
+    .ukrsib-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+    .ukrsib-btn { display: inline-block; padding: 10px 16px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 13px; transition: 0.2s ease; border: none; cursor: pointer; }
+    .ukrsib-btn-primary { background: #2563eb; color: #fff; }
+    .ukrsib-btn-primary:hover { background: #1d4ed8; }
+    .ukrsib-btn-secondary { background: #111827; color: #fff; }
+    .ukrsib-btn-secondary:hover { background: #000; }
+    .ukrsib-btn-light { background: #e5e7eb; color: #111827; }
+    .ukrsib-btn-light:hover { background: #d1d5db; }
+    .ukrsib-section-title { font-size: 16px; font-weight: 700; margin: 0 0 16px; }
+    .ukrsib-hint { margin-top: 16px; padding: 12px 14px; border-radius: 8px; background: #eff6ff; color: #1e3a8a; font-size: 13px; line-height: 1.5; }
+    @media (max-width: 700px) { .ukrsib-grid { grid-template-columns: 1fr; } }
+</style>
 
-    <div class="card">
-        <h1 class="title">UKRSIB Token Status</h1>
-        <p class="subtitle">Контроль access/refresh token для интеграции Papir с UKRSIB business API</p>
+<div class="ukrsib-wrap">
 
-        <div class="status-box <?php echo $statusClass; ?>">
-            <div class="status-title"><?php echo htmlspecialchars($statusText); ?></div>
-            <div class="status-text">
+    <div class="ukrsib-card">
+        <h1 class="ukrsib-title">УкрСибБанк — Статус токена</h1>
+        <p class="ukrsib-subtitle">Контроль access/refresh token для інтеграції Papir з UKRSIB business API</p>
+
+        <div class="ukrsib-status-box <?php echo $statusClass; ?>">
+            <div class="ukrsib-status-title"><?php echo htmlspecialchars($statusText); ?></div>
+            <div class="ukrsib-status-text">
                 <?php if ($tokenExists): ?>
-                    До истечения: <?php echo htmlspecialchars(formatIntervalDays($expiresAt)); ?>
+                    До закінчення access: <?php echo htmlspecialchars(formatIntervalDays($expiresAt)); ?>
                 <?php else: ?>
-                    В файле токенов нет действующей пары access_token / refresh_token.
+                    У файлі токенів немає діючої пари access_token / refresh_token.
                 <?php endif; ?>
             </div>
         </div>
 
-        <div class="grid">
-            <div class="label">Base URL</div>
-            <div class="value"><?php echo htmlspecialchars($ukrsib['base_url']); ?></div>
+        <div class="ukrsib-grid">
+            <div class="ukrsib-label">Base URL</div>
+            <div class="ukrsib-value"><?php echo htmlspecialchars($ukrsib['base_url']); ?></div>
 
-            <div class="label">Client ID</div>
-            <div class="value mono"><?php echo htmlspecialchars($ukrsib['client_id']); ?></div>
+            <div class="ukrsib-label">Client ID</div>
+            <div class="ukrsib-value ukrsib-mono"><?php echo htmlspecialchars($ukrsib['client_id']); ?></div>
 
-            <div class="label">Файл токенов</div>
-            <div class="value mono"><?php echo htmlspecialchars($ukrsib['token_file']); ?></div>
+            <div class="ukrsib-label">Файл токенів</div>
+            <div class="ukrsib-value ukrsib-mono"><?php echo htmlspecialchars($ukrsib['token_file']); ?></div>
 
-            <div class="label">Файл client_code</div>
-            <div class="value mono"><?php echo htmlspecialchars($ukrsib['client_code_file']); ?></div>
+            <div class="ukrsib-label">Access token закінчується</div>
+            <div class="ukrsib-value"><?php echo htmlspecialchars(formatDateTime($expiresAt)); ?> (<?php echo htmlspecialchars(formatIntervalDays($expiresAt)); ?>)</div>
 
-            <div class="label">Истекает</div>
-            <div class="value"><?php echo htmlspecialchars(formatDateTime($expiresAt)); ?></div>
+            <div class="ukrsib-label">Refresh token закінчується</div>
+            <div class="ukrsib-value">
+                <?php if ($refreshExpiresAt > 0): ?>
+                    <?php echo htmlspecialchars(formatDateTime($refreshExpiresAt)); ?> (<?php echo htmlspecialchars(formatIntervalDays($refreshExpiresAt)); ?>)
+                <?php else: ?>
+                    —
+                <?php endif; ?>
+            </div>
 
-            <div class="label">Осталось времени</div>
-            <div class="value"><?php echo htmlspecialchars(formatIntervalDays($expiresAt)); ?></div>
+            <div class="ukrsib-label">Access token</div>
+            <div class="ukrsib-value ukrsib-mono"><?php echo htmlspecialchars($accessPreview); ?></div>
 
-            <div class="label">Access token</div>
-            <div class="value mono"><?php echo htmlspecialchars($accessPreview); ?></div>
-
-            <div class="label">Refresh token</div>
-            <div class="value mono"><?php echo htmlspecialchars($refreshPreview); ?></div>
+            <div class="ukrsib-label">Refresh token</div>
+            <div class="ukrsib-value ukrsib-mono"><?php echo htmlspecialchars($refreshPreview); ?></div>
         </div>
 
-        <div class="buttons">
-            <a class="btn btn-primary" href="?start=1">Начать новую авторизацию</a>
-            <a class="btn btn-secondary" href="ukrsib_token_exchange.php">Перейти к обмену токена</a>
-            <a class="btn btn-light" href="ukrsib_token_status.php">Обновить страницу</a>
+        <div class="ukrsib-buttons">
+            <a class="ukrsib-btn ukrsib-btn-primary" href="?start=1">Нова авторизація</a>
+            <a class="ukrsib-btn ukrsib-btn-secondary" href="/ukrsib_token_exchange">Обмін токена</a>
+            <a class="ukrsib-btn ukrsib-btn-light" href="/ukrsib_token_status">Оновити</a>
         </div>
 
-        <div class="hint">
-            После нажатия <strong>«Начать новую авторизацию»</strong> будет создан новый <strong>client_code</strong>,
-            сохранён в файл и выполнен переход на страницу авторизации UKRSIB business.
-            После успешного входа открой страницу обмена токена.
+        <div class="ukrsib-hint">
+            Після натискання <strong>«Нова авторизація»</strong> буде створено новий <strong>client_code</strong>,
+            збережено у файл та виконано перехід на сторінку авторизації UKRSIB business.
+            Після успішного входу відкрийте сторінку обміну токена.
         </div>
     </div>
 
-    <div class="card">
-        <h2 class="section-title">Последний client_code</h2>
+    <div class="ukrsib-card">
+        <h2 class="ukrsib-section-title">Останній client_code</h2>
 
-        <div class="grid">
-            <div class="label">Client code</div>
-            <div class="value mono">
+        <div class="ukrsib-grid">
+            <div class="ukrsib-label">Client code</div>
+            <div class="ukrsib-value ukrsib-mono">
                 <?php echo $clientCodeExists ? htmlspecialchars($clientCodeData['client_code']) : '—'; ?>
             </div>
 
-            <div class="label">Создан</div>
-            <div class="value">
+            <div class="ukrsib-label">Створено</div>
+            <div class="ukrsib-value">
                 <?php
                 echo $clientCodeExists && !empty($clientCodeData['created_at'])
                     ? htmlspecialchars(formatDateTime($clientCodeData['created_at']))
@@ -384,12 +298,12 @@ $refreshPreview = $tokenExists ? substr($token['refresh_token'], 0, 40) . '...' 
                 ?>
             </div>
 
-            <div class="label">Возраст</div>
-            <div class="value">
+            <div class="ukrsib-label">Вік</div>
+            <div class="ukrsib-value">
                 <?php
                 if ($clientCodeExists && !empty($clientCodeData['created_at'])) {
                     $age = time() - (int)$clientCodeData['created_at'];
-                    echo htmlspecialchars(floor($age / 60)) . ' мин. ' . htmlspecialchars($age % 60) . ' сек.';
+                    echo htmlspecialchars(floor($age / 60)) . ' хв. ' . htmlspecialchars($age % 60) . ' сек.';
                 } else {
                     echo '—';
                 }
@@ -397,12 +311,12 @@ $refreshPreview = $tokenExists ? substr($token['refresh_token'], 0, 40) . '...' 
             </div>
         </div>
 
-        <div class="hint">
-            Для UKRSIB один и тот же <strong>client_code</strong> должен использоваться и в авторизации, и в обмене токена.
-            Между этими шагами должно пройти не более 15 минут.
+        <div class="ukrsib-hint">
+            Для UKRSIB один і той самий <strong>client_code</strong> має використовуватися і в авторизації, і в обміні токена.
+            Між цими кроками має пройти не більше 15 хвилин.
         </div>
     </div>
 
 </div>
-</body>
-</html>
+
+<?php require_once __DIR__ . '/../../shared/layout_end.php'; ?>

@@ -17,6 +17,7 @@ $dateFrom  = isset($_GET['date_from']) ? trim($_GET['date_from'])   : '';
 $dateTo    = isset($_GET['date_to'])   ? trim($_GET['date_to'])     : '';
 $page       = isset($_GET['page'])       ? max(1, (int)$_GET['page']) : 1;
 $showDrafts = !empty($_GET['show_drafts']);
+$unmatched  = !empty($_GET['unmatched']);
 $perPage    = 50;
 
 $params = array(
@@ -25,6 +26,7 @@ $params = array(
     'date_from'   => $dateFrom,
     'date_to'     => $dateTo,
     'show_drafts' => $showDrafts,
+    'unmatched'   => $unmatched,
     'limit'       => $perPage,
     'offset'      => ($page - 1) * $perPage,
 );

@@ -54,6 +54,7 @@ window.TtnDetailModal = (function () {
 
         overlay.addEventListener('click', function(e){ if(e.target===overlay) closeModal(); });
         document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !overlay.classList.contains('hidden')) closeModal(); });
+        if (typeof makeDraggable === 'function') makeDraggable(overlay, { box: '.ttn-modal-box', handle: '.ttn-mh' });
 
         // Delegate .ttn-num-link clicks
         document.addEventListener('click', function(e){

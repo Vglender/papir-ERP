@@ -16,12 +16,19 @@ $page       = max(1, isset($_GET['page']) ? (int)$_GET['page'] : 1);
 $limit      = 50;
 $offset     = ($page - 1) * $limit;
 
+$isPrinted  = isset($_GET['is_printed'])  ? $_GET['is_printed']  : '';
+$inRegistry = isset($_GET['in_registry']) ? $_GET['in_registry'] : '';
+$inCall     = isset($_GET['in_call'])     ? $_GET['in_call']     : '';
+
 $filters = array(
     'search'      => $search,
     'sender_ref'  => $senderRef,
     'state_group' => $draft ? '' : $stateGroup, // draft mode overrides state_group
     'date_from'   => $dateFrom,
     'date_to'     => $dateTo,
+    'is_printed'  => $isPrinted,
+    'in_registry' => $inRegistry,
+    'in_call'     => $inCall,
 );
 if ($draft) {
     $filters['state_define'] = 1;

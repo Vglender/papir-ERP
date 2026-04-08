@@ -61,7 +61,7 @@ function ld_docAmount($type, $id) {
 }
 
 $linked = 0;
-$allowedTypes = array('demand', 'paymentin', 'cashin', 'salesreturn', 'ttn_np');
+$allowedTypes = array('demand', 'paymentin', 'cashin', 'salesreturn', 'ttn_np', 'ttn_up');
 
 foreach ($docs as $doc) {
     $docType = isset($doc['type']) ? trim((string)$doc['type']) : '';
@@ -90,6 +90,23 @@ foreach ($docs as $doc) {
         'linked_sum' => $linkedSum > 0 ? $linkedSum : null,
     ));
     $linked++;
+}
+
+// If TTN was linked and order has next_action='ship', clear it
+if ($linked > 0) {
+    $hasTtnLink = false;
+    foreach ($docs as $doc) {
+        if (isset($doc['type']) && in_array($doc['type'], array('ttn_np', 'ttn_up'))) {
+            $hasTtnLink = true;
+            break;
+        }
+    }
+    if ($hasTtnLink) {
+        Database::query('Papir',
+            "UPDATE customerorder
+             SET next_action = NULL, next_action_label = NULL, updated_at = NOW()
+             WHERE id = {$orderId} AND next_action = 'ship'");
+    }
 }
 
 echo json_encode(array('ok' => true, 'linked' => $linked));

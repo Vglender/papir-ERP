@@ -8,7 +8,7 @@
  *
  * Params (GET):
  *   order_id   — customerorder.id
- *   doc_type   — demand | paymentin | cashin | salesreturn | invoiceout | ttn_np
+ *   doc_type   — demand | paymentin | cashin | salesreturn | ttn_np | ttn_up
  *   date_from  — Y-m-d (optional)
  *   date_to    — Y-m-d (optional)
  *   cp_q       — counterparty name search (optional)
@@ -21,6 +21,7 @@ $docType  = isset($_GET['doc_type'])  ? trim($_GET['doc_type'])            : '';
 $dateFrom = isset($_GET['date_from']) ? trim($_GET['date_from'])           : '';
 $dateTo   = isset($_GET['date_to'])   ? trim($_GET['date_to'])             : '';
 $cpQ      = isset($_GET['cp_q'])      ? trim($_GET['cp_q'])                : '';
+$ttnNum   = isset($_GET['ttn_num'])  ? trim($_GET['ttn_num'])              : '';
 
 if ($orderId <= 0 || $docType === '') {
     echo json_encode(array('ok' => false, 'error' => 'order_id and doc_type required'));
@@ -28,7 +29,7 @@ if ($orderId <= 0 || $docType === '') {
 }
 
 // Validate allowed types
-$allowedTypes = array('demand', 'paymentin', 'cashin', 'salesreturn', 'ttn_np');
+$allowedTypes = array('demand', 'paymentin', 'cashin', 'salesreturn', 'ttn_np', 'ttn_up');
 if (!in_array($docType, $allowedTypes)) {
     echo json_encode(array('ok' => false, 'error' => 'Unsupported doc_type'));
     exit;
@@ -205,24 +206,37 @@ if ($docType === 'salesreturn') {
 
 // ── ttn_np ────────────────────────────────────────────────────────────────────
 if ($docType === 'ttn_np') {
-    $where = "(deletion_mark IS NULL OR deletion_mark=0)" . ld_exclude('ttn_novaposhta', $linkedIds);
+    $where = "(tn.deletion_mark IS NULL OR tn.deletion_mark=0)" . ld_exclude('tn', $linkedIds);
     if ($dateFrom !== '') {
         $df = Database::escape('Papir', $dateFrom);
-        $where .= " AND created_at >= '{$df} 00:00:00'";
+        $where .= " AND tn.moment >= '{$df} 00:00:00'";
     }
     if ($dateTo !== '') {
         $dt = Database::escape('Papir', $dateTo);
-        $where .= " AND created_at <= '{$dt} 23:59:59'";
+        $where .= " AND tn.moment <= '{$dt} 23:59:59'";
     }
-    if ($cpQ !== '') {
+    if ($ttnNum !== '') {
+        $tn = Database::escape('Papir', $ttnNum);
+        $where .= " AND tn.int_doc_number LIKE '%{$tn}%'";
+    } elseif ($cpQ !== '') {
         $q = Database::escape('Papir', mb_strtolower($cpQ, 'UTF-8'));
-        $where .= " AND LOWER(COALESCE(recipient,'')) LIKE '%{$q}%'";
+        $tokens = preg_split('/\s+/u', $q);
+        $tokenParts = array();
+        foreach ($tokens as $tok) {
+            if ($tok === '') continue;
+            $te = Database::escape('Papir', $tok);
+            $tokenParts[] = "LOWER(COALESCE(tn.recipient_contact_person,'')) LIKE '%{$te}%'";
+        }
+        if (!empty($tokenParts)) {
+            $where .= " AND (" . implode(' AND ', $tokenParts) . ")";
+        }
     }
     $rT = Database::fetchAll('Papir',
-        "SELECT id, int_doc_number, created_at, recipient
-         FROM ttn_novaposhta
+        "SELECT tn.id, tn.int_doc_number, tn.moment, tn.recipient_contact_person,
+                tn.backward_delivery_money
+         FROM ttn_novaposhta tn
          WHERE {$where}
-         ORDER BY created_at DESC LIMIT 100");
+         ORDER BY tn.moment DESC LIMIT 100");
     if ($rT['ok']) {
         foreach ($rT['rows'] as $r) {
             $rows[] = array(
@@ -230,9 +244,61 @@ if ($docType === 'ttn_np') {
                 'type'       => 'ttn_np',
                 'type_name'  => 'ТТН Нова Пошта',
                 'number'     => $r['int_doc_number'] ?: ('#' . $r['id']),
-                'moment'     => $r['created_at'],
-                'counterparty' => $r['recipient'],
-                'amount'     => '',
+                'moment'     => $r['moment'],
+                'counterparty' => $r['recipient_contact_person'],
+                'amount'     => $r['backward_delivery_money'] > 0
+                    ? number_format((float)$r['backward_delivery_money'], 2, '.', ' ') . ' ₴'
+                    : '',
+            );
+        }
+    }
+}
+
+// ── ttn_up ────────────────────────────────────────────────────────────────────
+if ($docType === 'ttn_up') {
+    $where = "tu.lifecycle_status NOT IN ('CANCELLED','DELETED')" . ld_exclude('tu', $linkedIds);
+    if ($dateFrom !== '') {
+        $df = Database::escape('Papir', $dateFrom);
+        $where .= " AND tu.created_date >= '{$df} 00:00:00'";
+    }
+    if ($dateTo !== '') {
+        $dt = Database::escape('Papir', $dateTo);
+        $where .= " AND tu.created_date <= '{$dt} 23:59:59'";
+    }
+    if ($ttnNum !== '') {
+        $tn = Database::escape('Papir', $ttnNum);
+        $where .= " AND tu.barcode LIKE '%{$tn}%'";
+    } elseif ($cpQ !== '') {
+        $q = Database::escape('Papir', mb_strtolower($cpQ, 'UTF-8'));
+        $tokens = preg_split('/\s+/u', $q);
+        $tokenParts = array();
+        foreach ($tokens as $tok) {
+            if ($tok === '') continue;
+            $te = Database::escape('Papir', $tok);
+            $tokenParts[] = "LOWER(COALESCE(tu.recipient_name,'')) LIKE '%{$te}%'";
+        }
+        if (!empty($tokenParts)) {
+            $where .= " AND (" . implode(' AND ', $tokenParts) . ")";
+        }
+    }
+    $rU = Database::fetchAll('Papir',
+        "SELECT tu.id, tu.barcode, tu.created_date, tu.recipient_name,
+                tu.postPayUah
+         FROM ttn_ukrposhta tu
+         WHERE {$where}
+         ORDER BY tu.created_date DESC LIMIT 100");
+    if ($rU['ok']) {
+        foreach ($rU['rows'] as $r) {
+            $rows[] = array(
+                'id'         => (int)$r['id'],
+                'type'       => 'ttn_up',
+                'type_name'  => 'ТТН Укрпошта',
+                'number'     => $r['barcode'] ?: ('#' . $r['id']),
+                'moment'     => $r['created_date'],
+                'counterparty' => $r['recipient_name'],
+                'amount'     => $r['postPayUah'] > 0
+                    ? number_format((float)$r['postPayUah'], 2, '.', ' ') . ' ₴'
+                    : '',
             );
         }
     }

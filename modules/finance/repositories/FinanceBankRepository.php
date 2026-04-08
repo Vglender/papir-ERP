@@ -35,6 +35,11 @@ class FinanceBankRepository
             $where[] = "fb.moment <= '{$dt} 23:59:59'";
         }
 
+        // unmatched: показати тільки нерозпізнані (НЕРАЗОБРАННОЕ cp_id=28352 або cp_id IS NULL)
+        if (!empty($params['unmatched'])) {
+            $where[] = "(fb.cp_id = 28352 OR (fb.cp_id IS NULL AND cp_m.id IS NULL))";
+        }
+
         $search = isset($params['search']) ? trim($params['search']) : '';
         if ($search !== '') {
             $chipSep = (strpos($search, '|||') !== false) ? '/\s*\|\|\|\s*/u' : '/\s*,\s*/u';

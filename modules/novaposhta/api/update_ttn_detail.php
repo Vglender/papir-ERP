@@ -554,6 +554,14 @@ $r = $np->call('InternetDocument', 'update', $npProps);
 error_log('[NP_DBG] NP result ok=' . ($r['ok']?'true':'false') . ' error=' . $r['error'] . PHP_EOL, 3, '/var/log/papir/np_api.log');
 
 if (!$r['ok']) {
+    // If NP says document is printed/locked — update our DB flag
+    $errLower = mb_strtolower($r['error'], 'UTF-8');
+    if (strpos($errLower, 'друковано') !== false
+        || strpos($errLower, 'printed') !== false
+        || strpos($errLower, 'роздруковано') !== false
+        || strpos($errLower, 'не підлягає редагуванню') !== false) {
+        \Papir\Crm\TtnRepository::save(array('id' => $ttnId, 'is_printed' => 1));
+    }
     echo json_encode(array('ok' => false, 'error' => 'НП API: ' . $r['error']));
     exit;
 }

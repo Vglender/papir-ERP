@@ -47,13 +47,17 @@ $projects = Database::fetchAll('Papir', "SELECT `id`, `name` FROM `project` WHER
 $projects = $projects['ok'] ? $projects['rows'] : array();
 
 // Counterparty and contact person are loaded via picker (search API), not full list.
-// For existing orders we just need the current counterparty name to display.
+// For existing orders we just need the current counterparty name + type to display.
 $counterpartyName    = '';
+$counterpartyType    = '';
 $contactPersonName   = '';
 if (!empty($result['order']['counterparty_id'])) {
     $rCp = Database::fetchRow('Papir',
-        "SELECT id, name FROM counterparty WHERE id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
-    if ($rCp['ok'] && !empty($rCp['row'])) $counterpartyName = $rCp['row']['name'];
+        "SELECT id, name, type FROM counterparty WHERE id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
+    if ($rCp['ok'] && !empty($rCp['row'])) {
+        $counterpartyName = $rCp['row']['name'];
+        $counterpartyType = $rCp['row']['type'];
+    }
 }
 if (!empty($result['order']['contact_person_id'])) {
     $rPerson = Database::fetchRow('Papir',
@@ -63,21 +67,17 @@ if (!empty($result['order']['contact_person_id'])) {
 
 // Load initial contacts for person picker (only if counterparty is company/fop)
 $initialContacts = array();
-if (!empty($result['order']['counterparty_id'])) {
-    $rCpType = Database::fetchRow('Papir',
-        "SELECT type FROM counterparty WHERE id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
-    if ($rCpType['ok'] && !empty($rCpType['row']) && in_array($rCpType['row']['type'], array('company', 'fop'))) {
-        require_once __DIR__ . '/../counterparties/counterparties_bootstrap.php';
-        $cpRepo = new CounterpartyRepository();
-        $cpContacts = $cpRepo->getContacts((int)$result['order']['counterparty_id']);
-        foreach ($cpContacts as $row) {
-            $initialContacts[] = array(
-                'id'       => (int)$row['id'],
-                'name'     => $row['name'],
-                'phone'    => isset($row['phone']) ? $row['phone'] : '',
-                'position' => isset($row['position_name']) ? $row['position_name'] : (isset($row['job_title']) ? $row['job_title'] : ''),
-            );
-        }
+if (!empty($result['order']['counterparty_id']) && in_array($counterpartyType, array('company', 'fop'))) {
+    require_once __DIR__ . '/../counterparties/counterparties_bootstrap.php';
+    $cpRepo = new CounterpartyRepository();
+    $cpContacts = $cpRepo->getContacts((int)$result['order']['counterparty_id']);
+    foreach ($cpContacts as $row) {
+        $initialContacts[] = array(
+            'id'       => (int)$row['id'],
+            'name'     => $row['name'],
+            'phone'    => isset($row['phone']) ? $row['phone'] : '',
+            'position' => isset($row['position_name']) ? $row['position_name'] : (isset($row['job_title']) ? $row['job_title'] : ''),
+        );
     }
 }
 
@@ -107,11 +107,6 @@ $deliveryMethods = $rDMs['ok'] ? $rDMs['rows'] : array();
 $rPMs = Database::fetchAll('Papir',
     "SELECT id, code, name_uk FROM payment_method WHERE status=1 ORDER BY sort_order");
 $paymentMethods = $rPMs['ok'] ? $rPMs['rows'] : array();
-
-if (!isset($organizationBankAccounts)) {
-    $organizationBankAccounts = array();
-}
-
 
 // ── Traffic source (Google Analytics / remarketing) ──────────────────────
 $trafficSource = null;
@@ -188,6 +183,23 @@ if ($id > 0) {
             if ($rD['ok']) $linkedDemands = $rD['rows'];
         }
     }
+}
+
+// Кількість пов'язаних документів (для бейджа на вкладці)
+$relatedDocsCount = 0;
+if ($id > 0) {
+    // document_link records (excluding the order itself)
+    $rCnt = Database::fetchRow('Papir',
+        "SELECT COUNT(*) AS cnt FROM document_link
+         WHERE to_type='customerorder' AND to_id={$id}");
+    if ($rCnt['ok']) $relatedDocsCount = (int)$rCnt['row']['cnt'];
+
+    // demands linked via FK (customerorder_id) that are NOT already in document_link
+    $rCnt2 = Database::fetchRow('Papir',
+        "SELECT COUNT(*) AS cnt FROM demand
+         WHERE customerorder_id={$id}
+           AND id NOT IN (SELECT from_id FROM document_link WHERE to_type='customerorder' AND to_id={$id} AND from_type='demand' AND from_id IS NOT NULL)");
+    if ($rCnt2['ok']) $relatedDocsCount += (int)$rCnt2['row']['cnt'];
 }
 
 // Доступні переходи для створення документів із замовлення

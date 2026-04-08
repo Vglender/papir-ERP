@@ -27,7 +27,7 @@ function npStateClass($stateDefine) {
 $chipSearchJs = filemtime('/var/www/papir/modules/shared/chip-search.js');
 $curUrl = '/novaposhta/ttns';
 
-function npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef) {
+function npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef, $isPrinted = '', $inRegistry = '', $inCall = '') {
     $q = array('page' => $p);
     if ($search)                $q['search']      = $search;
     if ($stateGroup && !$draft) $q['state_group'] = $stateGroup;
@@ -35,6 +35,9 @@ function npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $sen
     if ($dateTo)                $q['date_to']     = $dateTo;
     if (!$draft)                $q['draft']       = '0';
     if ($senderRef)             $q['sender_ref']  = $senderRef;
+    if ($isPrinted !== '')      $q['is_printed']  = $isPrinted;
+    if ($inRegistry !== '')     $q['in_registry'] = $inRegistry;
+    if ($inCall !== '')         $q['in_call']     = $inCall;
     return '/novaposhta/ttns?' . http_build_query($q);
 }
 
@@ -88,6 +91,9 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
              width:18px; height:18px; border-radius:3px; cursor:default; }
 .ttn-badge svg { width:11px; height:11px; }
 .ttn-badge-cod      { background:#fff7ed; color:#c2410c; }
+.ttn-badge-printed  { background:#dbeafe; color:#2563eb; }
+.ttn-badge-registry { background:#d1fae5; color:#059669; }
+.ttn-badge-call     { background:#ede9fe; color:#7c3aed; }
 
 
 /* TTN Detail Modal — loaded from shared CSS */
@@ -144,6 +150,9 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
       <?php if ($dateTo):     ?><input type="hidden" name="date_to"     value="<?php echo ViewHelper::h($dateTo); ?>"><?php endif; ?>
       <?php if (!$draft):     ?><input type="hidden" name="draft"       value="0"><?php endif; ?>
       <?php if ($senderRef):  ?><input type="hidden" name="sender_ref"  value="<?php echo ViewHelper::h($senderRef); ?>"><?php endif; ?>
+      <?php if ($isPrinted !== ''):  ?><input type="hidden" name="is_printed"  value="<?php echo ViewHelper::h($isPrinted); ?>"><?php endif; ?>
+      <?php if ($inRegistry !== ''): ?><input type="hidden" name="in_registry" value="<?php echo ViewHelper::h($inRegistry); ?>"><?php endif; ?>
+      <?php if ($inCall !== ''):     ?><input type="hidden" name="in_call"     value="<?php echo ViewHelper::h($inCall); ?>"><?php endif; ?>
       <!-- Bulk actions (shown when rows selected) -->
       <div class="ttn-bulk-wrap" id="ttnBulkWrap">
         <span class="ttn-bulk-count" id="ttnBulkCount">0</span>
@@ -222,6 +231,9 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         <?php if ($search):     ?><input type="hidden" name="search"      value="<?php echo ViewHelper::h($search); ?>"><?php endif; ?>
         <?php if (!$draft):     ?><input type="hidden" name="draft"       value="0"><?php endif; ?>
         <?php if ($senderRef):  ?><input type="hidden" name="sender_ref"  value="<?php echo ViewHelper::h($senderRef); ?>"><?php endif; ?>
+        <?php if ($isPrinted !== ''):  ?><input type="hidden" name="is_printed"  value="<?php echo ViewHelper::h($isPrinted); ?>"><?php endif; ?>
+        <?php if ($inRegistry !== ''): ?><input type="hidden" name="in_registry" value="<?php echo ViewHelper::h($inRegistry); ?>"><?php endif; ?>
+        <?php if ($inCall !== ''):     ?><input type="hidden" name="in_call"     value="<?php echo ViewHelper::h($inCall); ?>"><?php endif; ?>
         <input type="hidden" name="page" value="1">
         <input type="date" name="date_from" value="<?php echo ViewHelper::h($dateFrom); ?>"
                style="font-size:12px;border:1px solid #d1d5db;border-radius:4px;padding:3px 6px;height:28px">
@@ -257,6 +269,52 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
       </select>
     </div>
     <?php endif; ?>
+    <div class="filter-bar-sep"></div>
+    <div class="filter-bar-group">
+      <?php
+        // Build base query for icon filters (preserving all current params)
+        function npIconFilterUrl($isPrintedVal, $inRegistryVal, $inCallVal) {
+            global $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef, $isPrinted, $inRegistry, $inCall;
+            $q = array('page' => 1);
+            if ($search)                $q['search']      = $search;
+            if ($stateGroup && !$draft) $q['state_group'] = $stateGroup;
+            if ($dateFrom)              $q['date_from']   = $dateFrom;
+            if ($dateTo)                $q['date_to']     = $dateTo;
+            if (!$draft)                $q['draft']       = '0';
+            if ($senderRef)             $q['sender_ref']  = $senderRef;
+            if ($isPrintedVal !== '')    $q['is_printed']  = $isPrintedVal;
+            if ($inRegistryVal !== '')   $q['in_registry'] = $inRegistryVal;
+            if ($inCallVal !== '')       $q['in_call']     = $inCallVal;
+            return '/novaposhta/ttns?' . http_build_query($q);
+        }
+        // Toggle: click active → remove filter; click inactive → set filter
+        function npIconToggle($current, $target, $field) {
+            global $isPrinted, $inRegistry, $inCall;
+            $p = ($field === 'is_printed')  ? ($current === $target ? '' : $target) : $isPrinted;
+            $r = ($field === 'in_registry') ? ($current === $target ? '' : $target) : $inRegistry;
+            $c = ($field === 'in_call')     ? ($current === $target ? '' : $target) : $inCall;
+            return npIconFilterUrl($p, $r, $c);
+        }
+      ?>
+      <a href="<?php echo npIconToggle($isPrinted, '1', 'is_printed'); ?>"
+         class="filter-pill<?php echo $isPrinted === '1' ? ' active' : ''; ?>"
+         title="Роздруковані"><span class="ttn-badge ttn-badge-printed" style="width:16px;height:16px;vertical-align:middle"><svg viewBox="0 0 16 16" fill="none"><path d="M4 6V2h8v4M4 12v2h8v-2" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><rect x="2" y="6" width="12" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="9" r=".8" fill="currentColor"/></svg></span></a>
+      <a href="<?php echo npIconToggle($isPrinted, '0', 'is_printed'); ?>"
+         class="filter-pill<?php echo $isPrinted === '0' ? ' active' : ''; ?>"
+         title="Не роздруковані" style="text-decoration:line-through"><span class="ttn-badge ttn-badge-printed" style="width:16px;height:16px;vertical-align:middle;opacity:.5"><svg viewBox="0 0 16 16" fill="none"><path d="M4 6V2h8v4M4 12v2h8v-2" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><rect x="2" y="6" width="12" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="9" r=".8" fill="currentColor"/></svg></span></a>
+      <a href="<?php echo npIconToggle($inRegistry, '1', 'in_registry'); ?>"
+         class="filter-pill<?php echo $inRegistry === '1' ? ' active' : ''; ?>"
+         title="В реєстрі"><span class="ttn-badge ttn-badge-registry" style="width:16px;height:16px;vertical-align:middle"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6 5h4M6 8h4M6 11h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span></a>
+      <a href="<?php echo npIconToggle($inRegistry, '0', 'in_registry'); ?>"
+         class="filter-pill<?php echo $inRegistry === '0' ? ' active' : ''; ?>"
+         title="Не в реєстрі" style="text-decoration:line-through"><span class="ttn-badge ttn-badge-registry" style="width:16px;height:16px;vertical-align:middle;opacity:.5"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6 5h4M6 8h4M6 11h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span></a>
+      <a href="<?php echo npIconToggle($inCall, '1', 'in_call'); ?>"
+         class="filter-pill<?php echo $inCall === '1' ? ' active' : ''; ?>"
+         title="У виклику кур'єра"><span class="ttn-badge ttn-badge-call" style="width:16px;height:16px;vertical-align:middle"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2v5l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/></svg></span></a>
+      <a href="<?php echo npIconToggle($inCall, '0', 'in_call'); ?>"
+         class="filter-pill<?php echo $inCall === '0' ? ' active' : ''; ?>"
+         title="Не у виклику кур'єра" style="text-decoration:line-through"><span class="ttn-badge ttn-badge-call" style="width:16px;height:16px;vertical-align:middle;opacity:.5"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2v5l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/></svg></span></a>
+    </div>
     <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
       <svg viewBox="0 0 16 16" fill="none"><path d="M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" stroke="currentColor" stroke-width="1.4"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
     </button>
@@ -300,9 +358,20 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
                  style="text-decoration:none;color:inherit">
                 <?php echo ViewHelper::h($row['int_doc_number']); ?>
               </a>
+              <span class="ttn-badges">
               <?php if (!empty($row['backward_delivery_money']) && $row['backward_delivery_money'] > 0): ?>
-                <span class="ttn-badges"><span class="ttn-badge ttn-badge-cod" title="Зворотня доставка <?php echo number_format((float)$row['backward_delivery_money'], 0, '.', ' '); ?> грн"><svg viewBox="0 0 16 16" fill="none"><path d="M13 5H6a3 3 0 0 0 0 6h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 3l2 2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span>
+                <span class="ttn-badge ttn-badge-cod" title="Зворотня доставка <?php echo number_format((float)$row['backward_delivery_money'], 0, '.', ' '); ?> грн"><svg viewBox="0 0 16 16" fill="none"><path d="M13 5H6a3 3 0 0 0 0 6h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M11 3l2 2-2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
               <?php endif; ?>
+              <?php if (!empty($row['is_printed'])): ?>
+                <span class="ttn-badge ttn-badge-printed" title="Роздруковано"><svg viewBox="0 0 16 16" fill="none"><path d="M4 6V2h8v4M4 12v2h8v-2" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><rect x="2" y="6" width="12" height="6" rx="1" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="9" r=".8" fill="currentColor"/></svg></span>
+              <?php endif; ?>
+              <?php if (!empty($row['scan_sheet_ref'])): ?>
+                <span class="ttn-badge ttn-badge-registry" title="В реєстрі"><svg viewBox="0 0 16 16" fill="none"><rect x="3" y="2" width="10" height="12" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M6 5h4M6 8h4M6 11h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+              <?php endif; ?>
+              <?php if (!empty($row['has_call'])): ?>
+                <span class="ttn-badge ttn-badge-call" title="У виклику кур'єра"><svg viewBox="0 0 16 16" fill="none"><path d="M8 2v5l3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/></svg></span>
+              <?php endif; ?>
+              </span>
             <?php else: ?>
               <span class="text-muted">—</span>
             <?php endif; ?>
@@ -385,17 +454,17 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
   <?php if ($totalPages > 1): ?>
   <div class="pagination">
     <?php if ($page > 1): ?>
-      <a href="<?php echo npTtnPageUrl($page-1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>" data-page="<?php echo $page-1; ?>">&laquo;</a>
+      <a href="<?php echo npTtnPageUrl($page-1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef, $isPrinted, $inRegistry, $inCall); ?>" data-page="<?php echo $page-1; ?>">&laquo;</a>
     <?php endif; ?>
     <?php for ($p = max(1, $page-3); $p <= min($totalPages, $page+3); $p++): ?>
       <?php if ($p === $page): ?>
         <span class="cur"><?php echo $p; ?></span>
       <?php else: ?>
-        <a href="<?php echo npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>" data-page="<?php echo $p; ?>"><?php echo $p; ?></a>
+        <a href="<?php echo npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef, $isPrinted, $inRegistry, $inCall); ?>" data-page="<?php echo $p; ?>"><?php echo $p; ?></a>
       <?php endif; ?>
     <?php endfor; ?>
     <?php if ($page < $totalPages): ?>
-      <a href="<?php echo npTtnPageUrl($page+1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef); ?>" data-page="<?php echo $page+1; ?>">&raquo;</a>
+      <a href="<?php echo npTtnPageUrl($page+1, $search, $stateGroup, $dateFrom, $dateTo, $draft, $senderRef, $isPrinted, $inRegistry, $inCall); ?>" data-page="<?php echo $page+1; ?>">&raquo;</a>
     <?php endif; ?>
     <span class="dots"><?php echo number_format($total, 0, '.', ' '); ?> ТТН</span>
   </div>
@@ -610,36 +679,37 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         });
         cell.querySelector('.ttn-order-cancel').addEventListener('click', function () {
             cell.innerHTML = '<span class="text-muted ttn-order-empty" title="Натисніть щоб прив\'язати замовлення">—</span>';
-            bindEmpty(cell);
+
         });
         cell.querySelector('.ttn-order-save').addEventListener('click', function () {
             var raw = inp.value.trim().replace(/^#/, '');
-            var orderId = parseInt(raw, 10);
-            if (!orderId) { inp.style.borderColor = '#dc2626'; inp.focus(); return; }
-            saveOrderLink(cell, ttnId, orderId);
+            if (!raw) { inp.style.borderColor = '#dc2626'; inp.focus(); return; }
+            saveOrderLink(cell, ttnId, raw);
         });
     }
 
-    function saveOrderLink(cell, ttnId, orderId) {
+    function saveOrderLink(cell, ttnId, orderQuery) {
         cell.innerHTML = '<span class="text-muted fs-12">…</span>';
         fetch('/novaposhta/api/set_ttn_order', {
             method: 'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-            body: 'ttn_id=' + ttnId + '&order_id=' + orderId
+            body: 'ttn_id=' + ttnId + '&order_query=' + encodeURIComponent(orderQuery)
         }).then(function (r) { return r.json(); }).then(function (res) {
             if (!res.ok) {
                 showToast((res.error || 'Помилка'), true);
                 cell.innerHTML = '<span class="text-muted ttn-order-empty" title="Натисніть щоб прив\'язати замовлення">—</span>';
-                bindEmpty(cell);
+    
                 return;
             }
-            cell.innerHTML = '<a href="/customerorder/edit?id=' + orderId + '" target="_blank" class="fs-12 ttn-order-link">#' + orderId + '</a>';
-            bindLink(cell);
-            showToast('Прив\'язано до замовлення #' + orderId);
+            var oid = res.order_id;
+            var label = res.order_number || ('#' + oid);
+            cell.innerHTML = '<a href="/customerorder/edit?id=' + oid + '" target="_blank" class="fs-12 ttn-order-link">' + label + '</a>';
+
+            showToast('Прив\'язано до замовлення ' + label);
         }).catch(function () {
             showToast('Мережева помилка', true);
             cell.innerHTML = '<span class="text-muted ttn-order-empty" title="Натисніть щоб прив\'язати замовлення">—</span>';
-            bindEmpty(cell);
+
         });
     }
 

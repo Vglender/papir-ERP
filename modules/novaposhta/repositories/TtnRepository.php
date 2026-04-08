@@ -111,6 +111,27 @@ class TtnRepository
             $where[] = 't.deletion_mark = 0';
         }
 
+        // Printed filter
+        if (isset($filters['is_printed']) && $filters['is_printed'] !== '') {
+            $where[] = 't.is_printed = ' . (int)$filters['is_printed'];
+        }
+        // In scan sheet filter
+        if (isset($filters['in_registry']) && $filters['in_registry'] !== '') {
+            if ((int)$filters['in_registry']) {
+                $where[] = "t.scan_sheet_ref IS NOT NULL AND t.scan_sheet_ref != ''";
+            } else {
+                $where[] = "(t.scan_sheet_ref IS NULL OR t.scan_sheet_ref = '')";
+            }
+        }
+        // In courier call filter
+        if (isset($filters['in_call']) && $filters['in_call'] !== '') {
+            if ((int)$filters['in_call']) {
+                $where[] = "EXISTS (SELECT 1 FROM np_courier_call_ttns cct WHERE cct.ttn_id = t.id)";
+            } else {
+                $where[] = "NOT EXISTS (SELECT 1 FROM np_courier_call_ttns cct WHERE cct.ttn_id = t.id)";
+            }
+        }
+
         $whereStr = implode(' AND ', $where);
 
         // Draft mode: старі ТТН (2+ дні) — вгору, потім нові; в межах кожної групи — за датою
@@ -134,7 +155,8 @@ class TtnRepository
                     t.sender_ref,
                     t.scan_sheet_ref, t.car_call, t.is_printed,
                     s.Description AS sender_desc,
-                    ss.status AS scan_sheet_status
+                    ss.status AS scan_sheet_status,
+                    (SELECT COUNT(*) FROM np_courier_call_ttns cct WHERE cct.ttn_id = t.id) > 0 AS has_call
              FROM ttn_novaposhta t
              LEFT JOIN np_sender s ON s.Ref = t.sender_ref
              LEFT JOIN np_scan_sheets ss ON ss.Ref = t.scan_sheet_ref

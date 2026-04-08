@@ -4,23 +4,27 @@ class CustomerOrderRepository
 {
     protected $dbName = 'Papir';
 
-public function getList($filters = array(), $sort = array(), $page = 1, $limit = 50)
+/**
+ * Build WHERE clauses + flags from shared filter array.
+ * Returns ['where' => array, 'needsCpJoin' => bool, 'needsMsgJoin' => bool]
+ */
+private function buildWhere($filters)
 {
-    $page = max(1, (int)$page);
-    $limit = max(1, (int)$limit);
-    $offset = ($page - 1) * $limit;
-
     $where = array();
     $where[] = 'co.`deleted_at` IS NULL';
+    $needsCpJoin = false;
+    $needsMsgJoin = false;
 
     if (!empty($filters['search'])) {
+        $needsCpJoin = true;
         $rawChips = preg_split('/\s*,\s*/', trim($filters['search']));
         $chipConds = array();
         foreach ($rawChips as $chip) {
             $chip = trim($chip);
             if ($chip === '') continue;
             if (preg_match('/^\d+$/', $chip)) {
-                $chipConds[] = 'co.`id` = ' . (int)$chip;
+                $t = Database::escape($this->dbName, $chip);
+                $chipConds[] = "(co.`id` = " . (int)$chip . " OR LOWER(co.`number`) LIKE '%{$t}%')";
             } else {
                 $tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
                 $tokenParts = array();
@@ -42,12 +46,10 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
     if (!empty($filters['id'])) {
         $where[] = 'co.`id` = ' . (int)$filters['id'];
     }
-
     if (!empty($filters['number'])) {
         $number = Database::escape($this->dbName, $filters['number']);
         $where[] = "co.`number` LIKE '%{$number}%'";
     }
-
     if (!empty($filters['status'])) {
         if (is_array($filters['status'])) {
             $sts = array();
@@ -62,31 +64,98 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
             $where[] = "co.`status` = '{$status}'";
         }
     }
-
     if (!empty($filters['payment_status'])) {
-        $paymentStatus = Database::escape($this->dbName, $filters['payment_status']);
-        $where[] = "co.`payment_status` = '{$paymentStatus}'";
+        if (is_array($filters['payment_status'])) {
+            $vals = array();
+            foreach ($filters['payment_status'] as $v) {
+                $vals[] = "'" . Database::escape($this->dbName, $v) . "'";
+            }
+            $where[] = 'co.`payment_status` IN (' . implode(',', $vals) . ')';
+        } else {
+            $paymentStatus = Database::escape($this->dbName, $filters['payment_status']);
+            $where[] = "co.`payment_status` = '{$paymentStatus}'";
+        }
     }
-
     if (!empty($filters['shipment_status'])) {
-        $shipmentStatus = Database::escape($this->dbName, $filters['shipment_status']);
-        $where[] = "co.`shipment_status` = '{$shipmentStatus}'";
+        if (is_array($filters['shipment_status'])) {
+            $vals = array();
+            foreach ($filters['shipment_status'] as $v) {
+                $vals[] = "'" . Database::escape($this->dbName, $v) . "'";
+            }
+            $where[] = 'co.`shipment_status` IN (' . implode(',', $vals) . ')';
+        } else {
+            $shipmentStatus = Database::escape($this->dbName, $filters['shipment_status']);
+            $where[] = "co.`shipment_status` = '{$shipmentStatus}'";
+        }
     }
-
     if (!empty($filters['manager_employee_id'])) {
         $where[] = 'co.`manager_employee_id` = ' . (int)$filters['manager_employee_id'];
     }
-
+    if (!empty($filters['organization_id'])) {
+        $where[] = 'co.`organization_id` = ' . (int)$filters['organization_id'];
+    }
+    if (!empty($filters['counterparty_id'])) {
+        $where[] = 'co.`counterparty_id` = ' . (int)$filters['counterparty_id'];
+    }
     if (!empty($filters['date_from'])) {
         $dateFrom = Database::escape($this->dbName, $filters['date_from']);
         $where[] = "co.`moment` >= '{$dateFrom} 00:00:00'";
     }
-
     if (!empty($filters['date_to'])) {
         $dateTo = Database::escape($this->dbName, $filters['date_to']);
         $where[] = "co.`moment` <= '{$dateTo} 23:59:59'";
     }
+    if (isset($filters['sum_from']) && $filters['sum_from'] !== '' && $filters['sum_from'] !== null) {
+        $where[] = 'co.`sum_total` >= ' . (float)$filters['sum_from'];
+    }
+    if (isset($filters['sum_to']) && $filters['sum_to'] !== '' && $filters['sum_to'] !== null) {
+        $where[] = 'co.`sum_total` <= ' . (float)$filters['sum_to'];
+    }
+    if (!empty($filters['next_action'])) {
+        if ($filters['next_action'] === '__none__') {
+            $where[] = "(co.`next_action` IS NULL OR co.`next_action` = '')";
+        } else {
+            $na = Database::escape($this->dbName, $filters['next_action']);
+            $where[] = "co.`next_action` = '{$na}'";
+        }
+    }
+    if (!empty($filters['has_unread'])) {
+        $needsMsgJoin = true;
+        if ($filters['has_unread'] === 'yes') {
+            $where[] = 'msg_cnt.cnt > 0';
+        } else {
+            $where[] = '(msg_cnt.cnt IS NULL OR msg_cnt.cnt = 0)';
+        }
+    }
 
+    if (!empty($filters['payment_method_id'])) {
+        $where[] = 'co.`payment_method_id` = ' . (int)$filters['payment_method_id'];
+    }
+    if (!empty($filters['delivery_method_id'])) {
+        $where[] = 'co.`delivery_method_id` = ' . (int)$filters['delivery_method_id'];
+    }
+
+    $needsTtnJoin = false;
+    if (!empty($filters['has_ttn'])) {
+        $needsTtnJoin = true;
+        if ($filters['has_ttn'] === 'yes') {
+            $where[] = '(COALESCE(ttn_np_cnt.cnt,0) + COALESCE(ttn_up_cnt.cnt,0)) > 0';
+        } else {
+            $where[] = '(COALESCE(ttn_np_cnt.cnt,0) + COALESCE(ttn_up_cnt.cnt,0)) = 0';
+        }
+    }
+
+    return array('where' => $where, 'needsCpJoin' => $needsCpJoin, 'needsMsgJoin' => $needsMsgJoin, 'needsTtnJoin' => $needsTtnJoin);
+}
+
+public function getList($filters = array(), $sort = array(), $page = 1, $limit = 50)
+{
+    $page = max(1, (int)$page);
+    $limit = max(1, (int)$limit);
+    $offset = ($page - 1) * $limit;
+
+    $built = $this->buildWhere($filters);
+    $where = $built['where'];
     $whereSql = implode(' AND ', $where);
 
     $allowedSort = array(
@@ -109,32 +178,41 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
         $sortDir = strtoupper($sort['dir']);
     }
 
-    // ✅ ИСПРАВЛЕНО: убрал WHERE co.id = {$id} и LIMIT 1
+    // When sorting by id (default) with no complex filters, FORCE INDEX(PRIMARY)
+    // avoids filesort on 119K+ rows — backward index scan, ~50 rows examined
+    $onlyDeletedFilter = (count($where) === 1);
+    $sortById = ($sortField === 'co.`id`');
+    $forceIdx = ($onlyDeletedFilter && $sortById) ? ' FORCE INDEX (PRIMARY)' : '';
+
     $sql = "
         SELECT
-            co.*,
+            co.`id`, co.`number`, co.`moment`, co.`status`,
+            co.`payment_status`, co.`shipment_status`,
+            co.`sum_total`, co.`counterparty_id`,
+            co.`organization_id`, co.`manager_employee_id`,
+            co.`next_action`, co.`next_action_label`,
+            COALESCE(NULLIF(org.`short_name`,''), org.`name`) AS organization_short,
             org.`name` AS organization_name,
-            st.`name` AS store_name,
-            emp.`full_name` AS manager_name,
-            upd.`full_name` AS updated_by_name,
+            COALESCE(NULLIF(emp.`full_name`,''), au.`display_name`) AS manager_display,
             c.`name` AS counterparty_name,
-            cp.`name` AS contact_person_name,
-            ctr.`number` AS contract_number,
-            ctr.`title` AS contract_title,
-            pr.`name` AS project_name,
-            oba.`iban` AS organization_bank_account_iban,
-            oba.`account_name` AS organization_bank_account_name,
-            (SELECT COUNT(*) FROM customerorder_item WHERE customerorder_id = co.id) as items_count
-        FROM `customerorder` co
+            co.`delivery_method_id`,
+            dm.`code` AS delivery_method_code,
+            co.`payment_method_id`,
+            pm.`code` AS payment_method_code
+        FROM `customerorder` co{$forceIdx}
         LEFT JOIN `organization` org ON org.`id` = co.`organization_id`
-        LEFT JOIN `store` st ON st.`id` = co.`store_id`
         LEFT JOIN `employee` emp ON emp.`id` = co.`manager_employee_id`
-        LEFT JOIN `employee` upd ON upd.`id` = co.`updated_by_employee_id`
+        LEFT JOIN `auth_users` au ON au.`employee_id` = emp.`id`
         LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`
-        LEFT JOIN `counterparty` cp ON cp.`id` = co.`contact_person_id`
-        LEFT JOIN `contract` ctr ON ctr.`id` = co.`contract_id`
-        LEFT JOIN `project` pr ON pr.`id` = co.`project_id`
-        LEFT JOIN `organization_bank_account` oba ON oba.`id` = co.`organization_bank_account_id`
+        LEFT JOIN `delivery_method` dm ON dm.`id` = co.`delivery_method_id`
+        LEFT JOIN `payment_method` pm ON pm.`id` = co.`payment_method_id`
+        " . ($built['needsMsgJoin']
+            ? "LEFT JOIN (SELECT order_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' GROUP BY order_id) msg_cnt ON msg_cnt.order_id = co.id"
+            : '') . "
+        " . ($built['needsTtnJoin']
+            ? "LEFT JOIN (SELECT dl.to_id AS oid, COUNT(*) AS cnt FROM document_link dl JOIN ttn_novaposhta tn ON tn.id=dl.from_id WHERE dl.from_type='ttn_np' AND dl.to_type='customerorder' AND (tn.deletion_mark IS NULL OR tn.deletion_mark=0) AND tn.state_define NOT IN (102,105) AND LOWER(tn.state_name) NOT LIKE '%відмов%' AND LOWER(tn.state_name) NOT LIKE '%отказ%' GROUP BY dl.to_id) ttn_np_cnt ON ttn_np_cnt.oid=co.id
+             LEFT JOIN (SELECT dl.to_id AS oid, COUNT(*) AS cnt FROM document_link dl JOIN ttn_ukrposhta tu ON tu.id=dl.from_id WHERE dl.from_type='ttn_up' AND dl.to_type='customerorder' AND tu.lifecycle_status NOT IN ('RETURNED','RETURNING','CANCELLED','DELETED') GROUP BY dl.to_id) ttn_up_cnt ON ttn_up_cnt.oid=co.id"
+            : '') . "
         WHERE {$whereSql}
         ORDER BY {$sortField} {$sortDir}
         LIMIT {$offset}, {$limit}
@@ -251,96 +329,27 @@ public function searchProducts($query, $limit = 15)
 
 	public function countList($filters = array())
 	{
-		$where = array();
-		$where[] = 'co.`deleted_at` IS NULL';
+		$built = $this->buildWhere($filters);
+		$whereSql = implode(' AND ', $built['where']);
 
-		if (!empty($filters['search'])) {
-			$rawChips = preg_split('/\s*,\s*/', trim($filters['search']));
-			$chipConds = array();
-			foreach ($rawChips as $chip) {
-				$chip = trim($chip);
-				if ($chip === '') continue;
-				if (preg_match('/^\d+$/', $chip)) {
-					$chipConds[] = 'co.`id` = ' . (int)$chip;
-				} else {
-					$tokens = preg_split('/\s+/u', mb_strtolower($chip, 'UTF-8'));
-					$tokenParts = array();
-					foreach ($tokens as $token) {
-						if ($token === '') continue;
-						$t = Database::escape($this->dbName, $token);
-						$tokenParts[] = "(LOWER(co.`number`) LIKE '%{$t}%' OR LOWER(COALESCE(c.`name`,'')) LIKE '%{$t}%')";
-					}
-					if (!empty($tokenParts)) {
-						$chipConds[] = '(' . implode(' AND ', $tokenParts) . ')';
-					}
-				}
-			}
-			if (!empty($chipConds)) {
-				$where[] = '(' . implode(' OR ', $chipConds) . ')';
-			}
+		$joins = '';
+		if ($built['needsCpJoin']) {
+			$joins .= ' LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`';
+		}
+		if ($built['needsMsgJoin']) {
+			$joins .= " LEFT JOIN (SELECT order_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' GROUP BY order_id) msg_cnt ON msg_cnt.order_id = co.id";
+		}
+		if ($built['needsTtnJoin']) {
+			$joins .= " LEFT JOIN (SELECT dl.to_id AS oid, COUNT(*) AS cnt FROM document_link dl JOIN ttn_novaposhta tn ON tn.id=dl.from_id WHERE dl.from_type='ttn_np' AND dl.to_type='customerorder' AND (tn.deletion_mark IS NULL OR tn.deletion_mark=0) AND tn.state_define NOT IN (102,105) AND LOWER(tn.state_name) NOT LIKE '%відмов%' AND LOWER(tn.state_name) NOT LIKE '%отказ%' GROUP BY dl.to_id) ttn_np_cnt ON ttn_np_cnt.oid=co.id";
+			$joins .= " LEFT JOIN (SELECT dl.to_id AS oid, COUNT(*) AS cnt FROM document_link dl JOIN ttn_ukrposhta tu ON tu.id=dl.from_id WHERE dl.from_type='ttn_up' AND dl.to_type='customerorder' AND tu.lifecycle_status NOT IN ('RETURNED','RETURNING','CANCELLED','DELETED') GROUP BY dl.to_id) ttn_up_cnt ON ttn_up_cnt.oid=co.id";
 		}
 
-		if (!empty($filters['id'])) {
-			$where[] = 'co.`id` = ' . (int)$filters['id'];
-		}
-
-		if (!empty($filters['number'])) {
-			$number = Database::escape($this->dbName, $filters['number']);
-			$where[] = "co.`number` LIKE '%{$number}%'";
-		}
-
-		if (!empty($filters['status'])) {
-			if (is_array($filters['status'])) {
-				$sts = array();
-				foreach ($filters['status'] as $sv) {
-					$sts[] = "'" . Database::escape($this->dbName, $sv) . "'";
-				}
-				if (!empty($sts)) {
-					$where[] = 'co.`status` IN (' . implode(',', $sts) . ')';
-				}
-			} else {
-				$s = Database::escape($this->dbName, $filters['status']);
-				$where[] = "co.`status` = '{$s}'";
-			}
-		}
-
-		if (!empty($filters['payment_status'])) {
-			$paymentStatus = Database::escape($this->dbName, $filters['payment_status']);
-			$where[] = "co.`payment_status` = '{$paymentStatus}'";
-		}
-
-		if (!empty($filters['shipment_status'])) {
-			$shipmentStatus = Database::escape($this->dbName, $filters['shipment_status']);
-			$where[] = "co.`shipment_status` = '{$shipmentStatus}'";
-		}
-
-		if (!empty($filters['manager_employee_id'])) {
-			$where[] = 'co.`manager_employee_id` = ' . (int)$filters['manager_employee_id'];
-		}
-
-		if (!empty($filters['date_from'])) {
-			$dateFrom = Database::escape($this->dbName, $filters['date_from']);
-			$where[] = "co.`moment` >= '{$dateFrom} 00:00:00'";
-		}
-
-		if (!empty($filters['date_to'])) {
-			$dateTo = Database::escape($this->dbName, $filters['date_to']);
-			$where[] = "co.`moment` <= '{$dateTo} 23:59:59'";
-		}
-
-		$whereSql = implode(' AND ', $where);
-
-		$sql = "SELECT COUNT(*) AS total
-			FROM `customerorder` co
-			LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`
-			WHERE {$whereSql}";
-		
+		$sql = "SELECT COUNT(*) AS total FROM `customerorder` co{$joins} WHERE {$whereSql}";
 		$result = Database::fetchValue($this->dbName, $sql, 'total');
-		
+
 		if ($result['ok']) {
 			return array('ok' => true, 'value' => (int)$result['value']);
 		}
-		
 		return array('ok' => false, 'error' => $result['error'] ? $result['error']: 'Unknown error');
 	}
 

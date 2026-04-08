@@ -46,6 +46,7 @@ $params = array(
     'backward_delivery_money'  => isset($_POST['backward_delivery_money'])  ? (float)$_POST['backward_delivery_money'] : 0,
     'date'                     => isset($_POST['date'])                     ? trim($_POST['date'])                     : date('d.m.Y'),
     'sender_phone'             => isset($_POST['sender_phone'])             ? trim($_POST['sender_phone'])             : '',
+    'options_seat'             => isset($_POST['options_seat'])             ? $_POST['options_seat']                   : '',
 );
 
 // Basic validation

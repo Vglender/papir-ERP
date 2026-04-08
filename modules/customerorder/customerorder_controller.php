@@ -12,15 +12,24 @@ class CustomerOrderController
     public function index($request = array())
     {
         $filters = array(
-            'search' => isset($request['search']) ? trim($request['search']) : null,
-            'id' => isset($request['id']) ? $request['id'] : null,
-            'number' => isset($request['number']) ? $request['number'] : null,
-            'status' => isset($request['status']) ? $request['status'] : null,
-            'payment_status' => isset($request['payment_status']) ? $request['payment_status'] : null,
-            'shipment_status' => isset($request['shipment_status']) ? $request['shipment_status'] : null,
+            'search'              => isset($request['search']) ? trim($request['search']) : null,
+            'id'                  => isset($request['id']) ? $request['id'] : null,
+            'number'              => isset($request['number']) ? $request['number'] : null,
+            'status'              => isset($request['status']) ? $request['status'] : null,
+            'payment_status'      => isset($request['payment_status']) ? $request['payment_status'] : null,
+            'shipment_status'     => isset($request['shipment_status']) ? $request['shipment_status'] : null,
             'manager_employee_id' => isset($request['manager_employee_id']) ? $request['manager_employee_id'] : null,
-            'date_from' => isset($request['date_from']) ? $request['date_from'] : null,
-            'date_to' => isset($request['date_to']) ? $request['date_to'] : null,
+            'organization_id'     => isset($request['organization_id']) ? $request['organization_id'] : null,
+            'counterparty_id'     => isset($request['counterparty_id']) ? $request['counterparty_id'] : null,
+            'date_from'           => isset($request['date_from']) ? $request['date_from'] : null,
+            'date_to'             => isset($request['date_to']) ? $request['date_to'] : null,
+            'sum_from'            => isset($request['sum_from']) ? $request['sum_from'] : null,
+            'sum_to'              => isset($request['sum_to']) ? $request['sum_to'] : null,
+            'next_action'         => isset($request['next_action']) ? $request['next_action'] : null,
+            'has_unread'          => isset($request['has_unread']) ? $request['has_unread'] : null,
+            'has_ttn'             => isset($request['has_ttn']) ? $request['has_ttn'] : null,
+            'payment_method_id'   => isset($request['payment_method_id']) ? $request['payment_method_id'] : null,
+            'delivery_method_id'  => isset($request['delivery_method_id']) ? $request['delivery_method_id'] : null,
         );
 
         $sort = array(

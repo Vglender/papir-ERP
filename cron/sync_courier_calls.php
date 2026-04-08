@@ -88,6 +88,66 @@ if (!$rTtns['ok'] || empty($rTtns['rows'])) {
     echo '[' . date('Y-m-d H:i:s') . '] Created: ' . $created . ', Linked TTNs: ' . $linked . PHP_EOL;
 }
 
+// ── Sync courier call statuses from NP API ──────────────────────────────────
+// Update local statuses and clean up TTN links for done/cancelled calls.
+
+$npStatusMap = array('Done' => 'done', 'Cancelled' => 'cancelled', 'Rejection' => 'cancelled');
+$rPending = \Database::fetchAll('Papir',
+    "SELECT cc.id, cc.Barcode, cc.sender_ref FROM np_courier_calls cc WHERE cc.status = 'pending'");
+
+if ($rPending['ok'] && !empty($rPending['rows'])) {
+    // Group by sender to minimize API calls
+    $bySender = array();
+    foreach ($rPending['rows'] as $row) {
+        $bySender[$row['sender_ref']][] = $row;
+    }
+
+    $statusUpdated = 0;
+    $ttnsCleared   = 0;
+
+    foreach ($bySender as $sr => $calls) {
+        $sender = \Papir\Crm\SenderRepository::getByRef($sr);
+        if (!$sender || !$sender['api']) continue;
+
+        $np = new \Papir\Crm\NovaPoshta($sender['api']);
+        $r = $np->call('CarCallGeneral', 'getOrdersListCourierCall', array(
+            'DateFrom' => date('d.m.Y', strtotime('-30 days')),
+            'DateTo'   => date('d.m.Y'),
+        ));
+        if (!$r['ok']) continue;
+
+        // Build NP status map by Number
+        $npCalls = array();
+        foreach ($r['data'] as $c) {
+            if (is_array($c) && isset($c['Number'])) {
+                $npCalls[$c['Number']] = $c['Status'];
+            }
+        }
+
+        foreach ($calls as $call) {
+            $npStatus = isset($npCalls[$call['Barcode']]) ? $npCalls[$call['Barcode']] : null;
+            if (!$npStatus) continue;
+
+            $localStatus = isset($npStatusMap[$npStatus]) ? $npStatusMap[$npStatus] : null;
+            if (!$localStatus) continue; // still active
+
+            if (!$dryRun) {
+                $callId = (int)$call['id'];
+                \Database::query('Papir',
+                    "UPDATE np_courier_calls SET status = '{$localStatus}', updated_at = NOW() WHERE id = {$callId}");
+                // Clean up TTN links for finished calls
+                $del = \Database::query('Papir',
+                    "DELETE FROM np_courier_call_ttns WHERE courier_call_id = {$callId}");
+                $ttnsCleared += $del['affected'] ?: 0;
+                $statusUpdated++;
+            }
+            echo '[' . date('Y-m-d H:i:s') . '] Call ' . $call['Barcode'] . ' → ' . $localStatus . PHP_EOL;
+        }
+    }
+
+    echo '[' . date('Y-m-d H:i:s') . '] Status sync: updated=' . $statusUpdated . ', TTN links cleared=' . $ttnsCleared . PHP_EOL;
+}
+
 if (!$dryRun) {
     \Database::query('Papir',
         "UPDATE background_jobs SET status='done', finished_at=NOW()

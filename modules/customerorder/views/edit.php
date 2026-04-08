@@ -1664,6 +1664,10 @@ require_once __DIR__ . '/../../shared/layout.php';
                     <label style="display:block; font-size:11.5px; color:var(--text-muted); margin-bottom:3px;">Контрагент</label>
                     <input type="text" id="ldCounterparty" placeholder="Пошук за іменем…" style="height:32px; font-size:13px; padding:0 8px; border:1px solid var(--border); border-radius:6px; width:100%; box-sizing:border-box;">
                 </div>
+                <div id="ldTtnNumWrap" style="display:none; min-width:180px;">
+                    <label style="display:block; font-size:11.5px; color:var(--text-muted); margin-bottom:3px;">Номер ТТН</label>
+                    <input type="text" id="ldTtnNumber" placeholder="Штрих-код ТТН…" style="height:32px; font-size:13px; padding:0 8px; border:1px solid var(--border); border-radius:6px; width:100%; box-sizing:border-box;">
+                </div>
                 <div>
                     <button type="button" class="btn btn-primary btn-sm" id="ldSearchBtn" style="height:32px;">Знайти</button>
                 </div>
@@ -2624,6 +2628,10 @@ var RelDocsGraph = (function() {
     var errorEl  = document.getElementById('ldError');
     var countEl  = document.getElementById('ldSelectedCount');
 
+    var ldCpInput = document.getElementById('ldCounterparty');
+    var ldDocTypeSelect = document.getElementById('ldDocType');
+    var cpNameForLink = <?= json_encode(!empty($counterpartyName) ? $counterpartyName : '', JSON_UNESCAPED_UNICODE) ?>;
+
     function openModal() {
         modal.style.display = 'flex';
         errorEl.style.display = 'none';
@@ -2632,7 +2640,18 @@ var RelDocsGraph = (function() {
         table.style.display   = 'none';
         linkBtn.disabled = true;
         countEl.textContent  = '';
+        ldCpInput.value = cpNameForLink;
+        updateCpPlaceholder();
     }
+    var ldTtnNumWrap = document.getElementById('ldTtnNumWrap');
+    var ldTtnNumber  = document.getElementById('ldTtnNumber');
+    function updateCpPlaceholder() {
+        var dt = ldDocTypeSelect.value;
+        var isTtn = (dt === 'ttn_np' || dt === 'ttn_up');
+        ldTtnNumWrap.style.display = isTtn ? '' : 'none';
+        if (!isTtn) ldTtnNumber.value = '';
+    }
+    ldDocTypeSelect.addEventListener('change', updateCpPlaceholder);
     function closeModal() { modal.style.display = 'none'; }
 
     if (openBtn) openBtn.addEventListener('click', openModal);
@@ -2680,11 +2699,13 @@ var RelDocsGraph = (function() {
         checkAll.checked = false;
         countEl.textContent = '';
 
+        var ttnNum = ldTtnNumber ? ldTtnNumber.value.trim() : '';
         var qs = 'order_id=' + orderId
                + '&doc_type=' + encodeURIComponent(docType)
                + '&date_from=' + encodeURIComponent(dateFrom)
                + '&date_to='   + encodeURIComponent(dateTo)
-               + '&cp_q='      + encodeURIComponent(cpQ);
+               + '&cp_q='      + encodeURIComponent(cpQ)
+               + '&ttn_num='   + encodeURIComponent(ttnNum);
 
         fetch('/customerorder/api/search_linkable_docs?' + qs)
             .then(function(r) { return r.json(); })
@@ -3888,10 +3909,14 @@ var NpTtnModal = (function() {
         html += '<div><label class="np-field-label" style="margin-top:0">Вага (кг)</label><input type="number" id="npWeight" class="np-inp" value="0.5" step="0.1" min="0.1"></div>';
         html += '<div><label class="np-field-label" style="margin-top:0">Місць</label><input type="number" id="npSeats" class="np-inp" value="1" step="1" min="1"></div>';
         html += '</div>';
-        html += '<div id="npSeatsDetail" style="display:none;margin-top:8px"><label class="np-field-label" style="margin-top:0">Розміри по місцях</label><div id="npSeatsRows"></div></div>';
+        html += '<div id="npSeatsDetail" style="margin-top:8px"><label class="np-field-label" style="margin-top:0">Розміри місць</label><div id="npSeatsRows"></div></div>';
         html += '<label class="np-field-label">Опис вантажу</label><input type="text" id="npDesc" class="np-inp" value="' + esc(data.description_hint || 'Канцтовари') + '" maxlength="36">';
         html += '<label class="np-field-label">Додаткова інформація</label><input type="text" id="npAddInfo" class="np-inp" value="' + esc(data.additional_info_hint || '') + '">';
-        html += '<label class="np-field-label">Оголошена вартість (грн)</label><input type="number" id="npCost" class="np-inp" value="1" min="1">';
+        var declaredVal = Math.max(Math.ceil(parseFloat(data.sum_total) || 1), Math.ceil(parseFloat(data.backward_money_hint) || 0), 1);
+        html += '<div class="np-2col">';
+        html += '<div><label class="np-field-label">Оголошена вартість (грн)</label><input type="number" id="npCost" class="np-inp" value="' + declaredVal + '" min="1"></div>';
+        html += '<div><label class="np-field-label">Наклад. платіж (грн)</label><input type="number" id="npBackMoney" class="np-inp" value="' + esc(data.backward_money_hint || 0) + '" min="0" step="0.01"></div>';
+        html += '</div>';
 
         // Payment
         html += '<div class="np-form-section">Оплата</div>';
@@ -3903,8 +3928,6 @@ var NpTtnModal = (function() {
               + '<select id="npPayMethod" class="np-inp" style="height:auto;padding:4px 7px;">'
               + '<option value="Cash">Готівка</option><option value="NonCash">Безготівка</option></select></div>';
         html += '</div>';
-        html += '<label class="np-field-label">Накладений платіж (грн), 0 = без</label>';
-        html += '<input type="number" id="npBackMoney" class="np-inp" value="' + esc(data.backward_money_hint || 0) + '" min="0" step="0.01">';
         html += '<label class="np-field-label">Дата відправки</label>';
         html += '<input type="date" id="npDate" class="np-inp" value="' + (function(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })() + '">';
 
@@ -3974,7 +3997,6 @@ var NpTtnModal = (function() {
         var seatsInput = document.getElementById('npSeats'), seatsDetail = document.getElementById('npSeatsDetail'), seatsRows = document.getElementById('npSeatsRows'), weightInput = document.getElementById('npWeight');
         function renderSeatsRows() {
             var n = parseInt(seatsInput.value) || 1;
-            if (n <= 1) { seatsDetail.style.display = 'none'; return; }
             seatsDetail.style.display = '';
             var perW = Math.round((parseFloat(weightInput.value) || 0.5) / n * 100) / 100;
             var html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr auto;gap:4px;font-size:11px;color:#9ca3af;margin-bottom:4px"><span>Вага</span><span>Довж</span><span>Шир</span><span>Вис</span><span>Ручна</span></div>';
@@ -3988,6 +4010,17 @@ var NpTtnModal = (function() {
         seatsInput.addEventListener('change', renderSeatsRows);
         seatsInput.addEventListener('input', renderSeatsRows);
         renderSeatsRows();
+
+        // ── Declared value >= COD enforcement
+        var costInput = document.getElementById('npCost');
+        var backMoneyInput = document.getElementById('npBackMoney');
+        function enforceDeclaredMin() {
+            var cod = Math.ceil(parseFloat(backMoneyInput.value) || 0);
+            var cur = parseInt(costInput.value) || 1;
+            if (cod > cur) costInput.value = cod;
+        }
+        backMoneyInput.addEventListener('change', enforceDeclaredMin);
+        backMoneyInput.addEventListener('input', enforceDeclaredMin);
 
         // Autocomplete helper
         function makeAc(inpId, ddId, hiddenId, fetchFn, renderFn) {
@@ -4104,7 +4137,7 @@ var NpTtnModal = (function() {
 
             var seatsN = parseInt(((document.getElementById('npSeats')||{}).value||'1'))||1;
             var optionsSeat = [];
-            if (seatsN > 1) { document.querySelectorAll('#npSeatsRows .seat-row').forEach(function(row) { optionsSeat.push({weight:parseFloat(row.querySelector('.seat-w').value)||0,length:parseInt(row.querySelector('.seat-l').value)||0,width:parseInt(row.querySelector('.seat-wi').value)||0,height:parseInt(row.querySelector('.seat-h').value)||0,manual:row.querySelector('.seat-m').checked?1:0}); }); }
+            document.querySelectorAll('#npSeatsRows .seat-row').forEach(function(row) { optionsSeat.push({weight:parseFloat(row.querySelector('.seat-w').value)||0,length:parseInt(row.querySelector('.seat-l').value)||0,width:parseInt(row.querySelector('.seat-wi').value)||0,height:parseInt(row.querySelector('.seat-h').value)||0,manual:row.querySelector('.seat-m').checked?1:0}); });
 
             btn.disabled = true; btn.textContent = 'Створення…';
 
@@ -4169,6 +4202,7 @@ var NpTtnModal = (function() {
     document.addEventListener('DOMContentLoaded', function() {
         var closeBtn = document.getElementById('newTtnModalClose');
         if (closeBtn) closeBtn.addEventListener('click', close);
+        if (typeof makeDraggable === 'function') makeDraggable(document.getElementById('newTtnModal'));
     });
 
     return { open: open, close: close };

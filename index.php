@@ -20,6 +20,7 @@ $_publicPaths = array(
     '/finance/webhook/',          // prefix
     '/customerorder/webhook/',    // prefix
     '/demand/webhook/',           // prefix
+    '/novaposhta/api/scan_for_registry',
 );
 $_requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $_requestPath = rtrim($_requestPath, '/') ?: '/';

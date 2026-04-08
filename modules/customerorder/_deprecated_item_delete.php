@@ -6,8 +6,12 @@ $repository = new CustomerOrderRepository();
 $service = new CustomerOrderService($repository);
 $controller = new CustomerOrderController($service);
 
-// Временно
-$employeeId = 1;
+$currentUser = \Papir\Crm\AuthService::getCurrentUser();
+if (!$currentUser) {
+    header('Location: /login');
+    exit;
+}
+$employeeId = (int)$currentUser['employee_id'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: /customerorder');
@@ -24,9 +28,8 @@ if ($itemId <= 0) {
 $result = $controller->deleteItem($itemId, $employeeId);
 
 if (!$result['ok']) {
-    echo '<pre>';
-    print_r($result);
-    echo '</pre>';
+    error_log('CustomerOrder item_delete error: ' . (isset($result['error']) ? $result['error'] : 'unknown'));
+    header('Location: /customerorder?error=item_delete');
     exit;
 }
 

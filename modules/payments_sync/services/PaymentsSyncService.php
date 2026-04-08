@@ -57,6 +57,7 @@ class PaymentsSyncService
             'payload_out_count' => 0,
 
             'errors' => [],
+            'bank_errors' => $this->collector->getBankErrors(),
         ];
 
         if (empty($rawPayments)) {

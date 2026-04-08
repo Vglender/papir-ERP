@@ -123,6 +123,40 @@
 /* Panel footer */
 .fin-panel-footer { padding:12px 16px; border-top:1px solid var(--border); display:flex; align-items:center; gap:10px; }
 .fin-panel-err { font-size:12px; color:var(--red); flex:1; min-width:0; }
+
+/* ── Linked Orders ──────────────────────────────────────────────────────── */
+.fin-linked-orders { padding:16px 16px 12px; border-top:1px solid var(--border); }
+.fin-lo-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.fin-lo-header h4 { margin:0; font-size:13px; font-weight:600; }
+.fin-lo-list { display:flex; flex-direction:column; gap:4px; }
+.lo-loading, .lo-empty { font-size:12px; color:var(--text-muted); padding:6px 0; }
+.lo-item, .lo-result-item { display:flex; align-items:center; gap:6px; padding:5px 8px; border-radius:var(--radius-sm); background:var(--bg-hover); font-size:12px; }
+.lo-item:hover { background:var(--border); }
+.lo-num { font-weight:600; color:var(--blue); text-decoration:none; white-space:nowrap; }
+.lo-num:hover { text-decoration:underline; }
+.lo-date { color:var(--text-muted); white-space:nowrap; }
+.lo-sum { font-variant-numeric:tabular-nums; white-space:nowrap; margin-left:auto; }
+.lo-status { font-size:11px; padding:1px 6px; border-radius:8px; white-space:nowrap; }
+.lo-st-paid { background:#dcfce7; color:#166534; }
+.lo-st-partial { background:#fef9c3; color:#854d0e; }
+.lo-st-none { background:#f3f4f6; color:#6b7280; }
+.lo-unlink { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:16px; line-height:1; padding:0 2px; flex-shrink:0; }
+.lo-unlink:hover { color:var(--red); }
+.fin-lo-search { margin-top:8px; }
+.fin-lo-search-row { display:flex; gap:4px; margin-bottom:6px; }
+.fin-lo-search-row input { flex:1; height:28px; font-size:12px; padding:0 8px; border:1px solid var(--border-input); border-radius:var(--radius-sm); font-family:var(--font); }
+.fin-lo-results { display:flex; flex-direction:column; gap:3px; max-height:200px; overflow-y:auto; }
+.lo-result-item { background:var(--bg-card); border:1px solid var(--border); }
+.lo-result-item:hover { border-color:var(--blue-light); }
+.lo-cp-hint { font-size:11px; color:var(--text-muted); max-width:100px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lo-link-btn { flex-shrink:0; }
+
+/* ── Unmatched counterparty ─────────────────────────────────────────────── */
+tr.fin-row.unmatched { background:rgba(250,204,21,.08); }
+tr.fin-row.unmatched:hover { background:rgba(250,204,21,.15); }
+tr.fin-row.unmatched.selected { background:rgba(250,204,21,.15); }
+.fin-cp-unmatched { display:inline-block; font-size:11px; padding:1px 8px; border-radius:8px; background:#fef3c7; color:#92400e; font-weight:500; }
+.filter-pill-warn.active { background:#fef3c7; border-color:#f59e0b; color:#92400e; }
 </style>
 
 <div class="fin-outer">
@@ -213,13 +247,10 @@
                            <?php echo $showDrafts ? 'checked' : ''; ?>>
                     Чернетки
                 </label>
-            </div>
-            <div class="filter-bar-sep"></div>
-            <div class="filter-bar-group">
-                <label class="filter-pill<?php echo $showDrafts ? ' active' : ''; ?>">
-                    <input type="checkbox" name="show_drafts" value="1" class="js-filter-instant"
-                           <?php echo $showDrafts ? 'checked' : ''; ?>>
-                    Чернетки
+                <label class="filter-pill filter-pill-warn<?php echo $unmatched ? ' active' : ''; ?>">
+                    <input type="checkbox" name="unmatched" value="1"
+                           class="js-filter-instant" <?php echo $unmatched ? 'checked' : ''; ?>>
+                    Нерозпізнані
                 </label>
             </div>
                         <button type="button" class="filter-bar-gear" title="Налаштувати фільтри">
@@ -279,6 +310,7 @@
                             $momentDate = $row['moment'] ? substr($row['moment'], 0, 10) : '—';
                             $momentTime = $row['moment'] ? substr($row['moment'], 11, 5) : '';
                             $cpName     = trim((string)$row['cp_name']);
+                            $isUnmatched = ($cpName === '' || $cpName === 'НЕРАЗОБРАННОЕ');
                             $descText   = trim((string)$row['description']);
                             $isMoving   = !empty($row['is_moving']);
 
@@ -298,7 +330,7 @@
                                 'is_posted'  => (int)$row['is_posted'],
                             ));
                         ?>
-                        <tr class="fin-row<?php echo $isMoving ? ' moving' : ''; ?>"
+                        <tr class="fin-row<?php echo $isMoving ? ' moving' : ''; ?><?php echo $isUnmatched ? ' unmatched' : ''; ?>"
                             data-id="<?php echo (int)$row['id']; ?>"
                             data-panel='<?php echo htmlspecialchars($panelData, ENT_QUOTES); ?>'>
                             <td class="td-cb" onclick="event.stopPropagation()">
@@ -328,10 +360,12 @@
                                 <?php endif; ?>
                             </td>
                             <td class="fin-cp">
-                                <?php if ($cpName !== ''): ?>
+                                <?php if ($isUnmatched): ?>
+                                    <span class="fin-cp-unmatched">Нерозпізнано</span>
+                                <?php elseif ($cpName !== ''): ?>
                                     <?php if ($row['cp_id']): ?>
                                         <a href="/counterparties/view?id=<?php echo (int)$row['cp_id']; ?>"
-                                           onclick="event.stopPropagation()"><?php echo ViewHelper::h($cpName); ?></a>
+                                           target="_blank" onclick="event.stopPropagation()"><?php echo ViewHelper::h($cpName); ?></a>
                                     <?php else: ?>
                                         <?php echo ViewHelper::h($cpName); ?>
                                     <?php endif; ?>
@@ -369,6 +403,7 @@
                     'direction' => $direction,
                     'date_from' => $dateFrom,
                     'date_to'   => $dateTo,
+                    'unmatched' => $unmatched ? '1' : '',
                 );
                 $base = '/finance/cash?' . http_build_query(array_filter($qp));
                 $from = max(1, $page - 3);
@@ -481,6 +516,24 @@
                         <span class="fin-source-badge" id="panelSrcBadge" style="display:none"></span>
                     </div>
                 </form>
+
+                <!-- Linked Orders section (visible for saved direction=in payments) -->
+                <div class="fin-linked-orders" id="linkedOrdersSection" style="display:none">
+                    <div class="fin-lo-header">
+                        <h4>Замовлення</h4>
+                        <button type="button" class="btn btn-outline btn-xs" id="linkOrderBtn">+ Прив'язати</button>
+                    </div>
+                    <div class="fin-lo-list" id="linkedOrdersList"></div>
+
+                    <div class="fin-lo-search" id="linkOrderSearch" style="display:none">
+                        <div class="fin-lo-search-row">
+                            <input type="text" id="loSearchQ" placeholder="Номер замовлення…" autocomplete="off">
+                            <button type="button" class="btn btn-primary btn-xs" id="loSearchBtn">Знайти</button>
+                        </div>
+                        <div class="fin-lo-results" id="loSearchResults"></div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -696,6 +749,7 @@ function showEmpty() {
     panelClose.style.display = 'none';
     panelTitle.textContent   = 'Документ';
     cpLink.style.display     = 'none';
+    document.getElementById('linkedOrdersSection').style.display = 'none';
     if (activeRow) { activeRow.classList.remove('selected'); activeRow = null; }
 }
 
@@ -728,6 +782,7 @@ function openPanel(row) {
     if (d.source && d.source !== 'manual') panelSrcBadge.textContent = 'МойСклад';
 
     showForm();
+    updateLinkedOrders();
 }
 
 function openNewPanel() {
@@ -747,6 +802,7 @@ function openNewPanel() {
     panelErr.textContent        = '';
     panelSrcBadge.style.display = 'none';
     cpLink.style.display        = 'none';
+    document.getElementById('linkedOrdersSection').style.display = 'none';
     setDir('in');
     showForm();
     panelSum.focus();
@@ -867,6 +923,150 @@ function showToast(msg) {
     t.classList.add('show');
     setTimeout(function() { t.classList.remove('show'); }, 1800);
 }
+
+// ── Linked Orders ────────────────────────────────────────────────────────
+var loSection    = document.getElementById('linkedOrdersSection');
+var loList       = document.getElementById('linkedOrdersList');
+var loSearchWrap = document.getElementById('linkOrderSearch');
+var loSearchQ    = document.getElementById('loSearchQ');
+var loResults    = document.getElementById('loSearchResults');
+var PAYMENT_TYPE = 'cashin';
+
+function loStatusLabel(s) {
+    var m = {not_paid:'Не оплачено',partially_paid:'Частково',paid:'Оплачено'};
+    return m[s] || s || '';
+}
+function loStatusClass(s) {
+    if (s === 'paid') return 'lo-st-paid';
+    if (s === 'partially_paid') return 'lo-st-partial';
+    return 'lo-st-none';
+}
+
+function updateLinkedOrders() {
+    var id = panelId.value;
+    var dir = panelDir.value;
+    if (!id || dir !== 'in') { loSection.style.display = 'none'; return; }
+    loSection.style.display = '';
+    loSearchWrap.style.display = 'none';
+    loList.innerHTML = '<span class="lo-loading">Завантаження…</span>';
+
+    fetch('/finance/api/get_linked_orders?payment_id=' + id + '&payment_type=' + PAYMENT_TYPE)
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            if (!data.ok || !data.rows.length) {
+                loList.innerHTML = '<span class="lo-empty">Немає прив\'язаних замовлень</span>';
+                return;
+            }
+            loList.innerHTML = data.rows.map(function(o) {
+                return '<div class="lo-item">'
+                    + '<a href="/customerorder/edit?id=' + o.id + '" target="_blank" class="lo-num">'
+                    + esc(o.number) + '</a>'
+                    + '<span class="lo-date">' + (o.moment ? o.moment.slice(0,10) : '') + '</span>'
+                    + '<span class="lo-sum">' + esc(o.sum_total_fmt) + '</span>'
+                    + '<span class="lo-status ' + loStatusClass(o.payment_status) + '">'
+                    + loStatusLabel(o.payment_status) + '</span>'
+                    + '<button type="button" class="lo-unlink" data-order-id="' + o.id + '" title="Відв\'язати">×</button>'
+                    + '</div>';
+            }).join('');
+        })
+        .catch(function(){ loList.innerHTML = '<span class="lo-empty">Помилка</span>'; });
+}
+
+document.getElementById('linkOrderBtn').addEventListener('click', function() {
+    var visible = loSearchWrap.style.display !== 'none';
+    loSearchWrap.style.display = visible ? 'none' : '';
+    if (!visible) { loSearchQ.value = ''; loResults.innerHTML = ''; loSearchQ.focus(); }
+});
+
+function loDoSearch() {
+    var cpId = cpIdInput.value;
+    var payId = panelId.value;
+    var q = loSearchQ.value.trim();
+    if (!cpId && !q) { loResults.innerHTML = '<div class="lo-empty">Введіть номер замовлення</div>'; return; }
+    var url = '/finance/api/search_orders?cp_id=' + (cpId || '0')
+        + '&payment_id=' + payId
+        + '&payment_type=' + PAYMENT_TYPE
+        + '&q=' + encodeURIComponent(q);
+    loResults.innerHTML = '<span class="lo-loading">Пошук…</span>';
+    fetch(url)
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            if (!data.ok || !data.rows.length) {
+                loResults.innerHTML = '<div class="lo-empty">Нічого не знайдено</div>';
+                return;
+            }
+            loResults.innerHTML = data.rows.map(function(o) {
+                return '<div class="lo-result-item">'
+                    + '<span class="lo-num">' + esc(o.number) + '</span>'
+                    + (o.cp_name ? '<span class="lo-cp-hint">' + esc(o.cp_name) + '</span>' : '')
+                    + '<span class="lo-date">' + (o.moment ? o.moment.slice(0,10) : '') + '</span>'
+                    + '<span class="lo-sum">' + esc(o.sum_total_fmt) + '</span>'
+                    + '<span class="lo-status ' + loStatusClass(o.payment_status) + '">'
+                    + loStatusLabel(o.payment_status) + '</span>'
+                    + '<button type="button" class="btn btn-primary btn-xs lo-link-btn" data-order-id="' + o.id + '">Прив\'язати</button>'
+                    + '</div>';
+            }).join('');
+        })
+        .catch(function(){ loResults.innerHTML = '<div class="lo-empty">Помилка</div>'; });
+}
+
+document.getElementById('loSearchBtn').addEventListener('click', loDoSearch);
+loSearchQ.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); loDoSearch(); } });
+
+// Link order
+loResults.addEventListener('click', function(e) {
+    var btn = e.target.closest('.lo-link-btn');
+    if (!btn) return;
+    var orderId = btn.getAttribute('data-order-id');
+    btn.disabled = true; btn.textContent = '…';
+    var body = new URLSearchParams();
+    body.append('payment_id', panelId.value);
+    body.append('payment_type', PAYMENT_TYPE);
+    body.append('order_id', orderId);
+    fetch('/finance/api/link_order', { method:'POST', body:body, credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { showToast(data.error || 'Помилка'); btn.disabled=false; btn.textContent='Прив\'язати'; return; }
+            if (data.cp_updated && data.cp_name) {
+                cpNameInput.value = data.cp_name;
+                cpIdInput.value   = data.cp_id || '';
+                updateCpLink();
+                if (activeRow) {
+                    var d; try { d = JSON.parse(activeRow.getAttribute('data-panel')); } catch(ex) { d = {}; }
+                    d.cp_id = data.cp_id; d.cp_name = data.cp_name;
+                    activeRow.setAttribute('data-panel', JSON.stringify(d));
+                    var cpCell = activeRow.querySelector('.fin-cp');
+                    if (cpCell) cpCell.innerHTML = '<a href="/counterparties/view?id=' + data.cp_id + '" target="_blank" onclick="event.stopPropagation()">' + esc(data.cp_name) + '</a>';
+                    activeRow.classList.remove('unmatched');
+                }
+                showToast('Замовлення прив\'язано, контрагента оновлено');
+            } else {
+                showToast('Замовлення прив\'язано');
+            }
+            loSearchWrap.style.display = 'none';
+            updateLinkedOrders();
+        })
+        .catch(function(){ btn.disabled=false; btn.textContent='Прив\'язати'; });
+});
+
+// Unlink order
+loList.addEventListener('click', function(e) {
+    var btn = e.target.closest('.lo-unlink');
+    if (!btn) return;
+    if (!confirm('Відв\'язати це замовлення?')) return;
+    var orderId = btn.getAttribute('data-order-id');
+    var body = new URLSearchParams();
+    body.append('payment_id', panelId.value);
+    body.append('payment_type', PAYMENT_TYPE);
+    body.append('order_id', orderId);
+    fetch('/finance/api/unlink_order', { method:'POST', body:body, credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(data) {
+            if (!data.ok) { showToast(data.error || 'Помилка'); return; }
+            showToast('Замовлення відв\'язано');
+            updateLinkedOrders();
+        });
+});
 
 // ── Auto-open first row ───────────────────────────────────────────────────
 var firstRow = document.querySelector('#finTableBody tr.fin-row');

@@ -1,19 +1,14 @@
 <?php
 
-// Включение логирования для отладки
-define('CUSTOMERORDER_DEBUG', true);
+define('CUSTOMERORDER_DEBUG', false);
 
-if (CUSTOMERORDER_DEBUG) {
-    ini_set('log_errors', 1);
-    ini_set('error_log','/var/www/papir/modules/customerorder/customerorder_debug.log');
-    
-    function order_log($message) {
-        $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0];
-        $file = basename($trace['file']);
-        $line = $trace['line'];
-        $logMessage = "[$file:$line] " . (is_string($message) ? $message : json_encode($message, JSON_UNESCAPED_UNICODE));
-        error_log($logMessage);
-    }
+function order_log($message) {
+    if (!CUSTOMERORDER_DEBUG) return;
+    $trace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 1)[0];
+    $file = basename($trace['file']);
+    $line = $trace['line'];
+    $logMessage = "[$file:$line] " . (is_string($message) ? $message : json_encode($message, JSON_UNESCAPED_UNICODE));
+    error_log($logMessage);
 }
 
 class CustomerOrderService
@@ -38,9 +33,76 @@ class CustomerOrderService
             return $count;
         }
 
+        // Batch-load unread message counts for visible orders
+        $orderRows = $rows['rows'];
+        if (!empty($orderRows)) {
+            $ids = array();
+            foreach ($orderRows as $r) { $ids[] = (int)$r['id']; }
+            $idList = implode(',', $ids);
+            $rMsg = Database::fetchAll('Papir',
+                "SELECT order_id, COUNT(*) AS cnt
+                 FROM cp_messages
+                 WHERE order_id IN ({$idList})
+                   AND direction = 'in' AND read_at IS NULL AND channel != 'note'
+                 GROUP BY order_id");
+            $unreadMap = array();
+            if ($rMsg['ok'] && !empty($rMsg['rows'])) {
+                foreach ($rMsg['rows'] as $mr) {
+                    $unreadMap[(int)$mr['order_id']] = (int)$mr['cnt'];
+                }
+            }
+            // Batch-load active TTN counts (Nova Poshta + Ukrposhta)
+            $rNp = Database::fetchAll('Papir',
+                "SELECT dl.to_id AS order_id, COUNT(*) AS cnt
+                 FROM document_link dl
+                 JOIN ttn_novaposhta tn ON tn.id = dl.from_id
+                 WHERE dl.from_type = 'ttn_np'
+                   AND dl.to_type   = 'customerorder'
+                   AND dl.to_id     IN ({$idList})
+                   AND (tn.deletion_mark IS NULL OR tn.deletion_mark = 0)
+                   AND tn.state_define NOT IN (102, 105)
+                   AND LOWER(tn.state_name) NOT LIKE '%відмов%'
+                   AND LOWER(tn.state_name) NOT LIKE '%отказ%'
+                 GROUP BY dl.to_id");
+            $rUp = Database::fetchAll('Papir',
+                "SELECT dl.to_id AS order_id, COUNT(*) AS cnt
+                 FROM document_link dl
+                 JOIN ttn_ukrposhta tu ON tu.id = dl.from_id
+                 WHERE dl.from_type = 'ttn_up'
+                   AND dl.to_type   = 'customerorder'
+                   AND dl.to_id     IN ({$idList})
+                   AND tu.lifecycle_status NOT IN ('RETURNED','RETURNING','CANCELLED','DELETED')
+                 GROUP BY dl.to_id");
+            $ttnMap = array();
+            $ttnNpMap = array();
+            $ttnUpMap = array();
+            if ($rNp['ok'] && !empty($rNp['rows'])) {
+                foreach ($rNp['rows'] as $tr) {
+                    $oid = (int)$tr['order_id'];
+                    $ttnNpMap[$oid] = (int)$tr['cnt'];
+                    $ttnMap[$oid] = (isset($ttnMap[$oid]) ? $ttnMap[$oid] : 0) + (int)$tr['cnt'];
+                }
+            }
+            if ($rUp['ok'] && !empty($rUp['rows'])) {
+                foreach ($rUp['rows'] as $tr) {
+                    $oid = (int)$tr['order_id'];
+                    $ttnUpMap[$oid] = (int)$tr['cnt'];
+                    $ttnMap[$oid] = (isset($ttnMap[$oid]) ? $ttnMap[$oid] : 0) + (int)$tr['cnt'];
+                }
+            }
+
+            foreach ($orderRows as &$r) {
+                $r['unread_count']  = isset($unreadMap[(int)$r['id']]) ? $unreadMap[(int)$r['id']] : 0;
+                $r['ttn_count']     = isset($ttnMap[(int)$r['id']])    ? $ttnMap[(int)$r['id']]    : 0;
+                $r['ttn_np_count']  = isset($ttnNpMap[(int)$r['id']])  ? $ttnNpMap[(int)$r['id']]  : 0;
+                $r['ttn_up_count']  = isset($ttnUpMap[(int)$r['id']])  ? $ttnUpMap[(int)$r['id']]  : 0;
+            }
+            unset($r);
+        }
+
         return array(
             'ok' => true,
-            'rows' => $rows['rows'],
+            'rows' => $orderRows,
             'count' => (int)$count['value'],
             'page' => (int)$page,
             'limit' => (int)$limit,
@@ -135,7 +197,6 @@ class CustomerOrderService
     public function updateOrder($id, $data, $employeeId = null)
     {
         $current = $this->repository->getById($id);
-		$header['updated_by_employee_id'] = $employeeId ? (int)$employeeId : null;
         if (!$current['ok']) {
             return $current;
         }
@@ -148,6 +209,7 @@ class CustomerOrderService
         }
 
         $header = $this->prepareHeaderData($data, false);
+        $header['updated_by_employee_id'] = $employeeId ? (int)$employeeId : null;
 
         Database::begin('Papir');
 
@@ -190,8 +252,6 @@ class CustomerOrderService
 
 	public function addItem($orderId, $item, $employeeId = null)
 	{
-		$debugProduct = null;
-
 		if (!empty($item['product_id'])) {
 			$productResult = $this->repository->getProductById((int)$item['product_id']);
 
@@ -201,7 +261,6 @@ class CustomerOrderService
 
 			if (!empty($productResult['row'])) {
 				$product = $productResult['row'];
-				$debugProduct = $product;
 
 				$item['product_id'] = (int)$product['product_id'];
 				$item['product_name'] = !empty($item['product_name']) ? $item['product_name'] : (isset($product['name']) ? $product['name'] : null);
@@ -266,8 +325,6 @@ class CustomerOrderService
 			return array(
 				'ok' => true,
 				'item_id' => $insert['insert_id'],
-				'debug_product' => $debugProduct,
-				'debug_item' => $item,
 			);
 		} catch (Exception $e) {
 			Database::rollback('Papir');
@@ -583,24 +640,8 @@ protected function prepareHeaderData($data, $isCreate)
         'currency_rate' => isset($data['currency_rate']) && $data['currency_rate'] !== '' ? (float)$data['currency_rate'] : 1,
         'sales_channel' => isset($data['sales_channel']) ? $data['sales_channel'] : null,
         'description' => isset($data['description']) ? trim($data['description']) : null,
-//		'stock_quantity' => isset($item['stock_quantity']) ? (float)$item['stock_quantity'] : 0,
-//		'reserved_stock_quantity' => isset($item['reserved_stock_quantity']) ? (float)$item['reserved_stock_quantity'] : 0,
-//		'expected_quantity' => isset($item['expected_quantity']) ? (float)$item['expected_quantity'] : 0,
-//		'weight' => isset($item['weight']) ? (float)$item['weight'] : 0,
         'updated_at' => date('Y-m-d H:i:s'),
     );
-
-    /**
-     * Эти поля пока есть в UI, но не обязательно есть в БД.
-     * Не сохраняем их до добавления колонок/логики:
-     * - planned_shipment_at
-     * - contact_person_id
-     * - organization_bank_account
-     * - project_id
-     * - comment_manager
-     * - payment_status
-     * - shipment_status
-     */
 
     if ($isCreate) {
         $result['uuid'] = $this->generateUuid();

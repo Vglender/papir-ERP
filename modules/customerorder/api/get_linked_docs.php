@@ -219,7 +219,7 @@ if (!empty($byType['ttn_up'])) {
     $ids = array_filter(array_map(function($r){ return (int)$r['from_id']; }, $limited));
     if (!empty($ids)) {
         $rT = \Database::fetchAll('Papir',
-            "SELECT id, barcode, lifecycle_status FROM ttn_ukrposhta WHERE id IN (" . implode(',', $ids) . ")");
+            "SELECT id, barcode, lifecycle_status, created_date, postPayUah FROM ttn_ukrposhta WHERE id IN (" . implode(',', $ids) . ")");
         if ($rT['ok']) {
             foreach ($rT['rows'] as $t) {
                 $nid = 'ttn_up_' . $t['id'];
@@ -227,8 +227,11 @@ if (!empty($byType['ttn_up'])) {
                     'id'        => $nid,
                     'type'      => 'ttn_up',
                     'label'     => 'УП ' . ($t['barcode'] ?: ('#'.$t['id'])),
+                    'number'    => $t['barcode'] ?: ('#'.$t['id']),
                     'sublabel'  => $t['lifecycle_status'] ?: '—',
                     'status'    => strtolower($t['lifecycle_status'] ?: ''),
+                    'amount'    => ld_amt($t['postPayUah']),
+                    'moment'    => $t['created_date'],
                     'entity_id' => (int)$t['id'],
                     'url'       => null,
                     'col'       => 3,
