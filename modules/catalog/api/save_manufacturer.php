@@ -16,33 +16,19 @@ if (!$productId) {
     exit;
 }
 
-// Get product's id_off, id_mf
-$product = Database::fetchRow('Papir',
-    "SELECT product_id, id_off, id_mf FROM product_papir WHERE product_id = {$productId}"
-);
-if (!$product['ok'] || empty($product['row'])) {
-    echo json_encode(array('ok' => false, 'error' => 'Product not found'));
-    exit;
-}
-
-$idOff = (int)$product['row']['id_off'];
-$idMf  = (int)$product['row']['id_mf'];
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
 
 $manufacturerName = null;
-$offId            = 0;
-$mffId            = 0;
 
 if ($manufacturerId > 0) {
     $mfr = Database::fetchRow('Papir',
-        "SELECT manufacturer_id, name, off_id, mff_id FROM manufacturers WHERE manufacturer_id = {$manufacturerId}"
+        "SELECT manufacturer_id, name FROM manufacturers WHERE manufacturer_id = {$manufacturerId}"
     );
     if (!$mfr['ok'] || empty($mfr['row'])) {
         echo json_encode(array('ok' => false, 'error' => 'Manufacturer not found'));
         exit;
     }
     $manufacturerName = $mfr['row']['name'];
-    $offId            = (int)$mfr['row']['off_id'];
-    $mffId            = (int)$mfr['row']['mff_id'];
 }
 
 // ── Update Papir.product_papir ────────────────────────────────────────────
@@ -55,20 +41,26 @@ if (!$r['ok']) {
     exit;
 }
 
-// ── Update off.oc_product ─────────────────────────────────────────────────
-if ($idOff > 0) {
-    Database::update('off', 'oc_product',
-        array('manufacturer_id' => $offId > 0 ? $offId : 0),
-        array('product_id' => $idOff)
-    );
+// ── Cascade → all active sites ────────────────────────────────────────────
+$sync = new SiteSyncService();
+$productSites = $sync->getProductSites($productId);
+
+// Get site-specific manufacturer IDs from manufacturer_site_mapping or manufacturers table
+$siteManufIds = array();
+if ($manufacturerId > 0) {
+    $mfr2 = Database::fetchRow('Papir',
+        "SELECT off_id, mff_id FROM manufacturers WHERE manufacturer_id = {$manufacturerId}");
+    if ($mfr2['ok'] && !empty($mfr2['row'])) {
+        $siteManufIds[1] = (int)$mfr2['row']['off_id'];  // site_id=1 (off)
+        $siteManufIds[2] = (int)$mfr2['row']['mff_id'];  // site_id=2 (mff)
+    }
 }
 
-// ── Update mff.oc_product ─────────────────────────────────────────────────
-if ($idMf > 0 && $mffId > 0) {
-    Database::update('mff', 'oc_product',
-        array('manufacturer_id' => $mffId),
-        array('product_id' => $idMf)
-    );
+foreach ($productSites as $ps) {
+    $siteId        = (int)$ps['site_id'];
+    $siteProductId = (int)$ps['site_product_id'];
+    $siteMfId      = isset($siteManufIds[$siteId]) ? $siteManufIds[$siteId] : 0;
+    $sync->productUpdate($siteId, $siteProductId, array('manufacturer_id' => $siteMfId));
 }
 
 echo json_encode(array(

@@ -304,6 +304,17 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
 .ws-msg-status.read    svg { color: #6d28d9; }
 .ws-msg-status.failed  svg { color: #ef4444; }
 
+/* System messages (delivery errors) */
+.ws-msg-system {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 6px 0; font-size: 12px; color: #dc2626;
+}
+.ws-msg-system span:first-child {
+  background: #fef2f2; border: 1px solid #fecaca; border-radius: 12px;
+  padding: 4px 12px; max-width: 80%; word-break: break-word;
+}
+.ws-msg-system-time { color: #9ca3af; font-size: 11px; white-space: nowrap; }
+
 /* Message outer (bubble + action buttons side by side) */
 .ws-msg-outer {
     display: inline-flex; align-items: center; gap: 4px; max-width: 85%;

@@ -110,7 +110,11 @@ class MessageDispatchService
             return array('ok' => false, 'error' => 'No phone for Viber');
         }
         $res = AlphaSmsService::sendViber($contacts['phone'], $text);
-        if (!$res) return array('ok' => false, 'error' => 'Viber send failed');
+        if (!$res || !$res['ok']) {
+            $err = isset($res['error']) ? $res['error'] : 'Viber send failed';
+            self::saveSystemMessage($counterpartyId, 'viber', $err);
+            return array('ok' => false, 'error' => $err);
+        }
         ChatRepository::saveMessage(array(
             'counterparty_id' => $counterpartyId,
             'channel'         => 'viber',
@@ -127,7 +131,12 @@ class MessageDispatchService
         if (empty($contacts['phone'])) {
             return array('ok' => false, 'error' => 'No phone for SMS');
         }
-        AlphaSmsService::sendSms($contacts['phone'], $text);
+        $res = AlphaSmsService::sendSms($contacts['phone'], $text);
+        if (!$res || !$res['ok']) {
+            $err = isset($res['error']) ? $res['error'] : 'SMS send failed';
+            self::saveSystemMessage($counterpartyId, 'sms', $err);
+            return array('ok' => false, 'error' => $err);
+        }
         ChatRepository::saveMessage(array(
             'counterparty_id' => $counterpartyId,
             'channel'         => 'sms',
@@ -164,5 +173,20 @@ class MessageDispatchService
             'email_addr'      => $contacts['email'],
         ));
         return array('ok' => true);
+    }
+
+    /**
+     * Зберегти системне повідомлення про помилку доставки в чат.
+     */
+    private static function saveSystemMessage($counterpartyId, $channel, $error)
+    {
+        if ($counterpartyId <= 0) return;
+        ChatRepository::saveMessage(array(
+            'counterparty_id' => $counterpartyId,
+            'channel'         => $channel,
+            'direction'       => 'system',
+            'status'          => 'failed',
+            'body'            => '⚠ Повідомлення не доставлено: ' . $error,
+        ));
     }
 }

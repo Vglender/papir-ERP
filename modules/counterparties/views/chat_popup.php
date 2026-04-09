@@ -88,6 +88,7 @@ html, body {
     font-weight: 700; font-size: 13px; color: #111827; flex: 1; min-width: 0;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+.cp-popup-phone { font-weight: 400; color: #6b7280; font-size: 12px; margin-left: 4px; }
 .cp-popup-link {
     font-size: 11px; color: #9ca3af; text-decoration: none; flex-shrink: 0;
 }
@@ -453,7 +454,7 @@ html, body {
   <!-- ── Popup header ─────────────────────────────────────────────────────── -->
   <div class="cp-popup-head">
     <div class="cp-popup-av" id="cpPopupAv"><?php echo mb_strtoupper(mb_substr($r['row']['name'], 0, 1, 'UTF-8'), 'UTF-8'); ?></div>
-    <div class="cp-popup-name"><?php echo $cpName; ?></div>
+    <div class="cp-popup-name"><?php echo $cpName; ?><?php if ($phone): ?> <span class="cp-popup-phone"><?php echo htmlspecialchars($phone); ?></span><?php endif; ?></div>
     <a href="/counterparties/view?id=<?php echo $cpId; ?>" target="_blank" class="cp-popup-link" title="Відкрити картку">↗</a>
     <button class="cp-close-btn" title="Закрити" onclick="window.parent.postMessage('chat-popup-close','*')">×</button>
   </div>

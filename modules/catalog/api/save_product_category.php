@@ -60,37 +60,21 @@ Database::update('Papir', 'product_papir',
     array('product_id'   => $productId)
 );
 
-// 2. Cascade → off.oc_product_to_category
-if ($idOff > 0) {
-    if ($offCatId > 0) {
-        Database::query('off',
-            "DELETE FROM oc_product_to_category
-             WHERE product_id={$idOff} AND main_category=1"
-        );
-        Database::query('off',
-            "INSERT INTO oc_product_to_category (product_id, category_id, main_category)
-             VALUES ({$idOff}, {$offCatId}, 1)
-             ON DUPLICATE KEY UPDATE main_category=1"
-        );
-    } elseif ($categoryId === 0) {
-        Database::query('off',
-            "DELETE FROM oc_product_to_category
-             WHERE product_id={$idOff} AND main_category=1"
-        );
-    }
-}
+// 2. Cascade → all active sites via SiteSyncService
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
+$productSites = $sync->getProductSites($productId);
 
-// 3. Cascade → mff.oc_product_to_category
-if ($idMf > 0 && $mffCatId > 0) {
-    Database::query('mff',
-        "DELETE FROM oc_product_to_category
-         WHERE product_id={$idMf} AND main_category=1"
-    );
-    Database::query('mff',
-        "INSERT INTO oc_product_to_category (product_id, category_id, main_category)
-         VALUES ({$idMf}, {$mffCatId}, 1)
-         ON DUPLICATE KEY UPDATE main_category=1"
-    );
+foreach ($productSites as $ps) {
+    $sid  = (int)$ps['site_id'];
+    $spid = (int)$ps['site_product_id'];
+    if ($spid <= 0) continue;
+
+    $siteCatId = $sync->getSiteCategoryId($categoryId, $sid);
+    if ($siteCatId > 0) {
+        $sync->productUpdate($sid, $spid, array(), array(),
+            array(array('category_id' => $siteCatId, 'main_category' => 1)));
+    }
 }
 
 echo json_encode(array(

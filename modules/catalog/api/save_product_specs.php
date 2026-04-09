@@ -47,37 +47,32 @@ if (!$upd['ok']) {
     exit;
 }
 
-// Cascade to off + mff
-$sitesR = Database::fetchAll('Papir', "SELECT site_id, db_alias FROM sites WHERE status = 1");
-if ($sitesR['ok']) {
-    foreach ($sitesR['rows'] as $site) {
-        $siteId  = (int)$site['site_id'];
-        $dbAlias = $site['db_alias'];
+// Cascade to all active sites
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
+$productSites = $sync->getProductSites($productId);
 
-        $ps = Database::fetchRow('Papir',
-            "SELECT site_product_id FROM product_site WHERE product_id = {$productId} AND site_id = {$siteId} LIMIT 1");
-        if (!$ps['ok'] || empty($ps['row'])) continue;
-        $ocProdId = (int)$ps['row']['site_product_id'];
-        if ($ocProdId <= 0) continue;
+foreach ($productSites as $ps) {
+    $siteId    = (int)$ps['site_id'];
+    $ocProdId  = (int)$ps['site_product_id'];
+    if ($ocProdId <= 0) continue;
 
-        $wcMap = Database::fetchRow('Papir',
-            "SELECT site_weight_class_id FROM weight_class_site_mapping WHERE weight_class_id = {$weightClassId} AND site_id = {$siteId} LIMIT 1");
-        $ocWc = ($wcMap['ok'] && !empty($wcMap['row'])) ? (int)$wcMap['row']['site_weight_class_id'] : $weightClassId;
+    $wcMap = Database::fetchRow('Papir',
+        "SELECT site_weight_class_id FROM weight_class_site_mapping WHERE weight_class_id = {$weightClassId} AND site_id = {$siteId} LIMIT 1");
+    $ocWc = ($wcMap['ok'] && !empty($wcMap['row'])) ? (int)$wcMap['row']['site_weight_class_id'] : $weightClassId;
 
-        $lcMap = Database::fetchRow('Papir',
-            "SELECT site_length_class_id FROM length_class_site_mapping WHERE length_class_id = {$lengthClassId} AND site_id = {$siteId} LIMIT 1");
-        $ocLc = ($lcMap['ok'] && !empty($lcMap['row'])) ? (int)$lcMap['row']['site_length_class_id'] : $lengthClassId;
+    $lcMap = Database::fetchRow('Papir',
+        "SELECT site_length_class_id FROM length_class_site_mapping WHERE length_class_id = {$lengthClassId} AND site_id = {$siteId} LIMIT 1");
+    $ocLc = ($lcMap['ok'] && !empty($lcMap['row'])) ? (int)$lcMap['row']['site_length_class_id'] : $lengthClassId;
 
-        Database::query($dbAlias,
-            "UPDATE oc_product SET
-                weight          = '{$weight}',
-                weight_class_id = {$ocWc},
-                length          = '{$length}',
-                width           = '{$width}',
-                height          = '{$height}',
-                length_class_id = {$ocLc}
-             WHERE product_id = {$ocProdId}");
-    }
+    $sync->productUpdate($siteId, $ocProdId, array(
+        'weight'          => $weight,
+        'weight_class_id' => $ocWc,
+        'length'          => $length,
+        'width'           => $width,
+        'height'          => $height,
+        'length_class_id' => $ocLc,
+    ));
 }
 
 echo json_encode(array('ok' => true));

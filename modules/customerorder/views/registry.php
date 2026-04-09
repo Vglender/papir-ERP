@@ -10,6 +10,7 @@ if (!isset($result)) {
 
 $rows       = !empty($result['rows'])  ? $result['rows']        : array();
 $total      = !empty($result['count']) ? (int)$result['count']  : 0;
+$totalUnread = !empty($result['global_unread']) ? (int)$result['global_unread'] : 0;
 $page       = !empty($result['page'])  ? (int)$result['page']   : 1;
 $limit      = !empty($result['limit']) ? (int)$result['limit']  : 50;
 $totalPages = $limit > 0 ? (int)ceil($total / $limit) : 1;
@@ -207,9 +208,9 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
 }
 .co-next-action {
     display:inline-flex; align-items:center; gap:3px;
-    max-width:120px; padding:2px 8px;
+    max-width:180px; padding:2px 8px;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    font-size:12px; font-weight:500; border-radius:5px;
+    font-size:11px; font-weight:500; border-radius:5px;
     background:#f0f6ff; color:#2563eb;
 }
 
@@ -569,7 +570,12 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                 <th>Менеджер</th>
                 <th style="width:80px;text-align:center">Дія</th>
                 <th style="width:36px;text-align:center" title="Непрочитані повідомлення">
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v8H4l-2 2V3z" stroke="#6b7280" stroke-width="1.3"/><path d="M5 7h6M5 9.5h3" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>
+                    <span style="position:relative;display:inline-block">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v8H4l-2 2V3z" stroke="#6b7280" stroke-width="1.3"/><path d="M5 7h6M5 9.5h3" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>
+                        <?php if ($totalUnread > 0): ?>
+                        <span style="position:absolute;top:-8px;right:-10px;background:#ef4444;color:#fff;font-size:9px;font-weight:600;min-width:16px;height:16px;line-height:16px;border-radius:8px;padding:0 4px;text-align:center;"><?= $totalUnread ?></span>
+                        <?php endif; ?>
+                    </span>
                 </th>
                 <th style="width:36px"></th>
             </tr>

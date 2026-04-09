@@ -55,14 +55,8 @@ if (!$r['ok']) {
 }
 
 // Cascade to external site oc_product
-$siteRow = Database::fetchRow('Papir',
-    "SELECT db_alias FROM sites WHERE site_id = {$siteId} LIMIT 1"
-);
-if ($siteRow['ok'] && !empty($siteRow['row'])) {
-    $db = $siteRow['row']['db_alias'];
-    Database::query($db,
-        "UPDATE oc_product SET status = {$enabled} WHERE product_id = {$siteProductId}"
-    );
-}
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
+$sync->productUpdate($siteId, $siteProductId, array('status' => $enabled));
 
 echo json_encode(array('ok' => true, 'enabled' => $enabled));

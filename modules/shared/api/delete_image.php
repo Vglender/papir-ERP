@@ -68,23 +68,16 @@ if ($entityType === 'category') {
     );
 
     // Cascade to linked sites
-    $catRes = Database::fetchRow('Papir',
-        "SELECT category_off, category_mf FROM categoria WHERE category_id = {$catId}"
-    );
-    if ($catRes['ok'] && !empty($catRes['row'])) {
-        $offCatId = (int)$catRes['row']['category_off'];
-        $mffCatId = (int)$catRes['row']['category_mf'];
-        if ($offCatId > 0) {
-            Database::update('off', 'oc_category',
-                array('image' => $newMain),
-                array('category_id' => $offCatId)
-            );
-        }
-        if ($mffCatId > 0) {
-            Database::update('mff', 'oc_category',
-                array('image' => $newMain),
-                array('category_id' => $mffCatId)
-            );
+    require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+    $sync = new SiteSyncService();
+    $siteMappings = Database::fetchAll('Papir',
+        "SELECT csm.site_id, csm.site_category_id FROM category_site_mapping csm
+         JOIN sites s ON s.site_id = csm.site_id AND s.status = 1
+         WHERE csm.category_id = {$catId}");
+    if ($siteMappings['ok']) {
+        foreach ($siteMappings['rows'] as $sm) {
+            $sync->categoryUpdate((int)$sm['site_id'], (int)$sm['site_category_id'],
+                array('image' => $newMain));
         }
     }
 }

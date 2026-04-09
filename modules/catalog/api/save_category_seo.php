@@ -17,31 +17,12 @@ if ($categoryId <= 0 || $siteId <= 0) {
     exit;
 }
 
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+
 function esc($db, $v) { return Database::escape($db, $v); }
 
-// Load site info
-$siteRes = Database::fetchRow('Papir', "SELECT site_id, code, url, db_alias FROM sites WHERE site_id = {$siteId}");
-if (!$siteRes['ok'] || empty($siteRes['row'])) {
-    echo json_encode(array('ok' => false, 'error' => 'Site not found'));
-    exit;
-}
-$site     = $siteRes['row'];
-$siteCode = (string)$site['code'];
-
-// Load category cascade targets
-$catRes = Database::fetchRow('Papir',
-    "SELECT category_off, category_mf FROM categoria WHERE category_id = {$categoryId}"
-);
-if (!$catRes['ok'] || empty($catRes['row'])) {
-    echo json_encode(array('ok' => false, 'error' => 'Category not found'));
-    exit;
-}
-$siteCatId = 0;
-if ($siteCode === 'off') {
-    $siteCatId = (int)$catRes['row']['category_off'];
-} elseif ($siteCode === 'mff') {
-    $siteCatId = (int)$catRes['row']['category_mf'];
-}
+$sync = new SiteSyncService();
+$siteCatId = $sync->getSiteCategoryId($categoryId, $siteId);
 
 // Load all languages
 $langsRes = Database::fetchAll('Papir', "SELECT language_id, code FROM languages ORDER BY sort_order, language_id");
@@ -50,6 +31,9 @@ if (!$langsRes['ok']) {
     exit;
 }
 $languages = $langsRes['rows'];
+
+$cascadeDescriptions = array();
+$cascadeSeoUrls      = array();
 
 foreach ($languages as $lang) {
     $langId   = (int)$lang['language_id'];
@@ -98,58 +82,31 @@ foreach ($languages as $lang) {
     }
     $siteLangId = (int)$slRes['row']['site_lang_id'];
 
-    // 4. Cascade to oc_category_description (name always included)
-    if ($siteCode === 'off') {
-        Database::query('off',
-            "UPDATE oc_category_description
-             SET name='" . esc('off', $catName) . "',
-                 description='" . esc('off', $description) . "',
-                 meta_title='" . esc('off', $metaTitle) . "',
-                 meta_description='" . esc('off', $metaDesc) . "',
-                 meta_h1='" . esc('off', $seoH1) . "'
-             WHERE category_id = {$siteCatId} AND language_id = {$siteLangId}"
+    // 4. Collect descriptions and SEO URLs for batch cascade
+    $cascadeDescriptions[] = array(
+        'language_id'      => $siteLangId,
+        'name'             => $catName,
+        'description'      => $description,
+        'meta_title'       => $metaTitle,
+        'meta_description' => $metaDesc,
+        'meta_h1'          => $seoH1,
+    );
+    if ($seoUrl !== '') {
+        $cascadeSeoUrls[] = array(
+            'keyword'     => $seoUrl,
+            'language_id' => $siteLangId,
+            'store_id'    => 0,
         );
-        // seo_url → oc_url_alias (no language dimension — UK slug only)
-        if ($langCode === 'uk') {
-            Database::query('off',
-                "INSERT INTO oc_url_alias (query, keyword)
-                 VALUES ('category_id={$siteCatId}', '" . esc('off', $seoUrl) . "')
-                 ON DUPLICATE KEY UPDATE keyword='" . esc('off', $seoUrl) . "'"
-            );
-        }
-    } elseif ($siteCode === 'mff') {
-        Database::query('mff',
-            "UPDATE oc_category_description
-             SET name='" . esc('mff', $catName) . "',
-                 description='" . esc('mff', $description) . "',
-                 meta_title='" . esc('mff', $metaTitle) . "',
-                 meta_description='" . esc('mff', $metaDesc) . "'
-             WHERE category_id = {$siteCatId} AND language_id = {$siteLangId}"
-        );
-        // seo_url → mff.oc_seo_url (has language dimension — cascade for both languages)
-        if ($seoUrl !== '') {
-            Database::query('mff',
-                "INSERT INTO oc_seo_url (store_id, language_id, query, keyword)
-                 VALUES (0, {$siteLangId}, 'category_id={$siteCatId}', '" . esc('mff', $seoUrl) . "')
-                 ON DUPLICATE KEY UPDATE keyword='" . esc('mff', $seoUrl) . "'"
-            );
-        }
     }
 }
 
-// 5. Cascade status/sort_order to oc_category
+// 5. Cascade to site via SiteSyncService
 if ($siteCatId > 0) {
-    if ($siteCode === 'off') {
-        Database::update('off', 'oc_category',
-            array('status' => $siteStatus, 'sort_order' => $siteSortOrder),
-            array('category_id' => $siteCatId)
-        );
-    } elseif ($siteCode === 'mff') {
-        Database::update('mff', 'oc_category',
-            array('status' => $siteStatus, 'sort_order' => $siteSortOrder),
-            array('category_id' => $siteCatId)
-        );
-    }
+    $sync->categoryUpdate($siteId, $siteCatId,
+        array('status' => $siteStatus, 'sort_order' => $siteSortOrder),
+        $cascadeDescriptions,
+        $cascadeSeoUrls
+    );
 }
 
 echo json_encode(array('ok' => true));

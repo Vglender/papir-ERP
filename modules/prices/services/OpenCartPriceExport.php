@@ -1,16 +1,22 @@
 <?php
 
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+
 class OpenCartPriceExport
 {
+    /** @var array db_alias => site_id cache */
+    private static $aliasMap = array();
+
     /**
-     * Push prices/discounts for a batch of products to one OpenCart DB.
+     * Push prices/discounts for a batch of products to one site via SiteSyncService.
      *
-     * @param string $dbAlias 'off' or 'mff'
-     * @param array  $rows    product rows with id_off/id_mf, prices, discount profile
-     * @param string $idField 'id_off' for offtorg, 'id_mf' for mff
+     * Supports two calling conventions:
+     *   pushBatch($siteId, $rows)                      — new (site_product_id in rows)
+     *   pushBatch($dbAlias, $rows, $idField)            — legacy (id_off/id_mf in rows)
+     *
      * @return array array('ok'=>bool, 'pushed'=>int, 'skipped'=>int, 'errors'=>array)
      */
-    public function pushBatch($dbAlias, array $rows, $idField)
+    public function pushBatch($siteIdOrAlias, array $rows, $idField = 'site_product_id')
     {
         $pushed  = 0;
         $skipped = 0;
@@ -18,6 +24,19 @@ class OpenCartPriceExport
 
         $dateStart = date('Y-m-d');
         $dateEnd   = date('Y-m-d', strtotime('+365 days'));
+
+        // Resolve site_id from db_alias if legacy call
+        $siteId = $siteIdOrAlias;
+        if (!is_numeric($siteIdOrAlias)) {
+            $siteId = $this->resolveSiteId($siteIdOrAlias);
+            if (!$siteId) {
+                return array('ok' => false, 'pushed' => 0, 'skipped' => count($rows),
+                    'errors' => array('Unknown db_alias: ' . $siteIdOrAlias));
+            }
+        }
+        $siteId = (int)$siteId;
+
+        $batchItems = array();
 
         foreach ($rows as $row) {
             $ocProductId = isset($row[$idField]) ? (int)$row[$idField] : 0;
@@ -38,45 +57,19 @@ class OpenCartPriceExport
             $qty3   = isset($row['qty_3'])   ? (int)$row['qty_3']     : 0;
             $price3 = isset($row['price_3']) ? (float)$row['price_3'] : 0;
 
-            try {
-                // Update oc_product: price and quantity
-                Database::update($dbAlias, 'oc_product', array(
-                    'price'    => $priceSale,
-                    'quantity' => $quantity,
-                ), array('product_id' => $ocProductId));
-
-                // Delete all existing discount rows for this product
-                Database::query(
-                    $dbAlias,
-                    'DELETE FROM oc_product_discount WHERE product_id = ' . $ocProductId
-                );
-
-                // Build discount rows to insert
-                $discountRows = array();
-
-                // Groups 1 and 4: volume tiers (3 tiers)
-                $tiers = array(
-                    array('qty' => $qty1, 'price' => $price1),
-                    array('qty' => $qty2, 'price' => $price2),
-                    array('qty' => $qty3, 'price' => $price3),
-                );
-                $priority = 1;
-                foreach ($tiers as $tier) {
-                    if ($tier['qty'] > 0 && $tier['price'] > 0) {
-                        // Group 1
-                        $discountRows[] = array(
-                            'product_id'        => $ocProductId,
-                            'customer_group_id' => 1,
-                            'quantity'          => $tier['qty'],
-                            'priority'          => $priority,
-                            'price'             => $tier['price'],
-                            'date_start'        => $dateStart,
-                            'date_end'          => $dateEnd,
-                        );
-                        // Group 4
-                        $discountRows[] = array(
-                            'product_id'        => $ocProductId,
-                            'customer_group_id' => 4,
+            // Build discount rows
+            $discounts = array();
+            $tiers = array(
+                array('qty' => $qty1, 'price' => $price1),
+                array('qty' => $qty2, 'price' => $price2),
+                array('qty' => $qty3, 'price' => $price3),
+            );
+            $priority = 1;
+            foreach ($tiers as $tier) {
+                if ($tier['qty'] > 0 && $tier['price'] > 0) {
+                    foreach (array(1, 4) as $cgId) {
+                        $discounts[] = array(
+                            'customer_group_id' => $cgId,
                             'quantity'          => $tier['qty'],
                             'priority'          => $priority,
                             'price'             => $tier['price'],
@@ -84,43 +77,47 @@ class OpenCartPriceExport
                             'date_end'          => $dateEnd,
                         );
                     }
-                    $priority++;
                 }
+                $priority++;
+            }
 
-                // Group 2: wholesale, qty=1
-                if ($priceWholesale > 0) {
-                    $discountRows[] = array(
-                        'product_id'        => $ocProductId,
-                        'customer_group_id' => 2,
-                        'quantity'          => 1,
-                        'priority'          => 1,
-                        'price'             => $priceWholesale,
-                        'date_start'        => $dateStart,
-                        'date_end'          => $dateEnd,
-                    );
-                }
+            if ($priceWholesale > 0) {
+                $discounts[] = array(
+                    'customer_group_id' => 2,
+                    'quantity'          => 1,
+                    'priority'          => 1,
+                    'price'             => $priceWholesale,
+                    'date_start'        => $dateStart,
+                    'date_end'          => $dateEnd,
+                );
+            }
 
-                // Group 3: dealer, qty=1
-                if ($priceDealer > 0) {
-                    $discountRows[] = array(
-                        'product_id'        => $ocProductId,
-                        'customer_group_id' => 3,
-                        'quantity'          => 1,
-                        'priority'          => 1,
-                        'price'             => $priceDealer,
-                        'date_start'        => $dateStart,
-                        'date_end'          => $dateEnd,
-                    );
-                }
+            if ($priceDealer > 0) {
+                $discounts[] = array(
+                    'customer_group_id' => 3,
+                    'quantity'          => 1,
+                    'priority'          => 1,
+                    'price'             => $priceDealer,
+                    'date_start'        => $dateStart,
+                    'date_end'          => $dateEnd,
+                );
+            }
 
-                foreach ($discountRows as $dr) {
-                    Database::insert($dbAlias, 'oc_product_discount', $dr);
-                }
+            $batchItems[] = array(
+                'product_id' => $ocProductId,
+                'price'      => $priceSale,
+                'quantity'   => $quantity,
+                'discounts'  => $discounts,
+            );
 
-                $pushed++;
-            } catch (Exception $e) {
-                $errors[] = 'product_id=' . (isset($row['product_id']) ? $row['product_id'] : '?')
-                    . ' oc_id=' . $ocProductId . ': ' . $e->getMessage();
+            $pushed++;
+        }
+
+        if (!empty($batchItems)) {
+            $sync = new SiteSyncService();
+            $r = $sync->batchPrices($siteId, $batchItems);
+            if (!$r['ok']) {
+                $errors[] = isset($r['error']) ? $r['error'] : 'batchPrices failed';
             }
         }
 
@@ -130,5 +127,22 @@ class OpenCartPriceExport
             'skipped' => $skipped,
             'errors'  => $errors,
         );
+    }
+
+    /**
+     * Resolve db_alias to site_id for backward compatibility.
+     */
+    private function resolveSiteId($dbAlias)
+    {
+        if (isset(self::$aliasMap[$dbAlias])) {
+            return self::$aliasMap[$dbAlias];
+        }
+        $r = Database::fetchRow('Papir',
+            "SELECT site_id FROM sites WHERE db_alias = '" . Database::escape('Papir', $dbAlias) . "' LIMIT 1");
+        if ($r['ok'] && !empty($r['row'])) {
+            self::$aliasMap[$dbAlias] = (int)$r['row']['site_id'];
+            return self::$aliasMap[$dbAlias];
+        }
+        return 0;
     }
 }

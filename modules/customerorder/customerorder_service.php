@@ -33,22 +33,39 @@ class CustomerOrderService
             return $count;
         }
 
-        // Batch-load unread message counts for visible orders
+        // Batch-load unread message counts for visible orders (via counterparty)
         $orderRows = $rows['rows'];
         if (!empty($orderRows)) {
             $ids = array();
-            foreach ($orderRows as $r) { $ids[] = (int)$r['id']; }
+            $cpIds = array();
+            foreach ($orderRows as $r) {
+                $ids[] = (int)$r['id'];
+                if (!empty($r['counterparty_id'])) {
+                    $cpIds[] = (int)$r['counterparty_id'];
+                }
+            }
             $idList = implode(',', $ids);
-            $rMsg = Database::fetchAll('Papir',
-                "SELECT order_id, COUNT(*) AS cnt
-                 FROM cp_messages
-                 WHERE order_id IN ({$idList})
-                   AND direction = 'in' AND read_at IS NULL AND channel != 'note'
-                 GROUP BY order_id");
             $unreadMap = array();
-            if ($rMsg['ok'] && !empty($rMsg['rows'])) {
-                foreach ($rMsg['rows'] as $mr) {
-                    $unreadMap[(int)$mr['order_id']] = (int)$mr['cnt'];
+            if (!empty($cpIds)) {
+                $cpIdList = implode(',', array_unique($cpIds));
+                $rMsg = Database::fetchAll('Papir',
+                    "SELECT counterparty_id, COUNT(*) AS cnt
+                     FROM cp_messages
+                     WHERE counterparty_id IN ({$cpIdList})
+                       AND direction = 'in' AND read_at IS NULL AND channel != 'note'
+                     GROUP BY counterparty_id");
+                $cpUnreadMap = array();
+                if ($rMsg['ok'] && !empty($rMsg['rows'])) {
+                    foreach ($rMsg['rows'] as $mr) {
+                        $cpUnreadMap[(int)$mr['counterparty_id']] = (int)$mr['cnt'];
+                    }
+                }
+                // Map counterparty unread counts back to order ids
+                foreach ($orderRows as $r) {
+                    $cpId = isset($r['counterparty_id']) ? (int)$r['counterparty_id'] : 0;
+                    if ($cpId && isset($cpUnreadMap[$cpId])) {
+                        $unreadMap[(int)$r['id']] = $cpUnreadMap[$cpId];
+                    }
                 }
             }
             // Batch-load active TTN counts (Nova Poshta + Ukrposhta)
@@ -116,12 +133,21 @@ class CustomerOrderService
             unset($r);
         }
 
+        // Global unread messages count — only for counterparties that have orders
+        $gUnread = Database::fetchRow('Papir',
+            "SELECT COUNT(*) AS cnt
+             FROM cp_messages m
+             WHERE m.direction='in' AND m.read_at IS NULL AND m.channel!='note'
+               AND m.counterparty_id IN (SELECT DISTINCT counterparty_id FROM customerorder WHERE deleted_at IS NULL AND counterparty_id IS NOT NULL)");
+        $globalUnread = ($gUnread['ok'] && !empty($gUnread['row'])) ? (int)$gUnread['row']['cnt'] : 0;
+
         return array(
             'ok' => true,
             'rows' => $orderRows,
             'count' => (int)$count['value'],
             'page' => (int)$page,
             'limit' => (int)$limit,
+            'global_unread' => $globalUnread,
         );
     }
 

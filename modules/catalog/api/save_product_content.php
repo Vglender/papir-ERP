@@ -78,61 +78,38 @@ if (!$siteR['ok'] || empty($siteR['row'])) {
     echo json_encode(array('ok' => true, 'warning' => 'Site not found, saved to Papir only'));
     exit;
 }
-$dbAlias  = (string)$siteR['row']['db_alias'];
-$siteCode = (string)$siteR['row']['code'];
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
 
-$psR = Database::fetchRow('Papir',
-    "SELECT site_product_id FROM product_site WHERE product_id = {$productId} AND site_id = {$siteId}"
-);
-if (!$psR['ok'] || empty($psR['row'])) {
+$siteProductId = $sync->getSiteProductId($productId, $siteId);
+if ($siteProductId <= 0) {
     echo json_encode(array('ok' => true, 'warning' => 'Product not linked to site, saved to Papir only'));
     exit;
 }
-$siteProductId = (int)$psR['row']['site_product_id'];
 
-$slR = Database::fetchRow('Papir',
-    "SELECT site_lang_id FROM site_languages WHERE site_id = {$siteId} AND language_id = {$languageId}"
-);
-if (!$slR['ok'] || empty($slR['row'])) {
+$langMap = $sync->getSiteLanguages($siteId);
+$siteLangId = isset($langMap[$languageId]) ? $langMap[$languageId] : 0;
+if ($siteLangId <= 0) {
     echo json_encode(array('ok' => true, 'warning' => 'Language mapping not found, saved to Papir only'));
     exit;
 }
-$siteLangId = (int)$slR['row']['site_lang_id'];
 
-// 4. Cascade name/description/meta to oc_product_description
-$ocDescUpdate = array();
-if ($name !== null)            $ocDescUpdate['name']             = $name;
-if ($description !== null)     $ocDescUpdate['description']      = $description;
-if ($metaTitle !== null)       $ocDescUpdate['meta_title']       = $metaTitle;
-if ($metaDescription !== null) $ocDescUpdate['meta_description'] = $metaDescription;
-
-if (!empty($ocDescUpdate)) {
-    Database::update($dbAlias, 'oc_product_description', $ocDescUpdate,
-        array('product_id' => $siteProductId, 'language_id' => $siteLangId)
-    );
+// 4. Cascade name/description/meta + SEO URL via SiteSyncService
+$descriptions = array();
+$descFields = array('language_id' => $siteLangId);
+if ($name !== null)            $descFields['name']             = $name;
+if ($description !== null)     $descFields['description']      = $description;
+if ($metaTitle !== null)       $descFields['meta_title']       = $metaTitle;
+if ($metaDescription !== null) $descFields['meta_description'] = $metaDescription;
+if (count($descFields) > 1) {
+    $descriptions[] = $descFields;
 }
 
-// 5. Cascade seo_url to OC
-if ($seoUrl !== null) {
-    if ($siteCode === 'off') {
-        // off uses oc_url_alias — no language dimension, use UK slug (language_id=2)
-        if ($languageId === 2) {
-            $escSlug = Database::escape('off', $seoUrl);
-            Database::query('off',
-                "INSERT INTO oc_url_alias (query, keyword)
-                 VALUES ('product_id={$siteProductId}', '{$escSlug}')
-                 ON DUPLICATE KEY UPDATE keyword='{$escSlug}'"
-            );
-        }
-    } elseif ($siteCode === 'mff') {
-        // mff uses oc_seo_url with store_id + language_id
-        $escSlug = Database::escape('mff', $seoUrl);
-        Database::query('mff',
-            "INSERT INTO oc_seo_url (store_id, language_id, query, keyword)
-             VALUES (0, {$siteLangId}, 'product_id={$siteProductId}', '{$escSlug}')
-             ON DUPLICATE KEY UPDATE keyword='{$escSlug}'"
-        );
-    }
+$seoUrls = array();
+if ($seoUrl !== null && $seoUrl !== '') {
+    $seoUrls[] = array('keyword' => $seoUrl, 'language_id' => $siteLangId, 'store_id' => 0);
 }
+
+$sync->productSeo($siteId, $siteProductId, $descriptions, $seoUrls);
 
 echo json_encode(array('ok' => true));

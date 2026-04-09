@@ -54,38 +54,34 @@ $processed = (int)$r['affected_rows'];
 if ($enabled === 0) {
     // Load all site mappings for these products
     $psAll = Database::fetchAll('Papir',
-        "SELECT ps.product_id, ps.site_id, ps.site_product_id, s.db_alias
+        "SELECT ps.product_id, ps.site_id, ps.site_product_id
          FROM product_site ps
-         JOIN sites s ON s.site_id = ps.site_id
+         JOIN sites s ON s.site_id = ps.site_id AND s.status = 1
          WHERE ps.product_id IN ({$idList})"
     );
 
     if ($psAll['ok'] && !empty($psAll['rows'])) {
-        // Disable all product_site entries in one query
         Database::query('Papir',
             "UPDATE product_site SET status = 0 WHERE product_id IN ({$idList})"
         );
 
-        // Group site_product_ids by db_alias for batch oc_product updates
-        $byDb = array();
+        // Group by site_id for batch updates via SiteSyncService
+        require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+        $sync = new SiteSyncService();
+        $bySite = array();
         foreach ($psAll['rows'] as $ps) {
-            $db  = $ps['db_alias'];
+            $sid  = (int)$ps['site_id'];
             $spid = (int)$ps['site_product_id'];
             if ($spid > 0) {
-                if (!isset($byDb[$db])) {
-                    $byDb[$db] = array();
-                }
-                $byDb[$db][] = $spid;
+                if (!isset($bySite[$sid])) $bySite[$sid] = array();
+                $bySite[$sid][] = array('product_id' => $spid, 'quantity' => 0);
             }
         }
 
-        foreach ($byDb as $db => $spIds) {
-            $spList = implode(',', $spIds);
-            $rc = Database::query($db,
-                "UPDATE oc_product SET status = 0 WHERE product_id IN ({$spList})"
-            );
-            if (!$rc['ok']) {
-                $errors[] = 'DB error cascading to ' . $db;
+        // Use batchQuantity with status=0 via productUpdate per site
+        foreach ($bySite as $sid => $items) {
+            foreach ($items as $item) {
+                $sync->productUpdate($sid, $item['product_id'], array('status' => 0));
             }
         }
     }

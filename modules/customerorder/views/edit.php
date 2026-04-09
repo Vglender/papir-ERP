@@ -372,7 +372,7 @@ require_once __DIR__ . '/../../shared/layout.php';
                                 <div class="cp-picker-wrap" id="cpPickerWrap">
                                     <input type="hidden" name="counterparty_id" id="counterparty_id" value="<?= h($currentCpId) ?>">
                                     <input type="text" id="cpPickerInput" class="cp-picker-input"
-                                           value="<?= h($counterpartyName) ?>"
+                                           value="<?= h($counterpartyName . ($counterpartyPhone ? '  ·  ' . $counterpartyPhone : '')) ?>"
                                            placeholder="Пошук контрагента…"
                                            autocomplete="off">
                                     <button type="button" class="cp-picker-clear" id="cpPickerClear" title="Скинути контрагента"<?= $currentCpId ? '' : ' style="display:none"' ?>>×</button>
@@ -644,6 +644,7 @@ require_once __DIR__ . '/../../shared/layout.php';
             <span style="font-size:11.5px; color:var(--text-muted);">Вибрані:</span>
             <button type="button" class="btn" id="bulkDeleteBtn" disabled>Видалити</button>
         </div>
+            <div class="pos-table-wrap">
             <table class="pos-table" id="positionsTable">
                 <thead>
                 <tr>
@@ -731,17 +732,17 @@ require_once __DIR__ . '/../../shared/layout.php';
                 <?php endforeach; ?>
                 <?php endif; ?>
 
-                <tr class="add-row">
-                    <td style="font-size:18px; color:var(--accent); text-align:center; padding-left:8px;">+</td>
-                    <td colspan="13">
-                        <div class="product-search-wrap">
-                            <div id="productSearchResults"></div>
-                            <input type="text" id="productSearchInput" placeholder="Додати позицію — введіть найменування, код або артикул...">
-                        </div>
-                    </td>
-                </tr>
                 </tbody>
             </table>
+            </div><!-- /.pos-table-wrap -->
+
+            <div class="product-search-wrap">
+                <div id="productSearchResults"></div>
+                <div class="product-search-input-row">
+                    <span class="product-search-plus">+</span>
+                    <input type="text" id="productSearchInput" placeholder="Додати позицію — введіть найменування, код або артикул...">
+                </div>
+            </div>
 
             <!-- Invoice-style totals -->
             <div class="totals-invoice">
@@ -991,6 +992,7 @@ var _PAGE = {
         return array('id' => (int)$dm['id'], 'code' => $dm['code'], 'name' => $dm['name_uk'], 'has_ttn' => (int)$dm['has_ttn']);
     }, $deliveryMethods)) ?>,
     cpNameForLink:     <?= json_encode(!empty($counterpartyName) ? $counterpartyName : '', JSON_UNESCAPED_UNICODE) ?>,
+    cpPhone:           <?= json_encode(!empty($counterpartyPhone) ? $counterpartyPhone : '', JSON_UNESCAPED_UNICODE) ?>,
     statusInlineStyles:<?= json_encode($_statusInlineStyles) ?>,
     initialContacts:   <?= json_encode($initialContacts) ?>,
     cpId:              <?= (int)$currentCpId ?>,

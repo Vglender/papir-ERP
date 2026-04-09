@@ -50,13 +50,20 @@ $projects = $projects['ok'] ? $projects['rows'] : array();
 // For existing orders we just need the current counterparty name + type to display.
 $counterpartyName    = '';
 $counterpartyType    = '';
+$counterpartyPhone   = '';
 $contactPersonName   = '';
 if (!empty($result['order']['counterparty_id'])) {
     $rCp = Database::fetchRow('Papir',
-        "SELECT id, name, type FROM counterparty WHERE id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
+        "SELECT c.id, c.name, c.type,
+                COALESCE(cp.phone, cc.phone) AS phone
+         FROM counterparty c
+         LEFT JOIN counterparty_person  cp ON cp.counterparty_id = c.id
+         LEFT JOIN counterparty_company cc ON cc.counterparty_id = c.id
+         WHERE c.id = " . (int)$result['order']['counterparty_id'] . " LIMIT 1");
     if ($rCp['ok'] && !empty($rCp['row'])) {
-        $counterpartyName = $rCp['row']['name'];
-        $counterpartyType = $rCp['row']['type'];
+        $counterpartyName  = $rCp['row']['name'];
+        $counterpartyType  = $rCp['row']['type'];
+        $counterpartyPhone = $rCp['row']['phone'] ?: '';
     }
 }
 if (!empty($result['order']['contact_person_id'])) {
@@ -95,7 +102,9 @@ $currencies = array(
 
 $salesChannels = array(
     array('code' => 'manual', 'name' => 'Ручне введення'),
-    array('code' => 'site', 'name' => 'Сайт'),
+    array('code' => 'off', 'name' => 'Офісторг'),
+    array('code' => 'mff', 'name' => 'Меню Фолдер'),
+    array('code' => 'prom', 'name' => 'Пром UA'),
     array('code' => 'marketplace', 'name' => 'Маркетплейс'),
     array('code' => 'api', 'name' => 'API'),
 );

@@ -64,6 +64,30 @@ class TaskQueueRunner
                 $context = json_decode($item['context'], true) ?: array();
             }
 
+            // Re-check step conditions at execution time (not just at scheduling)
+            // to handle race conditions with parallel scenarios
+            $stepId = (int)$item['step_id'];
+            if ($stepId) {
+                $rStep = Database::fetchRow('Papir',
+                    "SELECT conditions, condition_key, condition_op, condition_value
+                     FROM cp_scenario_steps WHERE id={$stepId}");
+                if ($rStep['ok'] && $rStep['row']) {
+                    $orderId = (int)$item['order_id'];
+                    $ctx = $context;
+                    if ($orderId) {
+                        $ctx['order_id'] = $orderId;
+                    }
+                    if (!\TriggerEngine::evaluateCondition($rStep['row'], $ctx)) {
+                        Database::query('Papir',
+                            "UPDATE cp_task_queue SET status='skipped', done_at=NOW(),
+                             result_note='Step condition not met at execution time'
+                             WHERE id={$id}");
+                        self::scheduleNextStep($item, $context);
+                        return;
+                    }
+                }
+            }
+
             switch ($item['action_type']) {
                 case 'send_message':
                     list($ok, $note) = self::doSendMessage($item, $params, $context);
@@ -532,13 +556,8 @@ class TaskQueueRunner
         $ctxJson    = Database::escape('Papir', json_encode($context, JSON_UNESCAPED_UNICODE));
 
         // Check next step condition before scheduling — skip if condition fails
-        if (!empty($nextStep['condition_key'])) {
-            $mockTrigger = array(
-                'condition_key'   => $nextStep['condition_key'],
-                'condition_op'    => $nextStep['condition_op'],
-                'condition_value' => $nextStep['condition_value'],
-                'conditions'      => null,
-            );
+        $hasCondition = !empty($nextStep['condition_key']) || !empty($nextStep['conditions']);
+        if ($hasCondition) {
             // Reload fresh order context for condition check
             if ($orderId) {
                 $or = Database::fetchRow('Papir',
@@ -547,9 +566,10 @@ class TaskQueueRunner
                 if ($or['ok'] && $or['row']) {
                     $context['order'] = $or['row'];
                 }
+                $context['order_id'] = $orderId;
             }
 
-            if (!\TriggerEngine::evaluateCondition($mockTrigger, $context)) {
+            if (!\TriggerEngine::evaluateCondition($nextStep, $context)) {
                 // Condition not met — skip this step, try the one after
                 return;
             }

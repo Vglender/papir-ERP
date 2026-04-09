@@ -62,43 +62,38 @@ $currentMffId = ($mfrRow['ok'] && $mfrRow['row']) ? (int)$mfrRow['row']['mff_id'
 
 $imageOff = $image !== '' ? mb_substr($image, 0, 255) : null;
 
-// ── Sync to off (menufold_offtorg.oc_manufacturer) ───────────────────────
+// ── Sync to sites via SiteSyncService ────────────────────────────────────
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
+
+// off (site_id=1)
+$mfrData = array('name' => $nameOff, 'image' => $imageOff);
 if ($currentOffId > 0) {
-    Database::update('off', 'oc_manufacturer',
-        array('name' => $nameOff, 'image' => $imageOff),
-        array('manufacturer_id' => $currentOffId)
-    );
+    $mfrData['manufacturer_id'] = $currentOffId;
+    $sync->manufacturerSave(1, $mfrData);
 } else {
-    // INSERT new manufacturer in off
     $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-        mt_rand(0, 0xffff),
-        mt_rand(0, 0x0fff) | 0x4000,
-        mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-    );
-    $ins = Database::insert('off', 'oc_manufacturer', array(
-        'name'       => $nameOff,
-        'image'      => $imageOff,
-        'noindex'    => 1,
-        'sort_order' => 0,
-        'uuid'       => $uuid,
-    ));
-    if ($ins['ok'] && isset($ins['insert_id']) && $ins['insert_id'] > 0) {
-        $currentOffId = (int)$ins['insert_id'];
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+        mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+    $mfrData['noindex'] = 1;
+    $mfrData['uuid'] = $uuid;
+    $r = $sync->manufacturerSave(1, $mfrData);
+    if ($r['ok'] && isset($r['manufacturer_id']) && $r['manufacturer_id'] > 0) {
+        $currentOffId = (int)$r['manufacturer_id'];
         Database::update('Papir', 'manufacturers',
             array('off_id' => $currentOffId),
-            array('manufacturer_id' => $id)
-        );
+            array('manufacturer_id' => $id));
     }
 }
 
-// ── Sync to mff (only if mff_id already known) ───────────────────────────
+// mff (site_id=2)
 if ($currentMffId > 0) {
-    Database::update('mff', 'oc_manufacturer',
-        array('name' => $nameOff, 'image' => $imageOff),
-        array('manufacturer_id' => $currentMffId)
-    );
+    $sync->manufacturerSave(2, array(
+        'manufacturer_id' => $currentMffId,
+        'name'            => $nameOff,
+        'image'           => $imageOff,
+    ));
 }
 
 

@@ -42,7 +42,8 @@ private function buildWhere($filters)
                 foreach ($tokens as $token) {
                     if ($token === '') continue;
                     $t = Database::escape($this->dbName, $token);
-                    $tokenParts[] = "(LOWER(co.`number`) LIKE '%{$t}%' OR LOWER(COALESCE(c.`name`,'')) LIKE '%{$t}%')";
+                    $tokenParts[] = "(LOWER(co.`number`) LIKE '%{$t}%' OR LOWER(COALESCE(c.`name`,'')) LIKE '%{$t}%' OR LOWER(COALESCE(cp_link.`name`,'')) LIKE '%{$t}%'"
+                        . " OR (c.`group_id` IS NOT NULL AND EXISTS (SELECT 1 FROM `counterparty` cg_s WHERE cg_s.`group_id` = c.`group_id` AND LOWER(cg_s.`name`) LIKE '%{$t}%')))";
                 }
                 if (!empty($tokenParts)) {
                     $chipConds[] = '(' . implode(' AND ', $tokenParts) . ')';
@@ -228,6 +229,9 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
         LEFT JOIN `employee` emp ON emp.`id` = co.`manager_employee_id`
         LEFT JOIN `auth_users` au ON au.`employee_id` = emp.`id`
         LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`
+        " . ($built['needsCpJoin']
+            ? "LEFT JOIN `counterparty` cp_link ON cp_link.`id` = co.`contact_person_id`"
+            : '') . "
         " . ($built['needsPhoneJoin']
             ? "LEFT JOIN `counterparty_person` cp_p ON cp_p.`counterparty_id` = co.`counterparty_id`
                LEFT JOIN `counterparty_company` cp_c ON cp_c.`counterparty_id` = co.`counterparty_id`"
@@ -243,7 +247,7 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
             GROUP BY customerorder_id
         ) dem_agg ON dem_agg.customerorder_id = co.id
         " . ($built['needsMsgJoin']
-            ? "LEFT JOIN (SELECT order_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' GROUP BY order_id) msg_cnt ON msg_cnt.order_id = co.id"
+            ? "LEFT JOIN (SELECT counterparty_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' AND counterparty_id IS NOT NULL GROUP BY counterparty_id) msg_cnt ON msg_cnt.counterparty_id = co.counterparty_id"
             : '') . "
         " . ($built['needsTtnJoin']
             ? "LEFT JOIN (SELECT dl.to_id AS oid, COUNT(*) AS cnt FROM document_link dl JOIN ttn_novaposhta tn ON tn.id=dl.from_id WHERE dl.from_type='ttn_np' AND dl.to_type='customerorder' AND (tn.deletion_mark IS NULL OR tn.deletion_mark=0) AND tn.state_define NOT IN (102,105) AND LOWER(tn.state_name) NOT LIKE '%відмов%' AND LOWER(tn.state_name) NOT LIKE '%отказ%' GROUP BY dl.to_id) ttn_np_cnt ON ttn_np_cnt.oid=co.id
@@ -371,13 +375,14 @@ public function searchProducts($query, $limit = 15)
 		$joins = '';
 		if ($built['needsCpJoin']) {
 			$joins .= ' LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`';
+			$joins .= ' LEFT JOIN `counterparty` cp_link ON cp_link.`id` = co.`contact_person_id`';
 		}
 		if ($built['needsPhoneJoin']) {
 			$joins .= ' LEFT JOIN `counterparty_person` cp_p ON cp_p.`counterparty_id` = co.`counterparty_id`';
 			$joins .= ' LEFT JOIN `counterparty_company` cp_c ON cp_c.`counterparty_id` = co.`counterparty_id`';
 		}
 		if ($built['needsMsgJoin']) {
-			$joins .= " LEFT JOIN (SELECT order_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' GROUP BY order_id) msg_cnt ON msg_cnt.order_id = co.id";
+			$joins .= " LEFT JOIN (SELECT counterparty_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' AND counterparty_id IS NOT NULL GROUP BY counterparty_id) msg_cnt ON msg_cnt.counterparty_id = co.counterparty_id";
 		}
 		if ($built['needsTtnJoin']) {
 			$joins .= " LEFT JOIN (SELECT dl.to_id AS oid, COUNT(*) AS cnt FROM document_link dl JOIN ttn_novaposhta tn ON tn.id=dl.from_id WHERE dl.from_type='ttn_np' AND dl.to_type='customerorder' AND (tn.deletion_mark IS NULL OR tn.deletion_mark=0) AND tn.state_define NOT IN (102,105) AND LOWER(tn.state_name) NOT LIKE '%відмов%' AND LOWER(tn.state_name) NOT LIKE '%отказ%' GROUP BY dl.to_id) ttn_np_cnt ON ttn_np_cnt.oid=co.id";

@@ -20,13 +20,17 @@
 define('CRON_MODE', true);
 
 require_once __DIR__ . '/../modules/database/database.php';
+require_once __DIR__ . '/../modules/integrations/opencart2/SiteSyncService.php';
 
 $start = microtime(true);
 
 echo '[' . date('Y-m-d H:i:s') . '] === START QUANTITY SYNC ===' . PHP_EOL;
 
 $result = Database::fetchAll('Papir',
-    "SELECT id_off, id_mf, quantity FROM product_papir WHERE status = 1"
+    "SELECT ps.site_id, ps.site_product_id, pp.quantity
+     FROM product_site ps
+     JOIN product_papir pp ON pp.product_id = ps.product_id
+     WHERE pp.status = 1 AND ps.status = 1"
 );
 
 if (!$result['ok']) {
@@ -34,47 +38,27 @@ if (!$result['ok']) {
     exit(1);
 }
 
-$rows = $result['rows'];
+echo '[INFO] Product-site links: ' . count($result['rows']) . PHP_EOL;
 
-echo '[INFO] Products: ' . count($rows) . PHP_EOL;
+// Group by site_id
+$bySite = array();
+foreach ($result['rows'] as $row) {
+    $siteId = (int)$row['site_id'];
+    if (!isset($bySite[$siteId])) $bySite[$siteId] = array();
+    $bySite[$siteId][] = array(
+        'product_id' => (int)$row['site_product_id'],
+        'quantity'   => (int)$row['quantity'],
+    );
+}
 
-$offTotal   = 0;
-$offChanged = 0;
-$mffTotal   = 0;
-$mffChanged = 0;
+$sync = new SiteSyncService();
 
-foreach ($rows as $row) {
-    $quantity = (int)$row['quantity'];
-
-    if (!empty($row['id_off'])) {
-        $offTotal++;
-        $r = Database::update('off', 'oc_product',
-            array('quantity' => $quantity),
-            array('product_id' => (int)$row['id_off'])
-        );
-        if ($r['ok'] && isset($r['affected_rows']) && $r['affected_rows'] > 0) {
-            $offChanged++;
-        }
-    }
-
-    if (!empty($row['id_mf'])) {
-        $mffTotal++;
-        $r = Database::update('mff', 'oc_product',
-            array('quantity' => $quantity),
-            array('product_id' => (int)$row['id_mf'])
-        );
-        if ($r['ok'] && isset($r['affected_rows']) && $r['affected_rows'] > 0) {
-            $mffChanged++;
-        }
-    }
+foreach ($bySite as $siteId => $items) {
+    $site = $sync->getSite($siteId);
+    $name = $site ? $site['name'] : "site_{$siteId}";
+    $r = $sync->batchQuantity($siteId, $items);
+    echo '[INFO] ' . $name . ': ' . ($r['ok'] ? $r['updated'] : 'ERROR') . '/' . count($items) . ' updated' . PHP_EOL;
 }
 
 $elapsed = round(microtime(true) - $start, 2);
-
-echo '[INFO] off: ' . $offChanged . '/' . $offTotal . ' changed' . PHP_EOL;
-echo '[INFO] mff: ' . $mffChanged . '/' . $mffTotal . ' changed' . PHP_EOL;
-echo '[' . date('Y-m-d H:i:s') . '] Done.'
-    . ' off=' . $offChanged . '/' . $offTotal
-    . ' mff=' . $mffChanged . '/' . $mffTotal
-    . ' time=' . $elapsed . 's'
-    . PHP_EOL;
+echo '[' . date('Y-m-d H:i:s') . '] Done. time=' . $elapsed . 's' . PHP_EOL;

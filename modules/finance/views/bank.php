@@ -66,6 +66,9 @@
 .fin-cp a { font-weight:600; font-size:13px; color:var(--text); text-decoration:none; }
 .fin-cp a:hover { color:var(--blue); }
 .fin-cp-none { color:var(--text-muted); font-size:12px; }
+.fin-org-cell { white-space:nowrap; }
+.fin-org-name { font-size:12px; font-weight:600; color:var(--text); }
+.fin-org-bank { font-size:11px; color:var(--text-muted); }
 .fin-sum-cell { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; font-weight:700; font-size:13px; }
 .fin-sum-cell.in  { color:var(--green); }
 .fin-sum-cell.out { color:var(--red); }
@@ -177,6 +180,7 @@ tr.fin-row.unmatched.selected { background:rgba(250,204,21,.15); }
         <div class="fin-toolbar">
             <h1>Банк</h1>
             <button type="button" class="btn btn-primary" id="btnAddDoc">+ Додати</button>
+            <button type="button" class="btn" onclick="location.reload()" title="Оновити"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px"><path d="M2 8a6 6 0 0110.5-4M14 2v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 8a6 6 0 01-10.5 4M2 14v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 
             <div class="fin-search-wrap">
                 <div class="chip-input" id="finChipBox">
@@ -309,13 +313,14 @@ tr.fin-row.unmatched.selected { background:rgba(250,204,21,.15); }
                             <th style="width:110px">Документ</th>
                             <th style="width:65px"></th>
                             <th>Контрагент</th>
+                            <th>Організація / Рахунок</th>
                             <th style="width:110px;text-align:right">Сума</th>
                             <th class="th-act"></th>
                         </tr>
                     </thead>
                     <tbody id="finTableBody">
                     <?php if (empty($rows)): ?>
-                        <tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);">Записів не знайдено</td></tr>
+                        <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">Записів не знайдено</td></tr>
                     <?php else: ?>
                         <?php foreach ($rows as $row): ?>
                         <?php
@@ -380,6 +385,16 @@ tr.fin-row.unmatched.selected { background:rgba(250,204,21,.15); }
                                            target="_blank" onclick="event.stopPropagation()"><?php echo ViewHelper::h($cpName); ?></a>
                                     <?php else: ?>
                                         <?php echo ViewHelper::h($cpName); ?>
+                                    <?php endif; ?>
+                                <?php else: ?>
+                                    <span class="fin-cp-none">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="fin-org-cell">
+                                <?php if (!empty($row['org_name'])): ?>
+                                    <div class="fin-org-name"><?php echo ViewHelper::h($row['org_name']); ?></div>
+                                    <?php if (!empty($row['org_bank_name'])): ?>
+                                        <div class="fin-org-bank"><?php echo ViewHelper::h($row['org_bank_name']); ?></div>
                                     <?php endif; ?>
                                 <?php else: ?>
                                     <span class="fin-cp-none">—</span>

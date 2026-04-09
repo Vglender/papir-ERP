@@ -621,6 +621,22 @@ var NpTtnModal = (function() {
         }
         rcpTypeRadios.forEach(function(r) { r.addEventListener('change', toggleRcpType); });
 
+        // ── Auto NonCash when Organization or Sender pays
+        var payMethodSel = document.getElementById('npPayMethod');
+        var payerTypeSel = document.getElementById('npPayerType');
+        function autoPaymentMethod() {
+            var rcpSel = document.querySelector('input[name="npRcpType"]:checked');
+            var isOrg = rcpSel && rcpSel.value === 'Organization';
+            var isSenderPays = payerTypeSel && payerTypeSel.value === 'Sender';
+            if (isOrg || isSenderPays) {
+                payMethodSel.value = 'NonCash';
+            }
+        }
+        rcpTypeRadios.forEach(function(r) { r.addEventListener('change', autoPaymentMethod); });
+        if (payerTypeSel) payerTypeSel.addEventListener('change', autoPaymentMethod);
+        // Apply on form init
+        autoPaymentMethod();
+
         // ── Service type auto-detection
         var _senderAddrType = 'street';
         var rcpDeliverySel = document.getElementById('npRecipientDelivery');
@@ -698,17 +714,18 @@ var NpTtnModal = (function() {
         backMoneyInput.addEventListener('change', enforceDeclaredMin);
         backMoneyInput.addEventListener('input', enforceDeclaredMin);
 
-        // Autocomplete helper
-        function makeAc(inpId, ddId, hiddenId, fetchFn, renderFn) {
+        // Autocomplete helper.  opts.minChars (default 2) — min input length to trigger fetch.
+        function makeAc(inpId, ddId, hiddenId, fetchFn, renderFn, opts) {
             var inp    = document.getElementById(inpId);
             var dd     = document.getElementById(ddId);
             var hidden = document.getElementById(hiddenId);
             if (!inp || !dd || !hidden) return;
+            var minChars = (opts && typeof opts.minChars === 'number') ? opts.minChars : 2;
             var timer;
-            inp.addEventListener('input', function() {
+            function doFetch() {
                 clearTimeout(timer);
                 var q = inp.value.trim();
-                if (q.length < 2) { dd.style.display = 'none'; return; }
+                if (q.length < minChars) { dd.style.display = 'none'; return; }
                 timer = setTimeout(function() {
                     fetchFn(q, function(items) {
                         if (!items.length) { dd.style.display = 'none'; return; }
@@ -720,7 +737,11 @@ var NpTtnModal = (function() {
                         dd.style.display = 'block';
                     });
                 }, 280);
-            });
+            }
+            inp.addEventListener('input', doFetch);
+            if (minChars === 0) {
+                inp.addEventListener('focus', doFetch);
+            }
             dd.addEventListener('mousedown', function(e) {
                 var item = e.target.closest('.np-ac-item');
                 if (!item) return;
@@ -750,6 +771,8 @@ var NpTtnModal = (function() {
             var sr = document.getElementById('npStreetRef');
             if (wh) wh.value = ''; if (ws) ws.value = '';
             if (si) si.value = ''; if (sr) sr.value = '';
+            // Pre-load warehouses for the selected city
+            if (wh) { wh.focus(); }
         });
 
         makeAc('npWhInput', 'npWhDd', 'npWhRef',
@@ -760,7 +783,8 @@ var NpTtnModal = (function() {
                     + '&q=' + encodeURIComponent(q) + '&sender_ref=' + encodeURIComponent(curSenderRef()))
                     .then(function(r){ return r.json(); }).then(function(res){ cb(res.warehouses||[]); });
             },
-            function(w) { return { label: 'Відд. №' + w.Number + (w.ShortAddress ? ': ' + w.ShortAddress : ''), sub: w.Description }; }
+            function(w) { return { label: 'Відд. №' + w.Number + (w.ShortAddress ? ': ' + w.ShortAddress : ''), sub: w.Description }; },
+            { minChars: 0 }
         );
 
         makeAc('npStreetInput', 'npStreetDd', 'npStreetRef',

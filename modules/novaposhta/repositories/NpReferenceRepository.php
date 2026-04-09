@@ -73,7 +73,7 @@ class NpReferenceRepository
             $tokens = array_filter($tokens, function($t) { return $t !== ''; });
             foreach ($tokens as $tok) {
                 $e = \Database::escape('Papir', $tok);
-                $where[] = "(LOWER(Description) LIKE '%{$e}%' OR LOWER(ShortAddress) LIKE '%{$e}%')";
+                $where[] = "(LOWER(Description) LIKE '%{$e}%' OR LOWER(ShortAddress) LIKE '%{$e}%' OR Number LIKE '%{$e}%')";
             }
         }
 

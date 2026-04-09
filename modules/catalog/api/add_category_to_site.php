@@ -93,77 +93,45 @@ if ($parentSiteCatId > 0) {
     // parent itself is already in path_res (last entry), so nothing extra needed
 }
 
-// INSERT oc_category
-$now = date('Y-m-d H:i:s');
+// Build category data for SiteSyncService
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+
+$categoryData = array('parent_id' => $parentSiteCatId, 'status' => 0);
+
+// UUID for 'off' site
 if ($siteCode === 'off') {
-    $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+    $categoryData['uuid'] = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
         mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-        mt_rand(0, 0x0fff) | 0x4000,
-        mt_rand(0, 0x3fff) | 0x8000,
-        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-    );
-    $insR = Database::query('off',
-        "INSERT INTO oc_category (parent_id, top, `column`, sort_order, status, noindex, date_added, date_modified, uuid)
-         VALUES ({$parentSiteCatId}, 0, 1, 0, 0, 0, '{$now}', '{$now}', '" . esc('off', $uuid) . "')"
-    );
-} elseif ($siteCode === 'mff') {
-    $insR = Database::query('mff',
-        "INSERT INTO oc_category (parent_id, top, `column`, sort_order, status, date_added, date_modified)
-         VALUES ({$parentSiteCatId}, 0, 1, 0, 0, '{$now}', '{$now}')"
-    );
-} else {
-    echo json_encode(array('ok' => false, 'error' => 'Непідтримуваний сайт: ' . $siteCode));
-    exit;
+        mt_rand(0, 0x0fff) | 0x4000, mt_rand(0, 0x3fff) | 0x8000,
+        mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
+    $categoryData['noindex'] = 0;
 }
 
-if (!$insR['ok']) {
-    echo json_encode(array('ok' => false, 'error' => 'Помилка створення категорії на сайті'));
-    exit;
-}
-
-// Get new category_id on site
-$newIdR = Database::fetchRow($dbAlias, "SELECT LAST_INSERT_ID() AS new_id");
-if (!$newIdR['ok'] || empty($newIdR['row']) || (int)$newIdR['row']['new_id'] === 0) {
-    echo json_encode(array('ok' => false, 'error' => 'Не вдалось отримати новий category_id'));
-    exit;
-}
-$newSiteCatId = (int)$newIdR['row']['new_id'];
-
-// INSERT oc_category_description for each language
+// Build descriptions per site language
+$descriptions = array();
 foreach ($siteLangs as $sl) {
     $papirLangId = (int)$sl['language_id'];
     $siteLangId  = (int)$sl['site_lang_id'];
-    $name = ($papirLangId === 2)
-        ? (string)$cat['name_uk']
-        : (string)$cat['name_ru'];
-    if ($name === '') {
-        $name = (string)$cat['name_uk'];
-    }
-    Database::query($dbAlias,
-        "INSERT INTO oc_category_description (category_id, language_id, name, description, meta_title, meta_description, meta_keyword)
-         VALUES ({$newSiteCatId}, {$siteLangId}, '" . esc($dbAlias, $name) . "', '', '', '', '')"
+    $name = ($papirLangId === 2) ? (string)$cat['name_uk'] : (string)$cat['name_ru'];
+    if ($name === '') $name = (string)$cat['name_uk'];
+    $descriptions[] = array(
+        'language_id'      => $siteLangId,
+        'name'             => $name,
+        'description'      => '',
+        'meta_title'       => '',
+        'meta_description' => '',
+        'meta_keyword'     => '',
     );
 }
 
-// INSERT oc_category_to_store (store_id=0)
-Database::query($dbAlias,
-    "INSERT IGNORE INTO oc_category_to_store (category_id, store_id) VALUES ({$newSiteCatId}, 0)"
-);
+$sync = new SiteSyncService();
+$result = $sync->categoryCreate($siteId, $categoryData, $descriptions);
 
-// INSERT oc_category_path (ancestors from root + self)
-$pathLevel = 0;
-foreach ($siteAncestorIds as $pathCatId) {
-    Database::query($dbAlias,
-        "INSERT IGNORE INTO oc_category_path (category_id, path_id, level)
-         VALUES ({$newSiteCatId}, {$pathCatId}, {$pathLevel})"
-    );
-    $pathLevel++;
+if (!$result['ok']) {
+    echo json_encode(array('ok' => false, 'error' => 'Помилка створення категорії на сайті'));
+    exit;
 }
-// Self entry
-Database::query($dbAlias,
-    "INSERT IGNORE INTO oc_category_path (category_id, path_id, level)
-     VALUES ({$newSiteCatId}, {$newSiteCatId}, {$pathLevel})"
-);
+$newSiteCatId = (int)$result['category_id'];
 
 // INSERT category_site_mapping
 Database::query('Papir',

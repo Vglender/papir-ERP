@@ -57,7 +57,12 @@ class ActionPublisher
 
         $publishedIds = array();
 
-        // 3. For each price: update oc_product_special
+        // 3. Build batch items for SiteSyncService
+        require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+        $sync = new SiteSyncService();
+        $siteId = 1; // off site
+
+        $specialItems = array();
         foreach ($prices as $priceRow) {
             $pid      = (int)$priceRow['product_id'];
             $priceAct = (float)$priceRow['price_act'];
@@ -67,24 +72,17 @@ class ActionPublisher
                 continue;
             }
 
-            // Delete old specials for customer groups 1, 4
-            Database::query('off', "DELETE FROM `oc_product_special`
-                                    WHERE `product_id` = " . $pid . "
-                                      AND `customer_group_id` IN (1, 4)");
-
-            // Insert new specials for customer groups 1, 4
-            $customerGroups = array(1, 4);
-            foreach ($customerGroups as $cgId) {
-                Database::insert('off', 'oc_product_special', array(
-                    'product_id'        => $pid,
-                    'customer_group_id' => $cgId,
-                    'price'             => $priceAct,
-                    'date_start'        => $dateStart,
-                    'date_end'          => $dateEnd,
-                ));
-            }
-
+            $specialItems[] = array(
+                'product_id' => $pid,
+                'price'      => $priceAct,
+                'date_start' => $dateStart,
+                'date_end'   => $dateEnd,
+            );
             $publishedIds[] = $pid;
+        }
+
+        if (!empty($specialItems)) {
+            $sync->batchSpecials($siteId, $specialItems, array(1, 4), array(1, 4));
         }
 
         $this->log($log, 'oc_product_special updated for ' . count($publishedIds) . ' products.', 'success');

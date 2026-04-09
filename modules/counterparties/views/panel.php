@@ -18,6 +18,10 @@ $_chatUnread = $_chatRepo2->getUnreadCount($id);
 .cpp-attach-sz{font-size:10px;color:var(--text-muted)}
 .cpp-attach-rm{border:none;background:transparent;cursor:pointer;color:var(--text-muted);font-size:16px;padding:0 3px;border-radius:4px;line-height:1;flex-shrink:0}
 .cpp-attach-rm:hover{background:#fee2e2;color:#dc2626}
+/* System messages (delivery errors) */
+.ws-msg-system{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0;font-size:12px;color:#dc2626}
+.ws-msg-system span:first-child{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:4px 12px;max-width:80%;word-break:break-word}
+.ws-msg-system-time{color:#9ca3af;font-size:11px;white-space:nowrap}
 </style>
 <div class="cpp-wrap" data-id="<?php echo $id; ?>">
 
@@ -766,6 +770,13 @@ foreach ($contacts as $_ct) {
         var html = '';
         for (var i = 0; i < msgs.length; i++) {
             var m   = msgs[i];
+            if (m.direction === 'system') {
+                html += '<div class="ws-msg-system">'
+                      + '<span>' + esc(m.body) + '</span>'
+                      + '<span class="ws-msg-system-time">' + formatMsgTime(m.created_at) + '</span>'
+                      + '</div>';
+                continue;
+            }
             var dir = m.direction === 'in' ? 'in' : 'out';
             var ts  = formatMsgTime(m.created_at);
             var statusIcon = '';

@@ -169,6 +169,7 @@ tr.fin-row.unmatched.selected { background:rgba(250,204,21,.15); }
         <div class="fin-toolbar">
             <h1>Каса</h1>
             <button type="button" class="btn btn-primary" id="btnAddDoc">+ Додати</button>
+            <button type="button" class="btn" onclick="location.reload()" title="Оновити"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px"><path d="M2 8a6 6 0 0110.5-4M14 2v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 8a6 6 0 01-10.5 4M2 14v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 
             <div class="fin-search-wrap">
                 <div class="chip-input" id="finChipBox">

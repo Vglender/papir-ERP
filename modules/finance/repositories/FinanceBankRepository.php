@@ -81,7 +81,12 @@ class FinanceBankRepository
         return "FROM finance_bank fb
                 LEFT JOIN counterparty cp_d ON cp_d.id = fb.cp_id
                 LEFT JOIN counterparty cp_m ON cp_m.id_ms = fb.agent_ms AND fb.cp_id IS NULL
-                LEFT JOIN finance_expense_category fec ON fec.id = fb.expense_category_id";
+                LEFT JOIN finance_expense_category fec ON fec.id = fb.expense_category_id
+                LEFT JOIN organization org ON org.id_ms = fb.organization_ms
+                LEFT JOIN organization_bank_account oba
+                    ON oba.id = (SELECT id FROM organization_bank_account
+                                 WHERE organization_id = org.id AND status = 1
+                                 ORDER BY is_default DESC LIMIT 1)";
     }
 
     public function getList($params)
@@ -100,7 +105,9 @@ class FinanceBankRepository
                     fec.name AS expense_category_name,
                     COALESCE(cp_d.id, cp_m.id)     AS cp_id,
                     COALESCE(cp_d.name, cp_m.name) AS cp_name,
-                    COALESCE(cp_d.type, cp_m.type) AS cp_type
+                    COALESCE(cp_d.type, cp_m.type) AS cp_type,
+                    org.short_name AS org_name,
+                    oba.bank_name  AS org_bank_name
              " . $this->baseFrom() . "
              WHERE {$where}
              ORDER BY fb.moment DESC

@@ -14,17 +14,21 @@ if (!$cityRef) {
 // Local search first
 $warehouses = \Papir\Crm\NpReferenceRepository::searchWarehouses($cityRef, $q, 30);
 
-// If empty — fetch from NP API
+// If empty — fetch from NP API with FindByString for targeted search
 if (empty($warehouses) && $senderRef) {
     $sender = \Papir\Crm\SenderRepository::getByRef($senderRef);
     if ($sender && $sender['api']) {
         $np = new \Papir\Crm\NovaPoshta($sender['api']);
-        $r  = $np->call('Address', 'getWarehouses', array(
+        $apiParams = array(
             'CityRef'  => $cityRef,
             'Language' => 'uk',
             'Limit'    => 500,
             'Page'     => 1,
-        ));
+        );
+        if ($q !== '') {
+            $apiParams['FindByString'] = $q;
+        }
+        $r = $np->call('Address', 'getWarehouses', $apiParams);
         if ($r['ok'] && !empty($r['data'])) {
             foreach ($r['data'] as $wh) {
                 \Papir\Crm\NpReferenceRepository::upsertWarehouse($wh);

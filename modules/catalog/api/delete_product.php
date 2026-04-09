@@ -60,6 +60,8 @@ if (empty($productIds)) {
 }
 
 // ── Load sites map ────────────────────────────────────────────────────────────
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
 $rSites = Database::fetchAll('Papir', "SELECT site_id, db_alias, code FROM sites WHERE status = 1");
 $sitesMap = array();
 if ($rSites['ok']) {
@@ -70,6 +72,8 @@ if ($rSites['ok']) {
 
 $errors = array();
 $deleted = 0;
+
+$GLOBALS['sync'] = $sync;
 
 foreach ($productIds as $productId) {
     $err = _deleteOne($productId, $sitesMap);
@@ -112,10 +116,9 @@ function _deleteOne($productId, $sitesMap)
             $siteProductId = (int)$ps['site_product_id'];
             if ($siteProductId <= 0 || !isset($sitesMap[$siteId])) continue;
 
-            $db = $sitesMap[$siteId]['db'];
             if ($sitesMap[$siteId]['code'] === 'mff') $hasMff = true;
 
-            _deleteOcProduct($db, $siteProductId);
+            $GLOBALS['sync']->productDelete($siteId, $siteProductId);
 
             // Invalidate OC seo_pro cache for off site
             if ($sitesMap[$siteId]['code'] === 'off') {
@@ -173,27 +176,6 @@ function _deleteOne($productId, $sitesMap)
     Database::query('Papir', "DELETE FROM product_papir      WHERE product_id = {$productId}");
 
     return null;
-}
-
-function _deleteOcProduct($db, $siteProductId)
-{
-    $id = (int)$siteProductId;
-
-    Database::query($db, "DELETE FROM oc_product_image      WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_description WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_discount   WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_special    WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_to_category WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_to_store   WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_to_layout  WHERE product_id = {$id}");
-    Database::query($db, "DELETE FROM oc_product_attribute  WHERE product_id = {$id}");
-    Database::query($db,
-        "DELETE FROM oc_product_related WHERE product_id = {$id} OR related_id = {$id}"
-    );
-    Database::query($db,
-        "DELETE FROM oc_url_alias WHERE query = 'product_id={$id}'"
-    );
-    Database::query($db, "DELETE FROM oc_product WHERE product_id = {$id}");
 }
 
 function _invalidateSeoPro()

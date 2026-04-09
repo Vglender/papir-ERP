@@ -24,24 +24,15 @@ if ($nameUa === '') {
     exit;
 }
 
-// Get current cascade targets
-$catRes = Database::fetchRow('Papir',
-    "SELECT category_off, category_mf FROM categoria WHERE category_id = {$categoryId}"
-);
-if (!$catRes['ok'] || empty($catRes['row'])) {
-    echo json_encode(array('ok' => false, 'error' => 'Категорію не знайдено'));
-    exit;
-}
-$offCatId = (int)$catRes['row']['category_off'];
-$mffCatId = (int)$catRes['row']['category_mf'];
-
-function esc($db, $v) { return Database::escape($db, $v); }
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
 
 // 1. Update categoria
 Database::update('Papir', 'categoria',
     array('status' => $status, 'sort_order' => $sortOrder),
     array('category_id' => $categoryId)
 );
+
+function esc($db, $v) { return Database::escape($db, $v); }
 
 // 2. Upsert category_description lang=1 (RU)
 Database::query('Papir',
@@ -61,36 +52,45 @@ Database::query('Papir',
        description_full='" . esc('Papir', $descUa) . "'"
 );
 
-// 4. Cascade names + description → off
-if ($offCatId > 0) {
-    Database::query('off',
-        "UPDATE oc_category_description SET
-           name='"        . esc('off', $nameRu) . "',
-           description='" . esc('off', $descRu) . "'
-         WHERE category_id = {$offCatId} AND language_id = 1"
-    );
-    Database::query('off',
-        "UPDATE oc_category_description SET
-           name='"        . esc('off', $nameUa) . "',
-           description='" . esc('off', $descUa) . "'
-         WHERE category_id = {$offCatId} AND language_id = 4"
-    );
-}
+// 4. Cascade names + description → all active sites
+$siteMappings = Database::fetchAll('Papir',
+    "SELECT csm.site_id, csm.site_category_id
+     FROM category_site_mapping csm
+     JOIN sites s ON s.site_id = csm.site_id AND s.status = 1
+     WHERE csm.category_id = {$categoryId}"
+);
 
-// 5. Cascade names + description → mff
-if ($mffCatId > 0) {
-    Database::query('mff',
-        "UPDATE oc_category_description SET
-           name='"        . esc('mff', $nameRu) . "',
-           description='" . esc('mff', $descRu) . "'
-         WHERE category_id = {$mffCatId} AND language_id = 1"
-    );
-    Database::query('mff',
-        "UPDATE oc_category_description SET
-           name='"        . esc('mff', $nameUa) . "',
-           description='" . esc('mff', $descUa) . "'
-         WHERE category_id = {$mffCatId} AND language_id = 2"
-    );
+if ($siteMappings['ok'] && !empty($siteMappings['rows'])) {
+    $sync = new SiteSyncService();
+
+    // Build descriptions with Papir language_ids (mapped by transport)
+    $langMap = Database::fetchAll('Papir', "SELECT site_id, language_id, site_lang_id FROM site_languages");
+    $langBySite = array();
+    if ($langMap['ok']) {
+        foreach ($langMap['rows'] as $lm) {
+            $langBySite[(int)$lm['site_id']][(int)$lm['language_id']] = (int)$lm['site_lang_id'];
+        }
+    }
+
+    foreach ($siteMappings['rows'] as $sm) {
+        $siteId    = (int)$sm['site_id'];
+        $siteCatId = (int)$sm['site_category_id'];
+        if ($siteCatId <= 0) continue;
+
+        $langs = isset($langBySite[$siteId]) ? $langBySite[$siteId] : array();
+        $descriptions = array();
+
+        // RU (Papir lang=1)
+        if (isset($langs[1])) {
+            $descriptions[] = array('language_id' => $langs[1], 'name' => $nameRu, 'description' => $descRu);
+        }
+        // UA (Papir lang=2)
+        if (isset($langs[2])) {
+            $descriptions[] = array('language_id' => $langs[2], 'name' => $nameUa, 'description' => $descUa);
+        }
+
+        $sync->categoryUpdate($siteId, $siteCatId, array(), $descriptions);
+    }
 }
 
 echo json_encode(array('ok' => true, 'name' => $nameUa));

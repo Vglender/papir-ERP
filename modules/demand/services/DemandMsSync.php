@@ -58,6 +58,9 @@ class DemandMsSync
             $this->markError($demandId, $payload['error']);
             return array('ok' => false, 'error' => $payload['error']);
         }
+        if (!empty($payload['skipped'])) {
+            return array('ok' => true, 'skipped' => true);
+        }
 
         $entityBase = $this->ms->getEntityBaseUrl();
         $msId = !empty($demand['id_ms']) ? $demand['id_ms'] : null;
@@ -123,6 +126,9 @@ class DemandMsSync
                 'type'      => 'counterparty',
                 'mediaType' => 'application/json',
             ));
+        } else {
+            // counterparty not synced to МС — skip sync silently
+            return array('ok' => true, 'skipped' => true);
         }
 
         if (!empty($demand['order_ms'])) {

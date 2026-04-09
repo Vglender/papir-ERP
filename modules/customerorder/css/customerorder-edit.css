@@ -414,7 +414,7 @@
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 10px;
-            overflow: hidden;
+            overflow: visible;
             min-width: 0;
         }
 
@@ -425,6 +425,7 @@
             border-bottom: 1px solid var(--border);
             padding: 0 14px;
             background: #fafbfc;
+            border-radius: 10px 10px 0 0;
         }
 
         .tab-btn {
@@ -538,9 +539,8 @@
         .price-cell { position: relative; }
         .price-dd {
             display: none;
-            position: absolute;
-            right: 0; top: calc(100% + 2px);
-            z-index: 120;
+            position: fixed;
+            z-index: 9100;
             background: #fff;
             border: 1px solid #d1d5db;
             border-radius: 6px;
@@ -626,13 +626,6 @@
         .row-menu-item.danger { color: #dc2626; }
         .row-menu-item.danger:hover { background: #fff5f5; }
 
-        /* add row */
-        .add-row td {
-            padding: 8px 8px;
-            border-bottom: none;
-        }
-        .add-row:hover { background: transparent !important; }
-
         #productSearchInput {
             width: 100%;
             padding: 7px 11px;
@@ -652,7 +645,19 @@
         }
 
         /* Product search dropdown (opens upward) */
-        .product-search-wrap { position: relative; }
+        .product-search-wrap { position: relative; padding: 8px 8px; }
+        .product-search-input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .product-search-plus {
+            font-size: 18px;
+            color: var(--accent);
+            padding-left: 8px;
+            flex-shrink: 0;
+        }
+        #productSearchInput { flex: 1; }
         #productSearchResults {
             display: none;
             position: absolute;
@@ -792,7 +797,8 @@
         /* tab content */
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        #tab-positions { overflow-x: auto; }
+        #tab-positions { overflow: visible; }
+        .pos-table-wrap { overflow-x: auto; }
 
         @media (max-width: 1100px) {
             .fields-area { grid-template-columns: 1fr; }

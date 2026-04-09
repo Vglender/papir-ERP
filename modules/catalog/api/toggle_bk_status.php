@@ -35,29 +35,18 @@ $siteStatuses = array();
 
 // If disabling — cascade to all sites
 if ($enabled === 0) {
-    // Load all site mappings
-    $psAll = Database::fetchAll('Papir',
-        "SELECT ps.site_id, ps.site_product_id, s.db_alias
-         FROM product_site ps
-         JOIN sites s ON s.site_id = ps.site_id
-         WHERE ps.product_id = {$productId}"
-    );
-    if ($psAll['ok'] && !empty($psAll['rows'])) {
-        foreach ($psAll['rows'] as $ps) {
-            $siteId        = (int)$ps['site_id'];
-            $siteProductId = (int)$ps['site_product_id'];
-            $db            = $ps['db_alias'];
-            // Disable in product_site
-            Database::query('Papir',
-                "UPDATE product_site SET status = 0
-                 WHERE product_id = {$productId} AND site_id = {$siteId}"
-            );
-            // Cascade to oc_product
-            Database::query($db,
-                "UPDATE oc_product SET status = 0 WHERE product_id = {$siteProductId}"
-            );
-            $siteStatuses[$siteId] = 0;
-        }
+    require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+    $sync = new SiteSyncService();
+    $psAll = $sync->getProductSites($productId);
+    foreach ($psAll as $ps) {
+        $siteId        = (int)$ps['site_id'];
+        $siteProductId = (int)$ps['site_product_id'];
+        Database::query('Papir',
+            "UPDATE product_site SET status = 0
+             WHERE product_id = {$productId} AND site_id = {$siteId}"
+        );
+        $sync->productUpdate($siteId, $siteProductId, array('status' => 0));
+        $siteStatuses[$siteId] = 0;
     }
 }
 

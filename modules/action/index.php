@@ -60,12 +60,22 @@ if (Request::isPost()) {
                 // Both discounts zeroed — remove action completely
                 $actionRepo->delete($idOff);
                 $priceRepo->deleteByProductId($idOff);
-                // Remove special price from OpenCart
-                Database::query('off',
-                    "DELETE FROM `oc_product_special`
-                     WHERE `product_id` = " . $idOff . "
-                       AND `customer_group_id` IN (1, 4)"
-                );
+                // Remove special price from OpenCart for this product
+                require_once __DIR__ . '/../integrations/opencart2/SiteSyncService.php';
+                $sync = new SiteSyncService();
+                $transport = $sync->getTransport(1);
+                if ($transport instanceof SiteSyncTransportDirectDb) {
+                    Database::query('off',
+                        "DELETE FROM oc_product_special
+                         WHERE product_id = " . (int)$idOff . "
+                           AND customer_group_id IN (1, 4)");
+                } else {
+                    // For HTTP agent: update product with empty specials via productUpdate
+                    $transport->call('product.update', array(
+                        'product_id' => (int)$idOff,
+                        'fields' => array(),
+                    ));
+                }
                 ViewHelper::redirect($basePath, $state);
             } else {
                 $saveResult = $actionRepo->save($idOff, $discount, $super_discont);

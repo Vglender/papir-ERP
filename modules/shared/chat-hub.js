@@ -160,6 +160,14 @@ var ChatHub = {
     } else {
       var self = this;
       msgs.forEach(function(m) {
+        // System messages (delivery errors etc.) — centered notification
+        if (m.direction === 'system') {
+          html += '<div class="ws-msg-system">'
+                + '<span>' + self.esc(m.body) + '</span>'
+                + '<span class="ws-msg-system-time">' + self.formatTime(m.created_at) + '</span>'
+                + '</div>';
+          return;
+        }
         var isOut = m.direction === 'out';
         var mediaHtml = '';
         var origAttachName = '';

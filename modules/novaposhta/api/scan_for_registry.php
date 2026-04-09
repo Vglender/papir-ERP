@@ -49,7 +49,11 @@ if ($point === '20') {
 $phone = isset($response['data']['phone']) ? $response['data']['phone'] : '';
 if (empty($response['errors']) && $phone) {
     $message = 'Ваше замовлення зібране та проскановане на складі. Сьогодні буде передане перевізнику';
-    \AlphaSmsService::sendViber($phone, $message);
+    $smsResult = \AlphaSmsService::sendViber($phone, $message);
+    if (!$smsResult || !$smsResult['ok']) {
+        $smsErr = isset($smsResult['error']) ? $smsResult['error'] : 'Viber send failed';
+        $response['warnings'][] = 'SMS/Viber не відправлено: ' . $smsErr;
+    }
 }
 
 $response['ok'] = empty($response['errors']);

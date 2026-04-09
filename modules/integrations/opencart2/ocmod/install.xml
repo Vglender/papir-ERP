@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>Papir ERP Agent</name>
+    <code>papir_agent</code>
+    <version>1.0.0</version>
+    <author>Papir ERP</author>
+    <link>https://papir.app</link>
+    <description>REST API agent for Papir ERP integration. Enables remote product, order, and catalog synchronization.</description>
+</modification>

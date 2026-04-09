@@ -364,15 +364,40 @@ class PricelistItemRepository
         $activated   = ($r1['ok'] && isset($r1['affected_rows'])) ? (int)$r1['affected_rows'] : 0;
         $deactivated = ($r2['ok'] && isset($r2['affected_rows'])) ? (int)$r2['affected_rows'] : 0;
 
-        // ── Cascade: sync status + noindex in OpenCart (off) based on product_papir.status ──
-        Database::query('off',
-            "UPDATE `oc_product` op
-             JOIN `Papir`.`product_papir` pp ON pp.id_off = op.product_id
-             SET op.status  = pp.status,
-                 op.noindex = pp.status"
-        );
+        // ── Cascade: sync status to OpenCart sites for inactive products ──
+        require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+        $sync = new SiteSyncService();
 
-        // ── Cascade: clean stale data for inactive products ──
+        // Get all inactive products that have site links
+        $rInactive = Database::fetchAll('Papir',
+            "SELECT ps.site_id, ps.site_product_id
+             FROM product_site ps
+             JOIN product_papir pp ON pp.product_id = ps.product_id
+             WHERE pp.status = 0 AND ps.status = 1"
+        );
+        if ($rInactive['ok'] && !empty($rInactive['rows'])) {
+            // Group by site and batch update status=0
+            $bySite = array();
+            foreach ($rInactive['rows'] as $row) {
+                $sid = (int)$row['site_id'];
+                if (!isset($bySite[$sid])) $bySite[$sid] = array();
+                $bySite[$sid][] = (int)$row['site_product_id'];
+            }
+            foreach ($bySite as $sid => $spIds) {
+                foreach ($spIds as $spId) {
+                    $sync->productUpdate($sid, $spId, array('status' => 0));
+                }
+            }
+            // Mark product_site as inactive
+            Database::query('Papir',
+                "UPDATE product_site ps
+                 JOIN product_papir pp ON pp.product_id = ps.product_id
+                 SET ps.status = 0
+                 WHERE pp.status = 0 AND ps.status = 1"
+            );
+        }
+
+        // ── Cascade: clean stale Papir data for inactive products ──
 
         // product_discount_profile
         Database::query('Papir',
@@ -392,20 +417,6 @@ class PricelistItemRepository
         Database::query('Papir',
             "DELETE apo FROM `action_products` apo
              JOIN `product_papir` pp ON pp.product_id = apo.product_id
-             WHERE pp.status = 0"
-        );
-
-        // oc_product_discount (off)
-        Database::query('off',
-            "DELETE od FROM `oc_product_discount` od
-             JOIN `Papir`.`product_papir` pp ON pp.id_off = od.product_id
-             WHERE pp.status = 0"
-        );
-
-        // oc_product_special (off)
-        Database::query('off',
-            "DELETE os FROM `oc_product_special` os
-             JOIN `Papir`.`product_papir` pp ON pp.id_off = os.product_id
              WHERE pp.status = 0"
         );
 

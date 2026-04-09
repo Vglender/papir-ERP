@@ -53,6 +53,9 @@ if ((int)$prod['status'] === 0) {
 }
 
 // ── Load site ─────────────────────────────────────────────────────────────────
+require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+$sync = new SiteSyncService();
+
 $rSite = Database::fetchRow('Papir',
     "SELECT site_id, code, db_alias, badge FROM sites WHERE site_id = {$siteId} AND status = 1"
 );
@@ -76,15 +79,9 @@ $existingSiteProductId = $existingPs ? (int)$existingPs['site_product_id'] : 0;
 
 // If mapped → verify OC product still exists, then activate
 if ($existingSiteProductId > 0) {
-    $rOcCheck = Database::fetchRow($db,
-        "SELECT product_id FROM oc_product WHERE product_id = {$existingSiteProductId}"
-    );
-    if ($rOcCheck['ok'] && !empty($rOcCheck['row'])) {
-        $modelEsc = Database::escape($db, (string)$productId);
-        Database::query($db,
-            "UPDATE oc_product SET status = 1, model = '{$modelEsc}'
-             WHERE product_id = {$existingSiteProductId}"
-        );
+    $rUpd = $sync->productUpdate($siteId, $existingSiteProductId,
+        array('status' => 1, 'model' => (string)$productId));
+    if ($rUpd['ok']) {
         Database::query('Papir',
             "UPDATE product_site SET status = 1
              WHERE product_id = {$productId} AND site_id = {$siteId}"
@@ -100,20 +97,12 @@ if ($existingSiteProductId > 0) {
 }
 
 // ── Resolve category ──────────────────────────────────────────────────────────
-$catFieldMap = array(1 => 'category_off', 2 => 'category_mf');
-$catField    = isset($catFieldMap[$siteId]) ? $catFieldMap[$siteId] : null;
 $siteCategoryId = 0;
 
 if ($categoryId > 0) {
     $siteCategoryId = $categoryId;
-} elseif ($catField && $prod['categoria_id']) {
-    $catId = (int)$prod['categoria_id'];
-    $rCat  = Database::fetchRow('Papir',
-        "SELECT {$catField} FROM categoria WHERE category_id = {$catId}"
-    );
-    if ($rCat['ok'] && !empty($rCat['row'])) {
-        $siteCategoryId = (int)$rCat['row'][$catField];
-    }
+} elseif ($prod['categoria_id']) {
+    $siteCategoryId = $sync->getSiteCategoryId((int)$prod['categoria_id'], $siteId);
 }
 
 if ($siteCategoryId <= 0) {
@@ -165,129 +154,77 @@ $manufacturerId = ($siteCode === 'off') ? (int)$prod['manufacturer_off_id'] : (i
 $price          = (float)$prod['price_sale'];
 $quantity       = (int)$prod['quantity'];
 $stockStatusId  = ($quantity > 0) ? 7 : 5;
-$now            = date('Y-m-d H:i:s');
-$today          = date('Y-m-d');
 $model          = (string)$productId;
 
-// ── Create OC product ─────────────────────────────────────────────────────────
-// The only valid source for an existing OC product is product_site (checked above).
-// If no product_site entry was found, always INSERT a fresh OC product.
-// Never use id_off/id_mf from product_papir as a lookup key.
-$ocData = array(
-    'model'           => $model,
-    'sku'             => isset($prod['product_article']) ? (string)$prod['product_article'] : '',
-    'upc'             => '',
-    'ean'             => '',
-    'jan'             => '',
-    'isbn'            => '',
-    'mpn'             => '',
-    'location'        => '',
-    'quantity'        => $quantity,
-    'stock_status_id' => $stockStatusId,
-    'price'           => $price,
-    'manufacturer_id' => $manufacturerId,
-    'shipping'        => 1,
-    'options_buy'     => 0,
-    'points'          => 0,
-    'tax_class_id'    => 0,
-    'date_available'  => $today,
-    'weight'          => 0,
-    'weight_class_id' => 1,
-    'length'          => 0,
-    'width'           => 0,
-    'height'          => 0,
-    'length_class_id' => 1,
-    'subtract'        => 1,
-    'minimum'         => 1,
-    'sort_order'      => 0,
-    'status'          => 1,
-    'viewed'          => 0,
-    'noindex'         => 0,
-    'date_added'      => $now,
-    'date_modified'   => $now,
-    'unit'            => '',
-    'cogs'            => 0,
-    'min_price'       => 0,
-);
-if ($hasUuid) {
-    $ocData['uuid'] = _makeUuid();
-}
-$rIns = Database::insert($db, 'oc_product', $ocData);
-if (!$rIns['ok']) {
-    echo json_encode(array('ok' => false, 'error' => 'Failed to insert oc_product'));
-    exit;
-}
-$ocProductId = (int)$rIns['insert_id'];
-$actionDone  = 'added';
-
-// ── oc_product_to_store ───────────────────────────────────────────────────────
-Database::query($db,
-    "INSERT IGNORE INTO oc_product_to_store (product_id, store_id) VALUES ({$ocProductId}, 0)"
-);
-
-// ── oc_product_to_category ────────────────────────────────────────────────────
-Database::query($db,
-    "DELETE FROM oc_product_to_category WHERE product_id = {$ocProductId}"
-);
-Database::query($db,
-    "INSERT INTO oc_product_to_category (product_id, category_id, main_category)
-     VALUES ({$ocProductId}, {$siteCategoryId}, 1)"
-);
-
-// ── oc_product_description ────────────────────────────────────────────────────
-foreach ($siteLangs as $papirLangId => $siteLangId) {
-    $desc     = isset($descsByLangId[$papirLangId]) ? $descsByLangId[$papirLangId] : null;
-    $name     = $desc ? $desc['name'] : $prod['name'];
-    $descFull = $desc ? (string)$desc['description'] : '';
-    $nameEsc  = Database::escape($db, $name);
-    $descEsc  = Database::escape($db, $descFull);
-    Database::query($db,
-        "INSERT INTO oc_product_description
-         (product_id, language_id, name, description, short_description, description_mini,
-          tag, meta_title, meta_description, meta_keyword, meta_h1, image_description)
-         VALUES ({$ocProductId}, {$siteLangId}, '{$nameEsc}', '{$descEsc}', '', '', '', '', '', '', '', '')
-         ON DUPLICATE KEY UPDATE name = '{$nameEsc}', description = '{$descEsc}'"
-    );
-}
-
-// ── Images ────────────────────────────────────────────────────────────────────
+// ── Load images from Papir ───────────────────────────────────────────────────
 $rImgs = Database::fetchAll('Papir',
     "SELECT image_id, path, sort_order
      FROM product_image
      WHERE product_id = {$productId}
      ORDER BY sort_order ASC, image_id ASC"
 );
-$images = ($rImgs['ok']) ? $rImgs['rows'] : array();
-
-// Set main image on oc_product
+$images    = ($rImgs['ok']) ? $rImgs['rows'] : array();
 $mainImage = !empty($images) ? $images[0]['path'] : '';
-if ($mainImage) {
-    $mainImgEsc = Database::escape($db, $mainImage);
-    Database::query($db,
-        "UPDATE oc_product SET image = '{$mainImgEsc}' WHERE product_id = {$ocProductId}"
-    );
-}
 
-// Rebuild oc_product_image (extra images, skip first)
-Database::query($db,
-    "DELETE FROM oc_product_image WHERE product_id = {$ocProductId}"
+// ── Build slug ───────────────────────────────────────────────────────────────
+$rUkLang  = Database::fetchRow('Papir', "SELECT language_id FROM languages WHERE code='uk' LIMIT 1");
+$ukLangId = ($rUkLang['ok'] && !empty($rUkLang['row'])) ? (int)$rUkLang['row']['language_id'] : 2;
+$uaDesc   = isset($descsByLangId[$ukLangId]) ? $descsByLangId[$ukLangId] : null;
+$slugBase = $uaDesc ? $uaDesc['name'] : $prod['name'];
+$finalSlug = _makeSlug($slugBase) . '-' . $productId;
+
+// ── Build data for SiteSyncService::productCreate ────────────────────────────
+$ocData = array(
+    'model'           => $model,
+    'sku'             => isset($prod['product_article']) ? (string)$prod['product_article'] : '',
+    'quantity'        => $quantity,
+    'stock_status_id' => $stockStatusId,
+    'price'           => $price,
+    'manufacturer_id' => $manufacturerId,
+    'status'          => 1,
+    'image'           => $mainImage,
 );
-for ($i = 1; $i < count($images); $i++) {
-    $img     = $images[$i];
-    $imgData = array(
-        'product_id'        => $ocProductId,
-        'image'             => $img['path'],
-        'sort_order'        => (int)$img['sort_order'],
-        'video'             => '',
-        'image_description' => '',
-    );
-    if ($hasUuid) {
-        $imgData['uuid'] = _makeUuid();
-    }
-    Database::insert($db, 'oc_product_image', $imgData);
+if ($hasUuid) {
+    $ocData['uuid'] = _makeUuid();
 }
 
-// Sync product_image_site
+// Descriptions per site language
+$ocDescriptions = array();
+foreach ($siteLangs as $papirLangId => $siteLangId) {
+    $desc     = isset($descsByLangId[$papirLangId]) ? $descsByLangId[$papirLangId] : null;
+    $name     = $desc ? $desc['name'] : $prod['name'];
+    $descFull = $desc ? (string)$desc['description'] : '';
+    $ocDescriptions[] = array(
+        'language_id'  => $siteLangId,
+        'name'         => $name,
+        'description'  => $descFull,
+    );
+}
+
+// Categories
+$ocCategories = array(array('category_id' => $siteCategoryId, 'main_category' => 1));
+
+// Extra images (skip main)
+$ocImages = array();
+for ($i = 1; $i < count($images); $i++) {
+    $imgRow = array('image' => $images[$i]['path'], 'sort_order' => (int)$images[$i]['sort_order']);
+    if ($hasUuid) $imgRow['uuid'] = _makeUuid();
+    $ocImages[] = $imgRow;
+}
+
+// SEO URLs
+$ocSeoUrls = array(array('keyword' => $finalSlug));
+
+// ── Create via SiteSyncService ───────────────────────────────────────────────
+$rCreate = $sync->productCreate($siteId, $ocData, $ocDescriptions, $ocCategories, $ocImages, $ocSeoUrls);
+if (!$rCreate['ok']) {
+    echo json_encode(array('ok' => false, 'error' => 'Failed to create product on site'));
+    exit;
+}
+$ocProductId = (int)$rCreate['product_id'];
+$actionDone  = 'added';
+
+// ── Papir-side: sync image assignments ───────────────────────────────────────
 foreach ($images as $img) {
     $imgId = (int)$img['image_id'];
     Database::query('Papir',
@@ -304,41 +241,7 @@ if ($siteCode === 'mff' && !empty($images)) {
     }
 }
 
-// ── URL alias ─────────────────────────────────────────────────────────────────
-// Build slug from Ukrainian name — look up language_id from Papir.languages by code='uk'
-$rUkLang  = Database::fetchRow('Papir', "SELECT language_id FROM languages WHERE code='uk' LIMIT 1");
-$ukLangId = ($rUkLang['ok'] && !empty($rUkLang['row'])) ? (int)$rUkLang['row']['language_id'] : 2;
-$uaDesc   = isset($descsByLangId[$ukLangId]) ? $descsByLangId[$ukLangId] : null;
-$slugBase = $uaDesc ? $uaDesc['name'] : $prod['name'];
-$slug     = _makeSlug($slugBase) . '-' . $productId;
-$slugQuery = 'product_id=' . $ocProductId;
-
-// Ensure uniqueness
-$finalSlug = $slug;
-$suffix    = 0;
-while (true) {
-    $checkSlug = Database::escape($db, $finalSlug);
-    $rAlias    = Database::fetchRow($db,
-        "SELECT url_alias_id FROM oc_url_alias WHERE keyword = '{$checkSlug}'"
-    );
-    if (!$rAlias['ok'] || empty($rAlias['row'])) {
-        break;
-    }
-    $suffix++;
-    $finalSlug = $slug . '-' . $suffix;
-}
-
-$slugQueryEsc = Database::escape($db, $slugQuery);
-Database::query($db,
-    "DELETE FROM oc_url_alias WHERE query = '{$slugQueryEsc}'"
-);
-$finalSlugEsc = Database::escape($db, $finalSlug);
-Database::query($db,
-    "INSERT INTO oc_url_alias (query, keyword) VALUES ('{$slugQueryEsc}', '{$finalSlugEsc}')"
-);
-
-// Invalidate seo_pro cache so OpenCart rebuilds it from DB on next request.
-// Without this the new URL alias won't be visible until the cache file expires (~24h).
+// Invalidate seo_pro cache
 _invalidateSeoPro($siteCode);
 
 // ── product_seo (populate from OC + product_description if missing) ───────────

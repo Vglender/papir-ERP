@@ -162,9 +162,22 @@ function bindPricePicker(tr, inp, dd) {
     dd.addEventListener('mouseleave', function() { _mouseInDd = false; });
 }
 
+function positionPriceDd(inp, dd) {
+    var rect = inp.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 2) + 'px';
+    dd.style.left = '';
+    dd.style.right = '';
+    // align right edge of dropdown to right edge of input
+    var ddW = dd.offsetWidth || 200;
+    var left = rect.right - ddW;
+    if (left < 4) left = 4;
+    dd.style.left = left + 'px';
+}
+
 function openPriceDd(pid, tr, inp, dd) {
     dd.innerHTML = '<div class="price-dd-loading">Завантаження…</div>';
     dd.classList.add('open');
+    positionPriceDd(inp, dd);
 
     if (_priceCache[pid]) {
         renderPriceDd(pid, tr, inp, dd, _priceCache[pid]);
@@ -237,6 +250,7 @@ function renderPriceDd(pid, tr, inp, dd, data) {
     }
 
     dd.innerHTML = rows;
+    positionPriceDd(inp, dd);
 
     // Bind click on selectable rows
     dd.querySelectorAll('.price-dd-row.selectable').forEach(function(row) {
@@ -1224,14 +1238,13 @@ renderDocTotals();
 
         // Insert DOM row
         var tbody = document.querySelector('#positionsTable tbody');
-        var addTr = document.querySelector('#positionsTable tbody tr.add-row');
         if (tbody) {
             var tr = document.createElement('tr');
             tr.dataset.itemRow  = '1';
             tr.dataset.localId  = localId;
             tr.dataset.sumChanged = '0';
             tr.innerHTML = buildNewRowHtml(product);
-            if (addTr) { tbody.insertBefore(tr, addTr); } else { tbody.appendChild(tr); }
+            tbody.appendChild(tr);
             bindItemRow(tr);
             tr.scrollIntoView({block: 'nearest'});
             var qtyInp = tr.querySelector('[data-field="quantity"]');
@@ -1281,11 +1294,12 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
 
     function closeDd() { dd.style.display = 'none'; dd.innerHTML = ''; _list = []; }
 
-    function pick(id, name) {
+    function pick(id, name, phone) {
         _picked = true;
         hidden.value = id;
-        inp.value    = name;
-        _savedName   = name;
+        var display  = phone ? name + '  ·  ' + phone : name;
+        inp.value    = display;
+        _savedName   = display;
         _savedId     = id;
         if (clear) clear.style.display = id ? '' : 'none';
         closeDd();
@@ -1315,7 +1329,7 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
                         var sub = '';
                         if (p.okpo)  sub += 'ЄДРПОУ: ' + esc(p.okpo);
                         if (p.phone) sub += (sub ? ' · ' : '') + esc(p.phone);
-                        return '<div class="cp-picker-opt" data-id="' + p.id + '" data-name="' + esc(p.name) + '">'
+                        return '<div class="cp-picker-opt" data-id="' + p.id + '" data-name="' + esc(p.name) + '" data-phone="' + esc(p.phone || '') + '">'
                             + '<div class="cp-picker-opt-name">' + esc(p.name)
                             + (sub ? '<div class="cp-picker-opt-sub">' + sub + '</div>' : '')
                             + '</div>'
@@ -1338,14 +1352,15 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
         _savedId   = hidden.value;
         _picked    = false;
         inp.select();
-        doSearch(inp.value.trim(), 0);
+        var searchQ = inp.value.split('  ·  ')[0].trim();
+        doSearch(searchQ, 0);
     });
 
     dd.addEventListener('mousedown', function(e) {
         var opt = e.target.closest('.cp-picker-opt[data-id]');
         if (!opt) return;
         e.preventDefault();
-        pick(opt.dataset.id, opt.dataset.name);
+        pick(opt.dataset.id, opt.dataset.name, opt.dataset.phone || '');
     });
 
     inp.addEventListener('blur', function() {
@@ -1616,7 +1631,7 @@ makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', 
             var clear  = document.getElementById('cpPickerClear');
             var cpLink = document.getElementById('cpCardLink');
             hidden.value = res.id;
-            inp.value    = name;
+            inp.value    = phone ? name + '  ·  ' + phone : name;
             if (clear) clear.style.display = '';
             if (cpLink) { cpLink.href = '/counterparties/view?id=' + res.id; cpLink.style.display = ''; }
             loadContactsForCp(res.id);
