@@ -20,5 +20,7 @@ require_once __DIR__ . '/services/TrackingService.php';
 require_once __DIR__ . '/services/ScanSheetService.php';
 require_once __DIR__ . '/services/ReturnService.php';
 require_once __DIR__ . '/NpDocumentMapper.php';
+require_once __DIR__ . '/../counterparties/repositories/ScenarioRepository.php';
+require_once __DIR__ . '/../counterparties/services/TriggerEngine.php';
 require_once __DIR__ . '/repositories/CourierCallRepository.php';
 require_once __DIR__ . '/services/CourierCallService.php';

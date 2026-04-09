@@ -366,5 +366,21 @@ if (typeof window.showToast !== 'function') {
     });
 }());
 </script>
+<script>
+// Print queue badge
+(function() {
+    var link = document.getElementById('navPrintQueueLink');
+    if (!link) return;
+    fetch('/print/api/queue_count')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.ok || !d.count) return;
+            var b = document.createElement('span');
+            b.style.cssText = 'display:inline-block;background:#ef4444;color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;border-radius:8px;margin-left:5px;padding:0 4px;';
+            b.textContent = d.count;
+            link.appendChild(b);
+        });
+}());
+</script>
 </body>
 </html>

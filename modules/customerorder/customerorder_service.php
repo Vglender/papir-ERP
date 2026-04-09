@@ -91,11 +91,27 @@ class CustomerOrderService
                 }
             }
 
+            // Print queue: orders that have demands in print queue
+            $pqMap = array();
+            $rPq = Database::fetchAll('Papir',
+                "SELECT d.customerorder_id AS order_id, COUNT(*) AS cnt
+                 FROM print_pack_jobs pj
+                 JOIN demand d ON d.id = pj.demand_id
+                 WHERE pj.queued = 1 AND pj.status = 'ready'
+                   AND d.customerorder_id IN ({$idList})
+                 GROUP BY d.customerorder_id");
+            if ($rPq['ok'] && !empty($rPq['rows'])) {
+                foreach ($rPq['rows'] as $pqr) {
+                    $pqMap[(int)$pqr['order_id']] = (int)$pqr['cnt'];
+                }
+            }
+
             foreach ($orderRows as &$r) {
                 $r['unread_count']  = isset($unreadMap[(int)$r['id']]) ? $unreadMap[(int)$r['id']] : 0;
                 $r['ttn_count']     = isset($ttnMap[(int)$r['id']])    ? $ttnMap[(int)$r['id']]    : 0;
                 $r['ttn_np_count']  = isset($ttnNpMap[(int)$r['id']])  ? $ttnNpMap[(int)$r['id']]  : 0;
                 $r['ttn_up_count']  = isset($ttnUpMap[(int)$r['id']])  ? $ttnUpMap[(int)$r['id']]  : 0;
+                $r['print_queue']   = isset($pqMap[(int)$r['id']])     ? $pqMap[(int)$r['id']]     : 0;
             }
             unset($r);
         }
@@ -509,9 +525,6 @@ class CustomerOrderService
             'confirmed',
             'in_progress',
             'waiting_payment',
-            'paid',
-            'partially_shipped',
-            'shipped',
             'completed',
             'cancelled'
         );
@@ -638,6 +651,8 @@ protected function prepareHeaderData($data, $isCreate)
         'status' => !empty($data['status']) ? $data['status'] : 'draft',
         'currency_code' => !empty($data['currency_code']) ? $data['currency_code'] : 'UAH',
         'currency_rate' => isset($data['currency_rate']) && $data['currency_rate'] !== '' ? (float)$data['currency_rate'] : 1,
+        'delivery_method_id' => !empty($data['delivery_method_id']) ? (int)$data['delivery_method_id'] : null,
+        'payment_method_id' => !empty($data['payment_method_id']) ? (int)$data['payment_method_id'] : null,
         'sales_channel' => isset($data['sales_channel']) ? $data['sales_channel'] : null,
         'description' => isset($data['description']) ? trim($data['description']) : null,
         'updated_at' => date('Y-m-d H:i:s'),
@@ -880,6 +895,73 @@ protected function prepareHeaderData($data, $isCreate)
 			);
 		}
 	}
+
+    /**
+     * Soft-delete заказа в Papir + каскадное удаление в МС (если id_ms есть).
+     */
+    public function deleteOrder($orderId, $employeeId = null)
+    {
+        $orderId = (int)$orderId;
+
+        // Загрузить заказ для проверки и получения id_ms
+        $r = Database::fetchRow('Papir',
+            "SELECT id, id_ms, number FROM customerorder WHERE id = {$orderId} AND deleted_at IS NULL LIMIT 1");
+        if (!$r['ok'] || empty($r['row'])) {
+            return array('ok' => false, 'error' => 'Замовлення не знайдено');
+        }
+        $order = $r['row'];
+
+        Database::begin('Papir');
+
+        try {
+            $del = $this->repository->softDelete($orderId);
+            if (!$del['ok']) {
+                throw new Exception($del['error']);
+            }
+
+            $this->repository->addHistory(
+                $orderId,
+                'delete',
+                null,
+                null,
+                null,
+                $employeeId,
+                'Видалення замовлення'
+            );
+
+            Database::commit('Papir');
+
+            // Каскад: удалить в МС
+            if (!empty($order['id_ms'])) {
+                $this->deleteFromMs($order['id_ms'], $orderId);
+            }
+
+            return array('ok' => true);
+        } catch (Exception $e) {
+            Database::rollback('Papir');
+            return array('ok' => false, 'error' => $e->getMessage());
+        }
+    }
+
+    /**
+     * Удалить заказ в МойСклад по id_ms.
+     * Ошибки не бросаем — только логируем.
+     */
+    private function deleteFromMs($msId, $orderId)
+    {
+        try {
+            $ms = new MoySkladApi();
+            $url = $ms->getEntityBaseUrl() . 'customerorder/' . $msId;
+            $result = $ms->querySend($url, null, 'DELETE');
+            $result = json_decode(json_encode($result), true);
+            if (!empty($result['errors'])) {
+                $err = isset($result['errors'][0]['error']) ? $result['errors'][0]['error'] : 'Unknown MS error';
+                order_log('MS DELETE failed for order #' . $orderId . ' (ms:' . $msId . '): ' . $err);
+            }
+        } catch (Exception $e) {
+            order_log('MS DELETE exception for order #' . $orderId . ': ' . $e->getMessage());
+        }
+    }
 
     /**
      * Push заказа в МойСклад после успешного сохранения в Papir.

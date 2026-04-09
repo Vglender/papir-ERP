@@ -252,7 +252,7 @@ class CounterpartyRepository
                 cr.job_title,
                 cr.is_primary,
                 cr.comment AS relation_comment,
-                c.id, c.name, c.status,
+                c.id, c.name, c.type, c.status,
                 cp.phone, cp.phone_alt, cp.email, cp.position_name, cp.telegram, cp.viber
              FROM counterparty_relation cr
              JOIN counterparty c ON c.id = cr.child_counterparty_id

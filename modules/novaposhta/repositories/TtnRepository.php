@@ -247,9 +247,13 @@ class TtnRepository
     public static function getForTracking($limit = 100)
     {
         $r = \Database::fetchAll('Papir',
-            "SELECT t.id, t.int_doc_number, t.sender_ref, s.api AS sender_api
+            "SELECT t.id, t.int_doc_number, t.sender_ref, t.state_define,
+                    t.customerorder_id,
+                    COALESCE(co.counterparty_id, 0) AS counterparty_id,
+                    s.api AS sender_api
              FROM ttn_novaposhta t
              LEFT JOIN np_sender s ON s.Ref = t.sender_ref
+             LEFT JOIN customerorder co ON co.id = t.customerorder_id
              WHERE t.deletion_mark = 0
                AND (t.state_define IS NULL OR t.state_define NOT IN (2, 3, 9, 10, 11, 106))
                AND t.int_doc_number IS NOT NULL

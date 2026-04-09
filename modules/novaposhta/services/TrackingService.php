@@ -3,11 +3,17 @@ namespace Papir\Crm;
 
 /**
  * TTN tracking: batch update statuses from NP API.
+ * Fires 'ttn_status_changed' event via TriggerEngine when state changes.
  */
 class TrackingService
 {
     // NP state_define values (final — stop tracking)
     const FINAL_STATES = array(9, 10, 106); // delivered, returned, cancelled
+
+    // NP state_define groupings for order status mapping
+    const STATES_SHIPPED  = array(1, 4, 5, 6, 7, 8, 101, 104, 105); // in transit / at branch / courier
+    const STATES_RECEIVED = array(9);                                 // delivered to client
+    const STATES_RETURN   = array(10, 11, 103);                       // returning / returned
 
     /**
      * Track a batch of TTNs (up to 100 per API call).
@@ -87,12 +93,19 @@ class TrackingService
                     $dateStorage = isset($status['DateFirstDayStorage'])   ? self::parseDate($status['DateFirstDayStorage'])   : null;
                     $arrived     = isset($status['ActualDeliveryDate'])    ? self::parseDate($status['ActualDeliveryDate'])     : null;
 
+                    $oldStateDefine = isset($ttn['state_define']) ? (int)$ttn['state_define'] : null;
+
                     TtnRepository::updateStatus(
                         $ttn['id'],
                         $stateId, $stateName, $stateDefine,
                         $estDelivery, $dateStorage, $arrived
                     );
                     $updated++;
+
+                    // Fire event if state actually changed and TTN is linked to an order
+                    if ($stateDefine !== null && $stateDefine !== $oldStateDefine) {
+                        self::fireTtnStatusChanged($ttn, $oldStateDefine, $stateDefine, $stateName);
+                    }
                 }
             }
         }
@@ -126,17 +139,65 @@ class TrackingService
         if (empty($r['data'])) return array('ok' => false, 'error' => 'No tracking data returned');
 
         $status = $r['data'][0];
+        $oldStateDefine = isset($ttn['state_define']) ? (int)$ttn['state_define'] : null;
+        $newStateDefine = isset($status['StatusCode']) ? (int)$status['StatusCode'] : null;
+
         TtnRepository::updateStatus(
             $ttnId,
             isset($status['StatusCode'])           ? (int)$status['StatusCode']  : null,
             isset($status['Status'])               ? $status['Status']            : '',
-            isset($status['StatusCode'])           ? (int)$status['StatusCode']   : null,
+            $newStateDefine,
             isset($status['ScheduledDeliveryDate']) ? self::parseDate($status['ScheduledDeliveryDate']) : null,
             isset($status['DateFirstDayStorage'])   ? self::parseDate($status['DateFirstDayStorage'])   : null,
             isset($status['ActualDeliveryDate'])    ? self::parseDate($status['ActualDeliveryDate'])     : null
         );
 
+        // Fire event if state changed
+        if ($newStateDefine !== null && $newStateDefine !== $oldStateDefine) {
+            self::fireTtnStatusChanged($ttn, $oldStateDefine, $newStateDefine,
+                isset($status['Status']) ? $status['Status'] : '');
+        }
+
         return array('ok' => true, 'status' => $status);
+    }
+
+    /**
+     * Fire ttn_status_changed event via TriggerEngine.
+     * Only fires if the TTN is linked to an order.
+     */
+    private static function fireTtnStatusChanged($ttn, $oldStateDefine, $newStateDefine, $stateName)
+    {
+        // TTN must be linked to an order
+        $orderId = isset($ttn['customerorder_id']) ? (int)$ttn['customerorder_id'] : 0;
+        if (!$orderId) {
+            // Try via document_link
+            $r = \Database::fetchRow('Papir',
+                "SELECT dl.to_id AS order_id, co.counterparty_id
+                 FROM document_link dl
+                 JOIN customerorder co ON co.id = dl.to_id
+                 WHERE dl.from_type = 'ttn_np' AND dl.from_id = " . (int)$ttn['id'] . "
+                   AND dl.to_type = 'customerorder'
+                 LIMIT 1");
+            if ($r['ok'] && !empty($r['row'])) {
+                $orderId = (int)$r['row']['order_id'];
+                $cpId    = (int)$r['row']['counterparty_id'];
+            }
+        }
+        if (!$orderId) return;
+
+        $cpId = isset($cpId) ? $cpId : (isset($ttn['counterparty_id']) ? (int)$ttn['counterparty_id'] : 0);
+
+        \TriggerEngine::fire('ttn_status_changed', array(
+            'order_id'        => $orderId,
+            'counterparty_id' => $cpId,
+            'ttn' => array(
+                'id'               => (int)$ttn['id'],
+                'int_doc_number'   => $ttn['int_doc_number'],
+                'old_state_define' => $oldStateDefine,
+                'new_state_define' => $newStateDefine,
+                'state_name'       => $stateName,
+            ),
+        ));
     }
 
     private static function parseDate($str)

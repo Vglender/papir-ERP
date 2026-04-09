@@ -13,6 +13,7 @@ private function buildWhere($filters)
     $where = array();
     $where[] = 'co.`deleted_at` IS NULL';
     $needsCpJoin = false;
+    $needsPhoneJoin = false;
     $needsMsgJoin = false;
 
     if (!empty($filters['search'])) {
@@ -22,7 +23,17 @@ private function buildWhere($filters)
         foreach ($rawChips as $chip) {
             $chip = trim($chip);
             if ($chip === '') continue;
-            if (preg_match('/^\d+$/', $chip)) {
+            // Phone-like: starts with +, 0, or 10+ digits
+            $digits = preg_replace('/[\s\-\(\)]+/', '', $chip);
+            $isPhone = preg_match('/^[\+0]\d{6,}$/', $digits) || preg_match('/^\d{10,}$/', $digits);
+            if ($isPhone) {
+                $needsPhoneJoin = true;
+                $t = Database::escape($this->dbName, $digits);
+                $chipConds[] = "(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cp_p.`phone`,''),' ',''),'-',''),'(',''),')','') LIKE '%{$t}%'"
+                    . " OR REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cp_p.`phone_alt`,''),' ',''),'-',''),'(',''),')','') LIKE '%{$t}%'"
+                    . " OR REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(cp_c.`phone`,''),' ',''),'-',''),'(',''),')','') LIKE '%{$t}%'"
+                    . " OR co.`id` = " . (int)$digits . " OR LOWER(co.`number`) LIKE '%{$t}%')";
+            } elseif (preg_match('/^\d+$/', $chip)) {
                 $t = Database::escape($this->dbName, $chip);
                 $chipConds[] = "(co.`id` = " . (int)$chip . " OR LOWER(co.`number`) LIKE '%{$t}%')";
             } else {
@@ -105,6 +116,9 @@ private function buildWhere($filters)
         $dateTo = Database::escape($this->dbName, $filters['date_to']);
         $where[] = "co.`moment` <= '{$dateTo} 23:59:59'";
     }
+    if (!empty($filters['hide_cancelled']) && $filters['hide_cancelled'] === '1') {
+        $where[] = "co.`status` != 'cancelled'";
+    }
     if (isset($filters['sum_from']) && $filters['sum_from'] !== '' && $filters['sum_from'] !== null) {
         $where[] = 'co.`sum_total` >= ' . (float)$filters['sum_from'];
     }
@@ -145,7 +159,7 @@ private function buildWhere($filters)
         }
     }
 
-    return array('where' => $where, 'needsCpJoin' => $needsCpJoin, 'needsMsgJoin' => $needsMsgJoin, 'needsTtnJoin' => $needsTtnJoin);
+    return array('where' => $where, 'needsCpJoin' => $needsCpJoin, 'needsPhoneJoin' => $needsPhoneJoin, 'needsMsgJoin' => $needsMsgJoin, 'needsTtnJoin' => $needsTtnJoin);
 }
 
 public function getList($filters = array(), $sort = array(), $page = 1, $limit = 50)
@@ -187,7 +201,17 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
     $sql = "
         SELECT
             co.`id`, co.`number`, co.`moment`, co.`status`,
-            co.`payment_status`, co.`shipment_status`,
+            co.`payment_status`,
+            CASE
+                WHEN co.`shipment_status` != 'not_shipped' THEN co.`shipment_status`
+                WHEN dem_agg.demand_count > 0 THEN
+                    CASE
+                        WHEN dem_agg.shipped_count = dem_agg.demand_count THEN 'shipped'
+                        WHEN dem_agg.shipped_count > 0 THEN 'partially_shipped'
+                        ELSE 'reserved'
+                    END
+                ELSE co.`shipment_status`
+            END AS shipment_status,
             co.`sum_total`, co.`counterparty_id`,
             co.`organization_id`, co.`manager_employee_id`,
             co.`next_action`, co.`next_action_label`,
@@ -204,8 +228,20 @@ public function getList($filters = array(), $sort = array(), $page = 1, $limit =
         LEFT JOIN `employee` emp ON emp.`id` = co.`manager_employee_id`
         LEFT JOIN `auth_users` au ON au.`employee_id` = emp.`id`
         LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`
+        " . ($built['needsPhoneJoin']
+            ? "LEFT JOIN `counterparty_person` cp_p ON cp_p.`counterparty_id` = co.`counterparty_id`
+               LEFT JOIN `counterparty_company` cp_c ON cp_c.`counterparty_id` = co.`counterparty_id`"
+            : '') . "
         LEFT JOIN `delivery_method` dm ON dm.`id` = co.`delivery_method_id`
         LEFT JOIN `payment_method` pm ON pm.`id` = co.`payment_method_id`
+        LEFT JOIN (
+            SELECT customerorder_id,
+                   COUNT(*) AS demand_count,
+                   SUM(CASE WHEN status IN ('shipped','arrived') THEN 1 ELSE 0 END) AS shipped_count
+            FROM demand
+            WHERE deleted_at IS NULL
+            GROUP BY customerorder_id
+        ) dem_agg ON dem_agg.customerorder_id = co.id
         " . ($built['needsMsgJoin']
             ? "LEFT JOIN (SELECT order_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' GROUP BY order_id) msg_cnt ON msg_cnt.order_id = co.id"
             : '') . "
@@ -304,7 +340,7 @@ public function searchProducts($query, $limit = 15)
         SELECT
             pp.`product_id`,
             pp.`product_article`,
-            pp.`price`,
+            pp.`price_sale` AS `price`,
             pp.`vat`,
             pp.`unit`,
             pp.`quantity`,
@@ -335,6 +371,10 @@ public function searchProducts($query, $limit = 15)
 		$joins = '';
 		if ($built['needsCpJoin']) {
 			$joins .= ' LEFT JOIN `counterparty` c ON c.`id` = co.`counterparty_id`';
+		}
+		if ($built['needsPhoneJoin']) {
+			$joins .= ' LEFT JOIN `counterparty_person` cp_p ON cp_p.`counterparty_id` = co.`counterparty_id`';
+			$joins .= ' LEFT JOIN `counterparty_company` cp_c ON cp_c.`counterparty_id` = co.`counterparty_id`';
 		}
 		if ($built['needsMsgJoin']) {
 			$joins .= " LEFT JOIN (SELECT order_id, COUNT(*) AS cnt FROM cp_messages WHERE direction='in' AND read_at IS NULL AND channel!='note' GROUP BY order_id) msg_cnt ON msg_cnt.order_id = co.id";
@@ -419,12 +459,15 @@ public function searchProducts($query, $limit = 15)
                     NULLIF(ci.`product_name`, ''),
                     pd2.`name`,
                     pd1.`name`
-                ) AS product_name
+                ) AS product_name,
+                COALESCE(pp.`quantity`, 0) AS stock_quantity
             FROM `customerorder_item` ci
             LEFT JOIN `product_description` pd2
                 ON pd2.`product_id` = ci.`product_id` AND pd2.`language_id` = 2
             LEFT JOIN `product_description` pd1
                 ON pd1.`product_id` = ci.`product_id` AND pd1.`language_id` = 1
+            LEFT JOIN `product_papir` pp
+                ON pp.`product_id` = ci.`product_id`
             WHERE ci.`customerorder_id` = {$orderId}
             ORDER BY ci.`line_no` ASC, ci.`id` ASC
         ";

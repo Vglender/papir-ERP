@@ -92,22 +92,27 @@ if ($toType === 'demand') {
     $descEsc  = Database::escape('Papir', (string)$order['description']);
     $channel  = Database::escape('Papir', (string)$order['sales_channel']);
 
+    $managerId = !empty($order['manager_employee_id']) ? (int)$order['manager_employee_id'] : null;
+
     $newDemand = array(
-        'uuid'             => generateUuid(),
-        'source'           => 'papir',
-        'moment'           => date('Y-m-d H:i:s'),
-        'applicable'       => 0,
-        'status'           => 'new',
-        'counterparty_id'  => $cpId,
-        'customerorder_id' => $orderId,
-        'sum_total'        => $sumTotal,
-        'sum_vat'          => $sumVat,
-        'sum_paid'         => 0,
-        'profit'           => 0,
-        'profit_real'      => 0,
-        'sales_channel'    => $order['sales_channel'] !== null ? $order['sales_channel'] : null,
-        'description'      => $order['description'] !== null ? $order['description'] : null,
-        'sync_state'       => 'new',
+        'uuid'                => generateUuid(),
+        'source'              => 'papir',
+        'moment'              => date('Y-m-d H:i:s'),
+        'applicable'          => 0,
+        'status'              => 'new',
+        'counterparty_id'     => $cpId,
+        'organization_id'     => $orgId,
+        'store_id'            => $storeId,
+        'manager_employee_id' => $managerId,
+        'customerorder_id'    => $orderId,
+        'sum_total'           => $sumTotal,
+        'sum_vat'             => $sumVat,
+        'sum_paid'            => 0,
+        'profit'              => 0,
+        'profit_real'         => 0,
+        'sales_channel'       => $order['sales_channel'] !== null ? $order['sales_channel'] : null,
+        'description'         => $order['description'] !== null ? $order['description'] : null,
+        'sync_state'          => 'new',
     );
 
     $rIns = Database::insert('Papir', 'demand', $newDemand);

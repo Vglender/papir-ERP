@@ -69,6 +69,59 @@ if ($params['weight'] <= 0) {
 
 $result = \Papir\Crm\TtnService::create($params);
 
+// Mirror demand to MoySklad: set TTN attribute + status "shipped"
+if (!empty($result['ok']) && $params['customerorder_id'] > 0) {
+    $ttnNumber = isset($result['int_doc_number']) ? (string)$result['int_doc_number'] : '';
+    // Resolve demand_id: from params or find by customerorder_id
+    $demandId = (int)$params['demand_id'];
+    if (!$demandId) {
+        $rDemLookup = \Database::fetchRow('Papir',
+            "SELECT id FROM demand WHERE customerorder_id = " . (int)$params['customerorder_id']
+            . " AND deleted_at IS NULL ORDER BY id DESC LIMIT 1");
+        if ($rDemLookup['ok'] && !empty($rDemLookup['row'])) {
+            $demandId = (int)$rDemLookup['row']['id'];
+        }
+    }
+    if ($demandId && $ttnNumber !== '') {
+        require_once __DIR__ . '/../../moysklad/moysklad_api.php';
+        $rDem = \Database::fetchRow('Papir',
+            "SELECT id_ms FROM demand WHERE id = {$demandId} AND deleted_at IS NULL LIMIT 1");
+        if ($rDem['ok'] && !empty($rDem['row']['id_ms'])) {
+            $ms = new MoySkladApi();
+            $entityBase = $ms->getEntityBaseUrl();
+            $demandMsId = $rDem['row']['id_ms'];
+            $patchData = array(
+                'state' => array('meta' => array(
+                    'href'      => $entityBase . 'demand/metadata/states/ac913c39-eaa9-11eb-0a80-064900024c02',
+                    'type'      => 'state',
+                    'mediaType' => 'application/json',
+                )),
+                'attributes' => array(
+                    array(
+                        'meta' => array(
+                            'href'      => $entityBase . 'demand/metadata/attributes/b4b3bfd9-789f-11ed-0a80-04910022fa7b',
+                            'type'      => 'attributemetadata',
+                            'mediaType' => 'application/json',
+                        ),
+                        'value' => $ttnNumber,
+                    ),
+                ),
+            );
+            $ms->querySend($entityBase . 'demand/' . $demandMsId, $patchData, 'PUT');
+
+            // Update local demand status to shipped
+            \Database::update('Papir', 'demand',
+                array('status' => 'shipped', 'sync_state' => 'synced'),
+                array('id' => $demandId));
+        }
+    }
+    // Recalc linked customerorder finance after demand status change
+    if ($demandId) {
+        require_once __DIR__ . '/../../customerorder/services/OrderFinanceHelper.php';
+        OrderFinanceHelper::recalc((int)$params['customerorder_id']);
+    }
+}
+
 // Fire trigger event for scenarios
 if (!empty($result['ok']) && $params['customerorder_id'] > 0) {
     $orderId = (int)$params['customerorder_id'];

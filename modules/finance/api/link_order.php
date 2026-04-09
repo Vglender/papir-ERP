@@ -58,7 +58,7 @@ if (!$rPay['ok'] || empty($rPay['row'])) {
 $pay = $rPay['row'];
 $linkedSum = (float)$pay['sum'];
 
-Database::insert('Papir', 'document_link', array(
+$insResult = Database::insert('Papir', 'document_link', array(
     'from_type'  => $paymentType,
     'from_id'    => $paymentId,
     'to_type'    => 'customerorder',
@@ -66,6 +66,11 @@ Database::insert('Papir', 'document_link', array(
     'link_type'  => 'payment',
     'linked_sum' => $linkedSum,
 ));
+
+if (!$insResult['ok']) {
+    echo json_encode(array('ok' => false, 'error' => 'Не вдалось зберегти привʼязку: ' . (isset($insResult['error']) ? $insResult['error'] : 'unknown')));
+    exit;
+}
 
 // Recalculate order payment status
 OrderFinanceHelper::recalc($orderId);

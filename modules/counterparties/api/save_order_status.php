@@ -32,7 +32,7 @@ if ($orderId <= 0) {
 $data = array();
 
 if ($status !== null) {
-    $allowed = array('draft','new','confirmed','in_progress','waiting_payment','paid','shipped','partially_shipped','completed','cancelled');
+    $allowed = array('draft','new','confirmed','in_progress','waiting_payment','shipped','received','return','completed','cancelled');
     if (!in_array($status, $allowed)) {
         echo json_encode(array('ok' => false, 'error' => 'Invalid status'));
         exit;
@@ -90,8 +90,8 @@ if ($status !== null) {
     $_statusLabels = array(
         'draft'=>'Чернетка','new'=>'Нове','confirmed'=>'Підтверджено',
         'in_progress'=>'В роботі','waiting_payment'=>'Очік. оплати',
-        'paid'=>'Оплачено','partially_shipped'=>'Частк. відвантаж.',
-        'shipped'=>'Відвантажено','completed'=>'Виконано','cancelled'=>'Скасовано',
+        'shipped'=>'Відправлено','received'=>'Отримано','return'=>'Повернення',
+        'completed'=>'Виконано','cancelled'=>'Скасовано',
     );
     \DocumentHistory::log('customerorder', $orderId, 'status_change', array_merge($actor, array(
         'field_name'  => 'status',
@@ -143,12 +143,13 @@ function getStepOrder($status) {
         'confirmed'         => 1,
         'waiting_payment'   => 2,
         'in_progress'       => 3,
-        'partially_shipped' => 4,
         'shipped'           => 4,
-        'completed'         => 5,
+        'received'          => 5,
+        'completed'         => 6,
+        'return'            => -2,   // special branch (like cancelled)
         'cancelled'         => -1,   // special branch
     );
-    return isset($steps[$status]) ? $steps[$status] : -2;
+    return isset($steps[$status]) ? $steps[$status] : -3;
 }
 
 /**
@@ -158,23 +159,34 @@ function validateStatusTransition($orderId, $fromStatus, $toStatus) {
     $fromStep = getStepOrder($fromStatus);
     $toStep   = getStepOrder($toStatus);
 
-    // ── shipped/partially_shipped cannot be set manually ────────────────────
-    // These statuses are set automatically when a delivery or TTN is registered.
-    if ($toStatus === 'shipped' || $toStatus === 'partially_shipped') {
-        return array('ok' => false, 'error' => 'Статус "Відправлено" встановлюється автоматично при реєстрації доставки або ТТН. Використовуйте кнопку "Доставка/ТТН" у схемі замовлення');
-    }
-
     // ── Moving to "cancelled" ────────────────────────────────────────────────
     // Allowed from any status (warnings are shown client-side).
-    // Exception: from completed — also allowed but requires client confirmation.
     if ($toStatus === 'cancelled') {
         return array('ok' => true);
     }
 
     // ── Moving from "cancelled" → restore ───────────────────────────────────
-    // Not allowed (cancellation is irreversible via this button).
     if ($fromStatus === 'cancelled') {
         return array('ok' => false, 'error' => 'Скасоване замовлення не можна відновити через цей інтерфейс');
+    }
+
+    // ── Moving to/from "return" ──────────────────────────────────────────────
+    // return is a special branch (like cancelled), allowed from shipped/received
+    if ($toStatus === 'return') {
+        $allowedFrom = array('shipped', 'received');
+        if (!in_array($fromStatus, $allowedFrom)) {
+            return array('ok' => false,
+                'error' => 'Статус "Повернення" можливий лише зі статусів "Відправлено" або "Отримано"');
+        }
+        return array('ok' => true);
+    }
+    if ($fromStatus === 'return') {
+        // From return: can go to cancelled or back to shipped (if return cancelled)
+        if (!in_array($toStatus, array('cancelled', 'shipped'))) {
+            return array('ok' => false,
+                'error' => 'Зі статусу "Повернення" можна перейти лише в "Скасовано" або "Відправлено"');
+        }
+        return array('ok' => true);
     }
 
     $isForward  = $toStep > $fromStep;
@@ -183,23 +195,8 @@ function validateStatusTransition($orderId, $fromStatus, $toStatus) {
     // ── FORWARD transitions ──────────────────────────────────────────────────
     if ($isForward) {
 
-        // → shipped (step 4): requires active demand + (active TTN or order_delivery sent/delivered)
-        if ($toStep >= 4 && $fromStep < 4) {
-            $demandCnt = countActiveDemands($orderId);
-            if ($demandCnt === 0) {
-                return array('ok' => false,
-                    'error' => 'Для переходу в "Відправлено" потрібна накладна (відвантаження)');
-            }
-            $ttnCnt = countActiveTtns($orderId);
-            $odlCnt = countActiveOrderDeliveries($orderId);
-            if ($ttnCnt === 0 && $odlCnt === 0) {
-                return array('ok' => false,
-                    'error' => 'Для переходу в "Відправлено" потрібна ТТН або зареєстрована доставка (кур\'єр/самовивіз)');
-            }
-        }
-
-        // → completed (step 5): requires active demand + payment + delivered delivery
-        if ($toStep >= 5) {
+        // → completed (step 6): requires active demand + payment + delivered delivery
+        if ($toStatus === 'completed') {
             $demandCnt = countActiveDemands($orderId);
             if ($demandCnt === 0) {
                 return array('ok' => false,
@@ -213,7 +210,7 @@ function validateStatusTransition($orderId, $fromStatus, $toStatus) {
             $deliveredCnt = countDeliveredDeliveries($orderId);
             if ($deliveredCnt === 0) {
                 return array('ok' => false,
-                    'error' => 'Для переходу в "Виконано" потрібно підтвердження отримання: статус доставки "Доставлено" або ТТН зі статусом отримання');
+                    'error' => 'Для переходу в "Виконано" потрібно підтвердження отримання');
             }
         }
     }
@@ -221,36 +218,15 @@ function validateStatusTransition($orderId, $fromStatus, $toStatus) {
     // ── BACKWARD transitions ─────────────────────────────────────────────────
     if ($isBackward) {
 
-        // From "completed" (step 5): only cancelled is allowed (handled above).
-        if ($fromStep >= 5) {
+        // From "completed" (step 6): only cancelled is allowed (handled above).
+        if ($fromStatus === 'completed') {
             return array('ok' => false,
                 'error' => 'Із "Виконано" можна перейти лише в "Скасовано"');
         }
 
-        // From "shipped" (step 4): no active demand, no payment,
-        // and if active TTN exists — must have a return logistics record.
-        if ($fromStep >= 4) {
-            $demandCnt = countActiveDemands($orderId);
-            if ($demandCnt > 0) {
-                return array('ok' => false,
-                    'error' => 'Неможливо знизити статус: є активне відвантаження (накладна)');
-            }
-            $paymentSum = sumPayments($orderId);
-            if ($paymentSum > 0) {
-                return array('ok' => false,
-                    'error' => 'Неможливо знизити статус: зареєстровано оплату');
-            }
-            $activeTtnCnt = countActiveTtns($orderId);
-            if ($activeTtnCnt > 0) {
-                // Has active TTN — must have a return logistics record (TTN return)
-                $returnLogCnt = countReturnLogisticsWithTtn($orderId);
-                if ($returnLogCnt === 0) {
-                    return array('ok' => false,
-                        'error' => 'Є активна ТТН — спочатку зареєструйте повернення ТТН у розділі "Повернення"');
-                }
-            }
-        } elseif ($fromStep >= 3) {
-            // From "in_progress" (step 3): no active demand, no payment.
+        // From "received" (step 5): back to shipped is ok (tracking correction)
+        // From "shipped" (step 4) back: check no active demand/payment
+        if ($fromStep >= 3) {
             $demandCnt = countActiveDemands($orderId);
             if ($demandCnt > 0) {
                 return array('ok' => false,
@@ -262,8 +238,6 @@ function validateStatusTransition($orderId, $fromStatus, $toStatus) {
                     'error' => 'Неможливо знизити статус: зареєстровано оплату');
             }
         }
-        // From "confirmed" (step 1) or "waiting_payment" (step 2):
-        // warning is shown client-side, no server-side block.
     }
 
     return array('ok' => true);

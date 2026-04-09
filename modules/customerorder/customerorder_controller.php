@@ -30,6 +30,8 @@ class CustomerOrderController
             'has_ttn'             => isset($request['has_ttn']) ? $request['has_ttn'] : null,
             'payment_method_id'   => isset($request['payment_method_id']) ? $request['payment_method_id'] : null,
             'delivery_method_id'  => isset($request['delivery_method_id']) ? $request['delivery_method_id'] : null,
+            'hide_cancelled'      => isset($request['hide_cancelled']) ? $request['hide_cancelled'] : '1',
+            'hide_done'           => isset($request['hide_done']) ? $request['hide_done'] : '0',
         );
 
         $sort = array(

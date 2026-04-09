@@ -234,5 +234,13 @@ if ($id > 0 && !empty($result['ok'])) {
     }
 }
 
+// Дані доставки
+$shipping = null;
+if ($id > 0) {
+    $rShip = Database::fetchRow('Papir',
+        "SELECT * FROM customerorder_shipping WHERE customerorder_id = {$id} LIMIT 1");
+    if ($rShip['ok'] && !empty($rShip['row'])) $shipping = $rShip['row'];
+}
+
 // Подключаем шаблон
 require __DIR__ . '/views/edit.php';

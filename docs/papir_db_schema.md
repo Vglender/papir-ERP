@@ -98,17 +98,29 @@
 | `order_status_ms_mapping` | МойСклад state UUID → papir_code (20 записей) |
 | `order_status_site_mapping` | papir_code × site_id(1=off,2=mff) → OC status_id |
 
-**Жизненный цикл:** `draft` → `new` → `confirmed` → `waiting_payment` → `in_progress` → `shipped` → `completed` / `cancelled`
+**Жизненный цикл:** `draft` → `new` → `confirmed` → `waiting_payment` → `in_progress` → `shipped` → `received` → `completed` / `cancelled` / `return`
 
 Архивные статусы (`is_archive=1`): `completed`, `cancelled`.
 
-**Правила смены статуса (миграция 008, 2026-03-31):**
-- → `shipped`: требует активного отгрузочного документа (demand) + активной ТТН
-- → `completed`: требует demand + оплаты
-- Назад из `completed`: только в `cancelled`
-- Назад из `shipped`: заблокировано если есть demand, оплата или активная ТТН без зарегистрированного возврата (`return_logistics`)
-- Назад из `in_progress`: заблокировано если есть demand или оплата
-- Назад из `confirmed`/`waiting_payment`: разрешено с подтверждением
+| Статус | Описание | НП state_define |
+|--------|----------|-----------------|
+| `shipped` | Відправлено (в дорозі / на відділенні / кур'єр) | 1,4,5,6,7,8,101,104,105 |
+| `received` | Отримано клієнтом | 9 |
+| `return` | Повернення (повертається або повернуто) | 10,11,103 |
+
+**Автоматизація статусів через сценарії (міграція 012):**
+- Подія `ttn_status_changed` — спрацьовує при зміні state_define ТТН
+- Контекст: `ttn.new_state_define`, `ttn.old_state_define`, `ttn.int_doc_number`, `ttn.state_name`
+- Дія `create_salesreturn` — автоматично створює повернення покупця з demand
+- Дія `change_status` — змінює статус замовлення
+
+**Правила смены статуса (миграция 012, 2026-04-09):**
+- → `completed`: требует demand + оплаты + підтвердження отримання
+- → `return`: тільки зі статусів `shipped` або `received`
+- З `return`: тільки в `cancelled` або `shipped`
+- Назад з `completed`: тільки в `cancelled`
+- Назад з `shipped`+: заблоковано якщо є demand або оплата
+- Назад з `confirmed`/`waiting_payment`: дозволено з підтвердженням
 
 **Способи доставки** (міграція 009):
 
@@ -126,7 +138,7 @@
 | `customerorder_id` | int | Заказ, по которому возврат |
 | `demand_id` | int | Отгрузка (demand.id), которую возвращают |
 | `salesreturn_id` | int | Документ возврата (salesreturn.id, если есть) |
-| `return_type` | enum | `novaposhta_ttn` / `ukrposhta_ttn` / `manual` |
+| `return_type` | enum | `novaposhta_ttn` / `ukrposhta_ttn` / `manual` / `left_with_client` / `auto_return` |
 | `ttn_np_id` | int | FK → ttn_novaposhta.id (для ТТН возврата НП) |
 | `ttn_up_id` | int | FK → ttn_ukrposhta.id (для ТТН возврата УП) |
 | `manual_description` | varchar(500) | Описание способа ручного возврата |

@@ -1468,9 +1468,7 @@ var WS = {
 
     var newCps     = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'new'; }));
     var waitingCps = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'waiting_payment'; }));
-    var paidCps    = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'paid'; }));
     var workingCps = tierSort(orderCps.filter(function(c) { return ['confirmed','in_progress'].indexOf(c.last_order_status) !== -1; }));
-    var shippedCps = tierSort(orderCps.filter(function(c) { return c.last_order_status === 'shipped'; }));
     var doneCps    = tierSort(orderCps.filter(function(c) { return ['completed','cancelled'].indexOf(c.last_order_status) !== -1; }));
 
     var html = '';
@@ -1483,17 +1481,9 @@ var WS = {
       html += '<div class="ws-tier attention" style="--tier-dot-color:#f59e0b"><span class="ws-tier-dot" style="background:#f59e0b"></span>Очікують оплати (' + waitingCps.length + ')</div>';
       waitingCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
     }
-    if (paidCps.length > 0) {
-      html += '<div class="ws-tier active" style="--tier-dot-color:#16a34a"><span class="ws-tier-dot" style="background:#16a34a"></span>Оплачені (' + paidCps.length + ')</div>';
-      paidCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
-    }
     if (workingCps.length > 0) {
       html += '<div class="ws-tier active"><span class="ws-tier-dot"></span>В роботі (' + workingCps.length + ')</div>';
       workingCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
-    }
-    if (shippedCps.length > 0) {
-      html += '<div class="ws-tier active" style="--tier-dot-color:#8b5cf6"><span class="ws-tier-dot" style="background:#8b5cf6"></span>Відвантажені (' + shippedCps.length + ')</div>';
-      shippedCps.forEach(function(c) { html += self.renderCpCardOrder(c); });
     }
     if (doneCps.length > 0) {
       html += '<div class="ws-tier processed"><span class="ws-tier-dot"></span>Завершені (' + doneCps.length + ')</div>';
@@ -1905,8 +1895,8 @@ var WS = {
     var statusColors = {
       draft:'badge-gray', new:'badge-blue', confirmed:'badge-indigo',
       in_progress:'badge-purple', waiting_payment:'badge-orange',
-      paid:'badge-teal', partially_shipped:'badge-indigo',
-      shipped:'badge-green', completed:'badge-green', cancelled:'badge-red'
+      shipped:'badge-violet', received:'badge-teal', 'return':'badge-rose',
+      completed:'badge-green', cancelled:'badge-red'
     };
 
     // Active order card
@@ -1934,11 +1924,9 @@ var WS = {
 
     // Col 1: Previous orders
     var ORD_ST_LBL = { draft:'Черн.', new:'Нове', confirmed:'Підтв.', in_progress:'Вик.',
-      waiting_payment:'Оч.опл', paid:'Оплач.', partially_shipped:'Ч.відпр',
-      shipped:'Відпр.', completed:'Готово', cancelled:'Скас.' };
+      waiting_payment:'Оч.опл', completed:'Готово', cancelled:'Скас.' };
     var ORD_ST_CSS = { new:'st-new', confirmed:'st-new', in_progress:'st-new',
-      paid:'st-paid', partially_shipped:'st-shipped', shipped:'st-shipped',
-      completed:'st-completed', cancelled:'st-cancelled' };
+      waiting_payment:'st-new', completed:'st-completed', cancelled:'st-cancelled' };
     bottomGrid += '<div class="ws-bottom-col" id="wsBottomOrders">'
       + '<div class="ws-bottom-col-hd">'
       + '<span class="ws-bottom-col-hd-title">Замовлення'
@@ -3089,8 +3077,7 @@ var WS = {
 
     var STATUS_LABELS = {
       draft:'Чернетка', new:'Нове', confirmed:'Підтверджено', in_progress:'В роботі',
-      waiting_payment:'Очікує оплату', paid:'Оплачено', partially_shipped:'Частково відвант.',
-      shipped:'Відвантажено', completed:'Завершено', cancelled:'Скасовано'
+      waiting_payment:'Очікує оплату', completed:'Завершено', cancelled:'Скасовано'
     };
     var curStatus   = order.status || 'draft';
     var isCancelled = (curStatus === 'cancelled');
@@ -3349,7 +3336,7 @@ var WS = {
       +   editBarHtml + metaRowHtml + itemsHtml + addProductHtml + footHtml
       + '</div>';
 
-    var retStatuses  = ['partially_shipped', 'shipped', 'completed'];
+    var retStatuses  = ['in_progress', 'completed'];
     var hasRetStatus = retStatuses.indexOf(curStatus) !== -1;
     var hasDemand    = demands.filter(function(dem) {
       return dem.status && ['cancelled', 'returned'].indexOf(dem.status) === -1;
@@ -3905,7 +3892,6 @@ var WS = {
     { label: 'Прийнято',      jump: 'confirmed',       values: ['confirmed'] },
     { label: 'Очік. оплати',  jump: 'waiting_payment', values: ['waiting_payment'] },
     { label: 'В роботі',      jump: 'in_progress',     values: ['in_progress'] },
-    { label: 'Відправлено',   jump: 'shipped',         values: ['partially_shipped','shipped'] },
     { label: 'Виконано',      jump: 'completed',       values: ['completed'] },
   ],
 
@@ -3914,9 +3900,7 @@ var WS = {
     'new':               { label: 'Прийняти →',      status: 'confirmed' },
     'confirmed':         { label: 'Очік. оплату →',  status: 'waiting_payment' },
     'waiting_payment':   { label: 'В роботу →',      status: 'in_progress' },
-    'in_progress':       { label: 'Відправити →',    status: 'shipped' },
-    'partially_shipped': { label: 'Завершити →',     status: 'completed' },
-    'shipped':           { label: 'Завершити →',     status: 'completed' },
+    'in_progress':       { label: 'Завершити →',     status: 'completed' },
   },
 
   _buildPipelineBarInner: function(status, orderId, autoFlags, rightHtml, cancelledFromStatus) {
@@ -4076,8 +4060,7 @@ var WS = {
 
     var STATUS_LABELS_LOCAL = {
       draft:'Чернетка', new:'Нове', confirmed:'Підтверджено', in_progress:'В роботі',
-      waiting_payment:'Очікує оплату', paid:'Оплачено', shipped:'Відвантажено',
-      partially_shipped:'Частково відвант.', completed:'Завершено', cancelled:'Скасовано'
+      waiting_payment:'Очікує оплату', completed:'Завершено', cancelled:'Скасовано'
     };
 
     var prevStatus = self._orderState.order.status;
@@ -4823,9 +4806,7 @@ var WS = {
     var map = {
       draft: 'wsb-draft', new: 'wsb-new', confirmed: 'wsb-confirmed',
       in_progress: 'wsb-progress', waiting_payment: 'wsb-waiting',
-      paid: 'wsb-paid', partially_shipped: 'wsb-partship',
-      shipped: 'wsb-shipped', completed: 'wsb-done',
-      cancelled: 'wsb-cancelled'
+      completed: 'wsb-done', cancelled: 'wsb-cancelled'
     };
     return map[s] || 'wsb-draft';
   },

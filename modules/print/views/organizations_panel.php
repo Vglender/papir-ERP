@@ -11,6 +11,7 @@ $bankAccounts = isset($o['bank_accounts']) ? $o['bank_accounts'] : array();
         <button class="org-tab" data-tab="bank" type="button">Банк</button>
         <?php if (!$isNew): ?>
         <button class="org-tab" data-tab="assets" type="button">Зображення</button>
+        <button class="org-tab" data-tab="pack_profiles" type="button">Пакети друку</button>
         <?php endif; ?>
     </div>
 
@@ -221,6 +222,16 @@ $bankAccounts = isset($o['bank_accounts']) ? $o['bank_accounts'] : array();
             Зображення використовуються в PDF-документах. Для печатки і підпису зберігайте PNG з прозорістю.
         </p>
     </div>
+    <!-- ── Tab: Пакети друку ─────────────────────────────────────── -->
+    <div class="org-tab-pane" data-pane="pack_profiles">
+        <div id="packProfilesList" style="margin-bottom:12px"></div>
+        <button type="button" class="btn btn-sm" id="packProfileAddBtn">+ Новий профіль</button>
+        <p class="text-muted" style="font-size:12px;margin-top:12px">
+            Профілі визначають склад документів для кнопки «📦 Пакет» у відвантаженнях.
+            Глобальні профілі (без організації) доступні для всіх.
+        </p>
+    </div>
+
     <?php endif; ?>
 
     </form><!-- /orgForm -->
@@ -409,4 +420,218 @@ window.orgDeleteAsset = function (btn) {
 };
 
 window.orgPanelInit();
+
+// ── Pack profiles management ────────────────────────────────────────
+(function() {
+    var _orgId = <?php echo (int)$o['id']; ?>;
+    var _list  = document.getElementById('packProfilesList');
+    var _addBtn = document.getElementById('packProfileAddBtn');
+    if (!_list) return;
+
+    var ITEM_TYPES = [
+        { type: 'template',        label: 'Шаблон (відвантаження)', needsTpl: true },
+        { type: 'order_template',  label: 'Шаблон (замовлення)',    needsTpl: true },
+        { type: 'carrier_sticker', label: 'Стікер перевізника (авто)', needsTpl: false },
+    ];
+
+    // Load available templates for dropdown
+    var _templates = [];
+    fetch('/print/api/get_doc_templates?entity_type=order')
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.ok) return;
+            Object.keys(d.groups || {}).forEach(function(typeName) {
+                (d.groups[typeName] || []).forEach(function(t) {
+                    _templates.push({ id: t.id, name: t.name, type_name: typeName });
+                });
+            });
+            // Also load demand templates
+            return fetch('/print/api/get_doc_templates?entity_type=demand');
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+            if (!d.ok) return;
+            Object.keys(d.groups || {}).forEach(function(typeName) {
+                (d.groups[typeName] || []).forEach(function(t) {
+                    // Avoid duplicates
+                    if (!_templates.some(function(x) { return x.id === t.id; })) {
+                        _templates.push({ id: t.id, name: t.name, type_name: typeName });
+                    }
+                });
+            });
+        });
+
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function loadProfiles() {
+        fetch('/print/api/get_pack_profiles?org_id=' + _orgId)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) { _list.innerHTML = '<p style="color:#ef4444">Помилка</p>'; return; }
+                renderProfiles(d.profiles || []);
+            });
+    }
+
+    function renderProfiles(profiles) {
+        if (!profiles.length) {
+            _list.innerHTML = '<p style="color:#94a3b8;font-size:13px">Профілів поки немає</p>';
+            return;
+        }
+        var html = '';
+        profiles.forEach(function(p) {
+            var items = p.items || [];
+            var labels = items.map(function(it) { return esc(it.label || it.type); }).join(', ');
+            var scope = p.org_id ? 'організація' : 'глобальний';
+            var def   = p.is_default == 1 ? ' <span class="badge badge-green" style="font-size:10px">дефолт</span>' : '';
+
+            html += '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:6px">'
+                + '<div style="flex:1;min-width:0">'
+                + '<div style="font-size:13px;font-weight:500">' + esc(p.name) + def + '</div>'
+                + '<div style="font-size:11px;color:#94a3b8;margin-top:2px">' + labels + ' · <i>' + scope + '</i></div>'
+                + '</div>'
+                + '<button type="button" class="btn btn-xs" onclick="editPackProfile(' + p.id + ')" style="flex-shrink:0">✏️</button>'
+                + '<button type="button" class="btn btn-xs" onclick="deletePackProfile(' + p.id + ')" style="flex-shrink:0;color:#ef4444">✕</button>'
+                + '</div>';
+        });
+        _list.innerHTML = html;
+    }
+
+    window.deletePackProfile = function(id) {
+        if (!confirm('Видалити цей профіль пакету?')) return;
+        var fd = new FormData();
+        fd.append('id', id);
+        fetch('/print/api/delete_pack_profile', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) { alert('Помилка: ' + (d.error || '')); return; }
+                showToast('Видалено');
+                loadProfiles();
+            });
+    };
+
+    window.editPackProfile = function(id) {
+        // Fetch profile, open inline editor
+        fetch('/print/api/get_pack_profiles?org_id=0')
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                var profile = null;
+                (d.profiles || []).forEach(function(p) { if (p.id == id) profile = p; });
+                if (!profile) { alert('Профіль не знайдено'); return; }
+                openEditor(profile);
+            });
+    };
+
+    if (_addBtn) {
+        _addBtn.addEventListener('click', function() {
+            openEditor({ id: 0, name: '', org_id: _orgId, is_default: 0, items: [] });
+        });
+    }
+
+    function openEditor(profile) {
+        var items = profile.items || [];
+        var html = '<div style="border:1px solid #7c3aed;border-radius:8px;padding:14px;margin-bottom:8px;background:#faf5ff">'
+            + '<div style="display:flex;gap:8px;margin-bottom:10px">'
+            + '<input type="text" id="ppEditName" value="' + esc(profile.name) + '" placeholder="Назва профілю" style="flex:1;height:30px;font-size:13px;padding:0 8px">'
+            + '<label style="display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap">'
+            + '<input type="checkbox" id="ppEditDefault" ' + (profile.is_default == 1 ? 'checked' : '') + '> Дефолт'
+            + '</label>'
+            + '</div>'
+            + '<div id="ppEditItems"></div>'
+            + '<button type="button" class="btn btn-xs" style="margin-top:6px" onclick="ppAddItem()">+ Додати документ</button>'
+            + '<div style="display:flex;gap:6px;margin-top:10px">'
+            + '<button type="button" class="btn btn-primary btn-sm" onclick="ppSave(' + (profile.id || 0) + ')">Зберегти</button>'
+            + '<button type="button" class="btn btn-ghost btn-sm" onclick="loadPackProfiles()">Скасувати</button>'
+            + '</div>'
+            + '</div>';
+        _list.innerHTML = html;
+
+        var container = document.getElementById('ppEditItems');
+        items.forEach(function(it, idx) { ppRenderItem(container, it, idx); });
+        window._ppItems = items.slice();
+    }
+
+    window._ppItems = [];
+
+    window.ppAddItem = function() {
+        window._ppItems.push({ type: 'template', template_id: 0, label: '', format: '100x100' });
+        var container = document.getElementById('ppEditItems');
+        ppRenderItem(container, window._ppItems[window._ppItems.length - 1], window._ppItems.length - 1);
+    };
+
+    function ppRenderItem(container, item, idx) {
+        var div = document.createElement('div');
+        div.style.cssText = 'display:flex;gap:6px;align-items:center;margin-bottom:4px';
+        div.dataset.idx = idx;
+
+        var typeSelect = '<select data-role="type" style="height:28px;font-size:12px;width:180px">';
+        ITEM_TYPES.forEach(function(t) {
+            typeSelect += '<option value="' + t.type + '"' + (item.type === t.type ? ' selected' : '') + '>' + esc(t.label) + '</option>';
+        });
+        typeSelect += '</select>';
+
+        var needsTpl = ITEM_TYPES.some(function(t) { return t.type === item.type && t.needsTpl; });
+
+        // Template dropdown
+        var tplSelect = '<select data-role="template_id" style="height:28px;font-size:12px;width:200px"' + (!needsTpl ? ' disabled style="display:none"' : '') + '>';
+        tplSelect += '<option value="">— Обрати шаблон —</option>';
+        _templates.forEach(function(t) {
+            tplSelect += '<option value="' + t.id + '"' + (item.template_id == t.id ? ' selected' : '') + '>'
+                + esc(t.name) + ' (id:' + t.id + ')</option>';
+        });
+        tplSelect += '</select>';
+
+        div.innerHTML = typeSelect
+            + '<input type="text" data-role="label" value="' + esc(item.label || '') + '" placeholder="Назва" style="height:28px;font-size:12px;flex:1">'
+            + tplSelect
+            + '<button type="button" class="btn btn-xs" onclick="this.parentNode.remove();window._ppItems.splice(' + idx + ',1)" style="color:#ef4444">✕</button>';
+
+        // Toggle template dropdown based on type
+        var typeSel = div.querySelector('[data-role="type"]');
+        var tplSel  = div.querySelector('[data-role="template_id"]');
+        typeSel.addEventListener('change', function() {
+            var needs = ITEM_TYPES.some(function(t) { return t.type === typeSel.value && t.needsTpl; });
+            tplSel.disabled = !needs;
+            tplSel.style.display = needs ? '' : 'none';
+        });
+
+        container.appendChild(div);
+    }
+
+    window.ppSave = function(id) {
+        var name = (document.getElementById('ppEditName') || {}).value || '';
+        var isDef = (document.getElementById('ppEditDefault') || {}).checked ? 1 : 0;
+        if (!name.trim()) { alert('Вкажіть назву'); return; }
+
+        // Collect items from DOM
+        var rows = document.querySelectorAll('#ppEditItems > div');
+        var items = [];
+        rows.forEach(function(row) {
+            var type = (row.querySelector('[data-role="type"]') || {}).value || 'template';
+            var label = (row.querySelector('[data-role="label"]') || {}).value || '';
+            var tplId = parseInt((row.querySelector('[data-role="template_id"]') || {}).value) || 0;
+            var item = { type: type, label: label };
+            if (type !== 'ttn_sticker' && tplId > 0) item.template_id = tplId;
+            if (type === 'ttn_sticker') item.format = '100x100';
+            items.push(item);
+        });
+
+        var fd = new FormData();
+        if (id > 0) fd.append('id', id);
+        fd.append('org_id', _orgId);
+        fd.append('name', name);
+        fd.append('items_json', JSON.stringify(items));
+        fd.append('is_default', isDef);
+
+        fetch('/print/api/save_pack_profile', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) { alert('Помилка: ' + (d.error || '')); return; }
+                showToast('Збережено');
+                loadProfiles();
+            });
+    };
+
+    window.loadPackProfiles = loadProfiles;
+    loadProfiles();
+}());
 </script>

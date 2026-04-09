@@ -127,7 +127,7 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
           <td class="fw-600">
             <?php echo ViewHelper::h($row['Number'] ?: $ssRef); ?>
           </td>
-          <td style="text-align:right"><?php echo (int)$row['Count']; ?></td>
+          <td style="text-align:right"><?php echo (int)($row['ttn_count'] ?: $row['Count']); ?></td>
           <td style="text-align:right" class="nowrap">
             <?php echo $row['total_seats'] !== null ? (int)$row['total_seats'] : '—'; ?>
           </td>
@@ -155,6 +155,11 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
                       data-ref="<?php echo ViewHelper::h($ssRef); ?>"
                       data-sender="<?php echo ViewHelper::h($row['sender_ref']); ?>"
                       title="Друк реєстру">🖨 Друк</button>
+              <?php if ($row['status'] === 'open'): ?>
+              <button type="button" class="btn btn-xs btn-ghost ss-btn-close"
+                      data-ref="<?php echo ViewHelper::h($ssRef); ?>"
+                      title="Закрити реєстр">Закрити</button>
+              <?php endif; ?>
               <button type="button" class="btn btn-xs btn-ghost ss-btn-delete"
                       data-ref="<?php echo ViewHelper::h($ssRef); ?>"
                       data-sender="<?php echo ViewHelper::h($row['sender_ref']); ?>"
@@ -298,6 +303,32 @@ $yesterday = date('Y-m-d', strtotime('-1 day'));
           if (sub) sub.remove();
           tr.remove();
         }
+      });
+    });
+  });
+
+  // ── Close (закрити) ────────────────────────────────────────────────────────
+  document.querySelectorAll('.ss-btn-close').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var ref = btn.dataset.ref;
+      if (!confirm('Закрити реєстр? Після закриття додавання ТТН буде неможливим.')) return;
+      btn.disabled = true; btn.textContent = '…';
+      fetch('/novaposhta/api/close_scansheet', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'scan_sheet_ref=' + encodeURIComponent(ref)
+      }).then(function(r){ return r.json(); }).then(function(res){
+        if (!res.ok) { alert('Помилка: ' + (res.error||'')); btn.disabled = false; btn.textContent = 'Закрити'; return; }
+        showToast('Реєстр закрито');
+        // Update badge in the row
+        var tr = btn.closest('tr');
+        if (tr) {
+          var badge = tr.querySelector('.badge');
+          if (badge) { badge.className = 'badge badge-gray'; badge.textContent = 'Закритий'; }
+        }
+        btn.remove();
+      }).catch(function(){
+        btn.disabled = false; btn.textContent = 'Закрити';
       });
     });
   });

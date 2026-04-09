@@ -47,7 +47,7 @@ class TriggerEngine
      * Приоритет: JSON `conditions` (массив с logic AND/OR) > простое condition_key/op/value.
      * Если условий нет — всегда true.
      */
-    private static function evaluateCondition($trigger, $context)
+    public static function evaluateCondition($trigger, $context)
     {
         // JSON multi-conditions (новый формат)
         $condJson = isset($trigger['conditions']) ? trim((string)$trigger['conditions']) : '';
@@ -145,6 +145,32 @@ class TriggerEngine
             return $cnt > 0 ? '1' : '0';
         }
 
+        // order.is_paid → '1' якщо сума оплат > 0
+        if ($key === 'order.is_paid') {
+            $ordId = isset($context['order_id']) ? (int)$context['order_id'] : 0;
+            if (!$ordId) return '0';
+            $r = Database::fetchRow('Papir',
+                "SELECT COALESCE(SUM(dl.linked_sum), 0) AS total
+                 FROM document_link dl
+                 WHERE dl.from_type IN ('paymentin', 'cashin')
+                   AND dl.to_type   = 'customerorder'
+                   AND dl.to_id     = {$ordId}");
+            return ($r['ok'] && !empty($r['row']) && (float)$r['row']['total'] > 0) ? '1' : '0';
+        }
+
+        // order.has_demand → '1' якщо є активне відвантаження
+        if ($key === 'order.has_demand') {
+            $ordId = isset($context['order_id']) ? (int)$context['order_id'] : 0;
+            if (!$ordId) return '0';
+            $r = Database::fetchRow('Papir',
+                "SELECT COUNT(*) AS cnt
+                 FROM document_link dl
+                 JOIN demand d ON (d.id_ms = dl.from_ms_id OR (dl.from_ms_id IS NULL AND d.id = dl.from_id))
+                 WHERE dl.from_type = 'demand' AND dl.to_type = 'customerorder' AND dl.to_id = {$ordId}
+                   AND d.deleted_at IS NULL AND d.status NOT IN ('cancelled','returned')");
+            return ($r['ok'] && !empty($r['row']) && (int)$r['row']['cnt'] > 0) ? '1' : '0';
+        }
+
         // ── Звичайні поля контексту ───────────────────────────────────────────
 
         $parts = explode('.', $key, 2);
@@ -167,6 +193,9 @@ class TriggerEngine
                 }
             }
             return null;
+        }
+        if ($root === 'ttn' && isset($context['ttn'][$field])) {
+            return $context['ttn'][$field];
         }
         if ($root === 'task' && isset($context['task'][$field])) {
             return $context['task'][$field];

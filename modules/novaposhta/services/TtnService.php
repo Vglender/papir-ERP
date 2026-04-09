@@ -612,6 +612,21 @@ class TtnService
             $recipient['phone']            = $cp['company_phone'] ?: '';
             $recipient['edrpou']           = $cp['edrpou']     ?: '';
             $recipient['counterparty_type']= 'Organization';
+            // Contact person for org: use order's contact_person_id if different from counterparty_id
+            $contactId = !empty($order['contact_person_id']) ? (int)$order['contact_person_id'] : 0;
+            if ($contactId && $contactId != $cpId) {
+                $rContact = \Database::fetchRow('Papir',
+                    "SELECT cpp.first_name, cpp.last_name, cpp.middle_name, cpp.phone
+                     FROM counterparty_person cpp
+                     WHERE cpp.counterparty_id = {$contactId} LIMIT 1");
+                if ($rContact['ok'] && !empty($rContact['row'])) {
+                    $c = $rContact['row'];
+                    $recipient['contact_person'] = trim(($c['last_name'] ?: '') . ' ' . ($c['first_name'] ?: ''));
+                    if (!$recipient['phone'] && !empty($c['phone'])) {
+                        $recipient['phone'] = $c['phone'];
+                    }
+                }
+            }
         }
         $recipient['counterparty_id'] = (int)$cpId;
         $recipient['papir_type']      = $cp['type'];

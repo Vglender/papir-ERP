@@ -44,8 +44,9 @@ $_nav = array(
     array('key' => 'sales',   'label' => 'Продажі',    'color' => '#9333ea',
           'items' => array(
               array('key' => 'orders',    'label' => 'Замовлення',    'url' => '/customerorder'),
-              array('key' => 'demands',   'label' => 'Відвантаження', 'url' => '/demand'),
-              array('key' => 'scenarios', 'label' => 'Сценарії ⚡',   'url' => '/sales/scenarios'),
+              array('key' => 'demands',      'label' => 'Відвантаження', 'url' => '/demand'),
+              array('key' => 'print-queue', 'label' => 'Черга друку',   'url' => '/print/queue'),
+              array('key' => 'scenarios',   'label' => 'Сценарії ⚡',   'url' => '/sales/scenarios'),
           )),
     array('key' => 'logistics', 'label' => 'Логістика', 'color' => '#0369a1',
           'items' => array(
@@ -315,7 +316,8 @@ if (!empty($_subItems)):
 <nav class="app-subnav" style="--subnav-color:<?php echo htmlspecialchars($_subnavColor); ?>">
 <?php foreach ($_subItems as $_item):
     $_isActiveSub = ($_item['key'] === $_subNav);
-    echo '    <a class="app-sub-lnk' . ($_isActiveSub ? ' active' : '') . '" href="' . htmlspecialchars($_item['url']) . '">'
+    $__badgeId = ($_item['key'] === 'print-queue') ? ' id="navPrintQueueLink"' : '';
+    echo '    <a class="app-sub-lnk' . ($_isActiveSub ? ' active' : '') . '"' . $__badgeId . ' href="' . htmlspecialchars($_item['url']) . '">'
        . htmlspecialchars($_item['label']) . '</a>' . "\n";
 endforeach; ?>
 </nav>

@@ -123,7 +123,7 @@ $CAP = 12;
         $where = ld_whereIds($limited, 'id_ms');
         if ($where) {
             $rD = \Database::fetchAll('Papir',
-                "SELECT id, number, moment, status, sum_total FROM demand WHERE {$where} ORDER BY moment ASC");
+                "SELECT id, number, moment, status, sum_total FROM demand WHERE {$where} AND deleted_at IS NULL ORDER BY moment ASC");
             if ($rD['ok']) {
                 foreach ($rD['rows'] as $d) {
                     $did = (int)$d['id'];
@@ -139,7 +139,7 @@ $CAP = 12;
     // Source 2: via demand.customerorder_id (most common)
     $rD2 = \Database::fetchAll('Papir',
         "SELECT id, number, moment, status, sum_total FROM demand
-         WHERE customerorder_id={$orderId} ORDER BY moment ASC");
+         WHERE customerorder_id={$orderId} AND deleted_at IS NULL ORDER BY moment ASC");
     if ($rD2['ok']) {
         foreach ($rD2['rows'] as $d) {
             $did = (int)$d['id'];

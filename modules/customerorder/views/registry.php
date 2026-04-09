@@ -30,6 +30,8 @@ $fUnread      = isset($_GET['has_unread']) ? $_GET['has_unread'] : '';
 $fTtn         = isset($_GET['has_ttn'])    ? $_GET['has_ttn']    : '';
 $fPmId        = isset($_GET['payment_method_id']) ? $_GET['payment_method_id'] : '';
 $fDmId        = isset($_GET['delivery_method_id']) ? $_GET['delivery_method_id'] : '';
+$fHideCancelled = isset($_GET['hide_cancelled']) ? $_GET['hide_cancelled'] : '1';
+$fHideDone      = isset($_GET['hide_done'])      ? $_GET['hide_done']      : '0';
 
 if (!isset($filterOrganizations))  $filterOrganizations = array();
 if (!isset($filterManagers))       $filterManagers = array();
@@ -191,6 +193,10 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
 /* TTN / Delivery */
 .co-ttn-yes  { background:#dcfce7; color:#15803d; }
 .co-ttn-no   { background:#f3f4f6; color:#9ca3af; }
+.co-pq-yes   { background:#ede9fe; color:#7c3aed; }
+.co-done-mark {
+    display:inline-block; color:#15803d; font-size:14px; font-weight:700;
+}
 .co-dm-label { font-size:9px; font-weight:700; line-height:1; letter-spacing:.3px; }
 
 .co-unread {
@@ -206,6 +212,61 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
     font-size:12px; font-weight:500; border-radius:5px;
     background:#f0f6ff; color:#2563eb;
 }
+
+/* ── Row checkbox ── */
+.co-row-cb { accent-color:#2563eb; cursor:pointer; }
+.co-cb-th { width:32px; text-align:center; }
+
+/* ── Context menu (actions) ── */
+.co-act-wrap { position:relative; }
+.co-act-btn {
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center;
+    border:none; background:transparent; cursor:pointer; border-radius:5px; color:#6b7280;
+}
+.co-act-btn:hover { background:#f3f4f6; color:#374151; }
+.co-act-dd {
+    display:none; position:absolute; right:0; top:100%; z-index:300;
+    background:#fff; border:1px solid #e5e7eb; border-radius:6px;
+    box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:160px; padding:4px 0;
+}
+.co-act-dd.open { display:block; }
+.co-act-dd button {
+    display:flex; align-items:center; gap:6px; width:100%;
+    padding:7px 12px; border:none; background:none; cursor:pointer;
+    font-size:13px; color:#374151; text-align:left;
+}
+.co-act-dd button:hover { background:#f3f4f6; }
+.co-act-dd button.danger { color:#dc2626; }
+.co-act-dd button.danger:hover { background:#fef2f2; }
+
+/* ── Bulk actions bar ── */
+.co-bulk-bar {
+    display:none; align-items:center; gap:10px;
+    margin-left:16px; font-size:13px; color:#374151;
+}
+.co-bulk-bar.visible { display:inline-flex; }
+.co-bulk-count { font-weight:600; color:#2563eb; }
+.co-bulk-actions { position:relative; }
+.co-bulk-btn {
+    height:28px; padding:0 10px; font-size:12px; font-weight:500;
+    border:1px solid #d1d5db; border-radius:5px; background:#fff;
+    cursor:pointer; color:#374151; display:flex; align-items:center; gap:4px;
+}
+.co-bulk-btn:hover { background:#f3f4f6; }
+.co-bulk-dd {
+    display:none; position:absolute; left:0; top:100%; z-index:300;
+    background:#fff; border:1px solid #e5e7eb; border-radius:6px;
+    box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:160px; padding:4px 0;
+}
+.co-bulk-dd.open { display:block; }
+.co-bulk-dd button {
+    display:flex; align-items:center; gap:6px; width:100%;
+    padding:7px 12px; border:none; background:none; cursor:pointer;
+    font-size:13px; color:#374151; text-align:left;
+}
+.co-bulk-dd button:hover { background:#f3f4f6; }
+.co-bulk-dd button.danger { color:#dc2626; }
+.co-bulk-dd button.danger:hover { background:#fef2f2; }
 .co-manager { font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px; }
 </style>
 
@@ -219,10 +280,11 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
         <div class="co-toolbar">
             <h1>Замовлення</h1>
             <a href="/customerorder/edit" class="btn btn-primary">+ Нове замовлення</a>
+            <button type="button" class="btn" onclick="location.reload()" title="Оновити"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" style="vertical-align:-2px"><path d="M2 8a6 6 0 0110.5-4M14 2v4h-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 8a6 6 0 01-10.5 4M2 14v-4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
             <div class="co-search-wrap">
                 <div class="chip-input" id="coChipBox">
                     <input type="text" class="chip-typer" id="coChipTyper"
-                           placeholder="ID, номер, контрагент…" autocomplete="off">
+                           placeholder="ID, номер, контрагент, телефон…" autocomplete="off">
                     <div class="chip-actions">
                         <button type="button" class="chip-act-btn chip-act-clear hidden" id="coChipClear" title="Очистити">&#x2715;</button>
                         <button type="submit" class="chip-act-btn chip-act-submit" title="Пошук">
@@ -243,6 +305,22 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                 <option value="<?= $sv ?>" <?= in_array($sv, $statusFilter) ? 'selected' : '' ?>><?= $sl ?></option>
                 <?php endforeach; ?>
             </select>
+
+            <input type="hidden" name="hide_cancelled" value="0">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#6b7280;cursor:pointer;margin-left:4px">
+                <input type="checkbox" name="hide_cancelled" value="1"
+                       <?= $fHideCancelled === '1' ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                Без скасованих
+            </label>
+
+            <input type="hidden" name="hide_done" value="0">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#6b7280;cursor:pointer;margin-left:4px">
+                <input type="checkbox" name="hide_done" value="1"
+                       <?= $fHideDone === '1' ? 'checked' : '' ?>
+                       onchange="this.form.submit()">
+                Без комплектних
+            </label>
 
             <div class="co-fsep"></div>
 
@@ -434,22 +512,46 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
         </div>
     </form>
 
-    <!-- Count -->
-    <div style="font-size:13px;color:#6b7280;margin-bottom:8px;">
-        Знайдено: <strong><?= number_format($total) ?></strong>
+    <!-- Count + Bulk actions -->
+    <div style="font-size:13px;color:#6b7280;margin-bottom:8px;display:flex;align-items:center;">
+        <span>Знайдено: <strong><?= number_format($total) ?></strong></span>
         <?php if ($hasAnyFilter): ?>
         <a href="#" id="resetAllBtn" style="margin-left:8px;font-size:12px;color:#ef4444;">Скинути все</a>
         <?php endif; ?>
+
+        <div class="co-bulk-bar" id="bulkBar">
+            <span>Обрано: <span class="co-bulk-count" id="bulkCount">0</span></span>
+            <div class="co-bulk-actions">
+                <button type="button" class="co-bulk-btn" id="bulkActBtn">
+                    Дії
+                    <svg width="10" height="10" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <div class="co-bulk-dd" id="bulkDd">
+                    <button type="button" id="bulkPackBtn">
+                        📦 Друк пакетів
+                    </button>
+                    <button type="button" id="bulkQueueBtn">
+                        📥 В чергу
+                    </button>
+                    <button type="button" class="danger" id="bulkDeleteBtn">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M6 4V3a1 1 0 011-1h2a1 1 0 011 1v1M5 4v9a1 1 0 001 1h4a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Видалити
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Table -->
     <table class="crm-table">
         <thead>
             <tr>
+                <th class="co-cb-th"><input type="checkbox" class="co-row-cb" id="cbAll" title="Обрати все"></th>
+                <th style="width:16px;padding:0"></th>
                 <th>Номер</th>
                 <th style="width:90px">Дата</th>
                 <th>Контрагент</th>
-                <th style="width:130px">Статус</th>
+                <th style="width:100px;text-align:center">Статус</th>
                 <th style="text-align:right">Сума</th>
                 <th style="width:36px;text-align:center" title="Оплата">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="#6b7280" stroke-width="1.3"/><path d="M1 6h14" stroke="#6b7280" stroke-width="1.3"/><rect x="3" y="9" width="4" height="1.5" rx=".5" fill="#6b7280"/></svg>
@@ -460,17 +562,21 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                 <th style="width:36px;text-align:center" title="ТТН (відправка)">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 2h8l4 4v8H2V2z" stroke="#6b7280" stroke-width="1.3"/><path d="M10 2v4h4" stroke="#6b7280" stroke-width="1.3"/><path d="M5 8h6M5 10.5h4" stroke="#6b7280" stroke-width="1.1" stroke-linecap="round"/></svg>
                 </th>
-                <th>Організація</th>
+                <th style="width:36px;text-align:center" title="Черга друку">
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 2h8v3H4z" stroke="#6b7280" stroke-width="1.3"/><path d="M2 5h12v8H2z" stroke="#6b7280" stroke-width="1.3"/><path d="M6 8h4" stroke="#6b7280" stroke-width="1.3" stroke-linecap="round"/></svg>
+                </th>
+                <th style="white-space:nowrap">Організація</th>
                 <th>Менеджер</th>
-                <th style="width:120px">Дія</th>
+                <th style="width:80px;text-align:center">Дія</th>
                 <th style="width:36px;text-align:center" title="Непрочитані повідомлення">
                     <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 3h12v8H4l-2 2V3z" stroke="#6b7280" stroke-width="1.3"/><path d="M5 7h6M5 9.5h3" stroke="#6b7280" stroke-width="1.2" stroke-linecap="round"/></svg>
                 </th>
+                <th style="width:36px"></th>
             </tr>
         </thead>
         <tbody>
         <?php if (empty($rows)): ?>
-            <tr><td colspan="12" style="text-align:center;color:#9ca3af;padding:32px 0;">Записів не знайдено</td></tr>
+            <tr><td colspan="15" style="text-align:center;color:#9ca3af;padding:32px 0;">Записів не знайдено</td></tr>
         <?php else: ?>
             <?php foreach ($rows as $row): ?>
             <?php
@@ -484,23 +590,48 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                 $nextAction = isset($row['next_action_label']) && $row['next_action_label'] !== '' ? $row['next_action_label'] : '';
                 $cpId = isset($row['counterparty_id']) ? (int)$row['counterparty_id'] : 0;
 
+                // Fully processed: paid (or cash_on_delivery) + shipped/delivered + has TTN (or pickup)
+                $dmCode = isset($row['delivery_method_code']) ? $row['delivery_method_code'] : '';
+                $pmCode = isset($row['payment_method_code']) ? $row['payment_method_code'] : '';
+                $payOk = ($pay === 'paid' || $pay === 'refund' || $pmCode === 'cash_on_delivery');
+                $isFullyDone = $payOk
+                    && in_array($shp, array('shipped', 'delivered'))
+                    && ($ttnCnt > 0 || $dmCode === 'pickup' || $dmCode === 'courier');
+
+                if ($fHideDone === '1' && $isFullyDone) continue;
+
                 $payCls = array('not_paid'=>'co-pay-none','partially_paid'=>'co-pay-partial','paid'=>'co-pay-done','overdue'=>'co-pay-overdue','refund'=>'co-pay-refund');
                 $payLbl = array('not_paid'=>'Не оплачено','partially_paid'=>'Частково оплачено','paid'=>'Оплачено','overdue'=>'Прострочено','refund'=>'Повернення');
                 $_pc = isset($payCls[$pay]) ? $payCls[$pay] : 'co-pay-none';
                 $_pl = isset($payLbl[$pay]) ? $payLbl[$pay] : $pay;
 
                 $pmCode = isset($row['payment_method_code']) ? $row['payment_method_code'] : '';
-                $pmIcons = array(
-                    'bank_company'     => array('label' => 'БЮ', 'title' => 'Безготівкова юрособа'),
-                    'bank_personal'    => array('label' => 'БФ', 'title' => 'Безготівкова фізособа'),
-                    'cash'             => array('label' => 'ГТ', 'title' => 'Готівка'),
-                    'cash_on_delivery' => array('label' => 'НП', 'title' => 'Накладений платіж'),
-                    'online'           => array('label' => 'ОН', 'title' => 'Онлайн оплата'),
+                $pmSvgs = array(
+                    'cash_on_delivery' => array(
+                        'title' => 'Накладений платіж',
+                        'svg'   => '<svg viewBox="0 0 16 16" fill="none"><path d="M5 2h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M12 2c1.1 0 2 .9 2 2v4c0 1.1-.9 2-2 2H5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M7 10.5L4.5 8 7 5.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="13" r="1" fill="currentColor"/></svg>',
+                    ),
+                    'online' => array(
+                        'title' => 'Онлайн оплата',
+                        'svg'   => '<svg viewBox="0 0 16 16" fill="none"><rect x="1.5" y="3.5" width="13" height="9" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1.5 6.5h13" stroke="currentColor" stroke-width="1.3"/><path d="M4 10h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+                    ),
+                    'cash' => array(
+                        'title' => 'Готівка',
+                        'svg'   => '<svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v6M6 6.5c0-.8.9-1.5 2-1.5s2 .7 2 1.5-.9 1.5-2 1.5-2 .7-2 1.5.9 1.5 2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+                    ),
+                    'bank_company' => array(
+                        'title' => 'Безготівкова юрособа',
+                        'svg'   => '<svg viewBox="0 0 16 16" fill="none"><path d="M2 6l6-3.5L14 6" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M3 6v6M7 6v6M9 6v6M13 6v6" stroke="currentColor" stroke-width="1.3"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+                    ),
+                    'bank_personal' => array(
+                        'title' => 'Безготівкова фізособа',
+                        'svg'   => '<svg viewBox="0 0 16 16" fill="none"><path d="M2 6l6-3.5L14 6" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M4 6v6M8 6v6M12 6v6" stroke="currentColor" stroke-width="1.3"/><path d="M2 12h12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+                    ),
                 );
-                $pmInfo = isset($pmIcons[$pmCode]) ? $pmIcons[$pmCode] : null;
+                $pmInfo = isset($pmSvgs[$pmCode]) ? $pmSvgs[$pmCode] : null;
                 $payTitle = ($pmInfo ? $pmInfo['title'] : 'Оплата') . ' — ' . $_pl;
                 if ($pmInfo) {
-                    $payHtml = '<span class="co-ind '.$_pc.'" title="'.htmlspecialchars($payTitle, ENT_QUOTES, 'UTF-8').'"><span class="co-pm-label">'.$pmInfo['label'].'</span></span>';
+                    $payHtml = '<span class="co-ind '.$_pc.'" title="'.htmlspecialchars($payTitle, ENT_QUOTES, 'UTF-8').'">'.$pmInfo['svg'].'</span>';
                 } else {
                     $payHtml = '<span class="co-ind '.$_pc.'" title="'.htmlspecialchars($payTitle, ENT_QUOTES, 'UTF-8').'"><svg viewBox="0 0 16 16" fill="none"><path d="M2 4h12v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.4"/><path d="M2 4l1-2h10l1 2" stroke="currentColor" stroke-width="1.4"/><path d="M6 8h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 6v4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></span>';
                 }
@@ -511,12 +642,12 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                 $_sl = isset($shipLbl[$shp]) ? $shipLbl[$shp] : $shp;
                 $shipHtml = '<span class="co-ind '.$_sc.'" title="'.htmlspecialchars($_sl, ENT_QUOTES, 'UTF-8').'"><svg viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="10" height="8" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M11 6h2.5l2 2.5V11h-4.5V6z" stroke="currentColor" stroke-width="1.3"/><circle cx="4" cy="12.5" r="1.5" stroke="currentColor" stroke-width="1.2"/><circle cx="12.5" cy="12.5" r="1.5" stroke="currentColor" stroke-width="1.2"/></svg></span>';
             ?>
-            <tr style="cursor:pointer" onclick="window.location='/customerorder/edit?id=<?= (int)$row['id'] ?>'">
-                <td>
-                    <a class="co-num-link" href="/customerorder/edit?id=<?= (int)$row['id'] ?>" onclick="event.stopPropagation()">
-                        <?= htmlspecialchars($row['number'] ?: ('# ' . $row['id']), ENT_QUOTES, 'UTF-8') ?>
-                    </a>
+            <tr style="cursor:pointer" data-order-id="<?= (int)$row['id'] ?>" onclick="window.location='/customerorder/edit?id=<?= (int)$row['id'] ?>'">
+                <td style="text-align:center" onclick="event.stopPropagation()">
+                    <input type="checkbox" class="co-row-cb co-row-select" value="<?= (int)$row['id'] ?>">
                 </td>
+                <td style="padding:0;text-align:center"><?php if ($isFullyDone): ?><span class="co-done-mark" title="Оплачено · Відвантажено · Відправлено">✓</span><?php endif; ?></td>
+                <td><a class="co-num-link" href="/customerorder/edit?id=<?= (int)$row['id'] ?>" onclick="event.stopPropagation()"><?= htmlspecialchars($row['number'] ?: ('# ' . $row['id']), ENT_QUOTES, 'UTF-8') ?></a></td>
                 <td class="nowrap fs-12"><?= $row['moment'] ? substr($row['moment'], 0, 10) : '—' ?></td>
                 <td>
                     <?php if ($cpId > 0): ?>
@@ -527,7 +658,7 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                         <?= htmlspecialchars($row['counterparty_name'] ?: '—', ENT_QUOTES, 'UTF-8') ?>
                     <?php endif; ?>
                 </td>
-                <td>
+                <td style="text-align:center">
                     <?php if ($st): ?>
                     <span class="badge <?= isset($statusColors[$st]) ? $statusColors[$st] : 'badge-gray' ?>">
                         <?= isset($statusLabels[$st]) ? $statusLabels[$st] : $st ?>
@@ -572,12 +703,18 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                     <span class="co-ind co-ttn-yes" title="ТТН: <?= $ttnCnt ?>"><svg viewBox="0 0 16 16" fill="none"><path d="M3 8.5l3 3 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
                     <?php else: ?>
                     <span class="co-ind co-ttn-no" title="Немає ТТН"><svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                    <?php endif; ?><?php
+                    ?></td>
+                <td style="text-align:center"><?php
+                    $pqCnt = isset($row['print_queue']) ? (int)$row['print_queue'] : 0;
+                    if ($pqCnt > 0): ?>
+                    <span class="co-ind co-pq-yes" title="В черзі друку: <?= $pqCnt ?>"><svg viewBox="0 0 16 16" fill="none"><path d="M4 2h8v3H4z" stroke="currentColor" stroke-width="1.3"/><path d="M2 5h12v8H2z" stroke="currentColor" stroke-width="1.3"/><path d="M6 8h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
                     <?php endif; ?></td>
-                <td class="fs-12"><?= htmlspecialchars($row['organization_short'] ?: '—', ENT_QUOTES, 'UTF-8') ?></td>
+                <td class="fs-12" style="white-space:nowrap"><?= htmlspecialchars($row['organization_short'] ?: '—', ENT_QUOTES, 'UTF-8') ?></td>
                 <td class="co-manager" title="<?= htmlspecialchars($row['manager_display'] ?: '', ENT_QUOTES, 'UTF-8') ?>">
                     <?= htmlspecialchars($row['manager_display'] ?: '—', ENT_QUOTES, 'UTF-8') ?>
                 </td>
-                <td>
+                <td style="text-align:center">
                     <?php if ($nextAction): ?>
                     <span class="co-next-action" title="<?= htmlspecialchars($nextAction, ENT_QUOTES, 'UTF-8') ?>">
                         <svg width="10" height="10" viewBox="0 0 16 16" fill="none" style="flex-shrink:0"><path d="M3 8h10M10 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -589,6 +726,19 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                     <?php if ($unread > 0): ?>
                     <span class="co-unread"><?= $unread ?></span>
                     <?php endif; ?>
+                </td>
+                <td onclick="event.stopPropagation()" style="text-align:center">
+                    <div class="co-act-wrap">
+                        <button type="button" class="co-act-btn" data-act-toggle>
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="3" r="1.2" fill="currentColor"/><circle cx="8" cy="8" r="1.2" fill="currentColor"/><circle cx="8" cy="13" r="1.2" fill="currentColor"/></svg>
+                        </button>
+                        <div class="co-act-dd">
+                            <button type="button" class="danger" data-delete-order="<?= (int)$row['id'] ?>">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 4h10M6 4V3a1 1 0 011-1h2a1 1 0 011 1v1M5 4v9a1 1 0 001 1h4a1 1 0 001-1V4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Видалити
+                            </button>
+                        </div>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -814,6 +964,177 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
             window.location.href = '/customerorder';
         });
     }
+
+    // ── Checkbox selection + Bulk actions ──
+    var cbAll      = document.getElementById('cbAll');
+    var rowCbs     = document.querySelectorAll('.co-row-select');
+    var bulkBar    = document.getElementById('bulkBar');
+    var bulkCount  = document.getElementById('bulkCount');
+    var bulkActBtn = document.getElementById('bulkActBtn');
+    var bulkDd     = document.getElementById('bulkDd');
+    var bulkDelBtn = document.getElementById('bulkDeleteBtn');
+
+    function getSelectedIds() {
+        var ids = [];
+        rowCbs.forEach(function(cb) { if (cb.checked) ids.push(parseInt(cb.value)); });
+        return ids;
+    }
+
+    function updateBulkBar() {
+        var ids = getSelectedIds();
+        var n = ids.length;
+        bulkCount.textContent = n;
+        if (n > 0) {
+            bulkBar.classList.add('visible');
+        } else {
+            bulkBar.classList.remove('visible');
+            bulkDd.classList.remove('open');
+        }
+        // Update "select all" state
+        cbAll.checked = rowCbs.length > 0 && n === rowCbs.length;
+        cbAll.indeterminate = n > 0 && n < rowCbs.length;
+    }
+
+    if (cbAll) {
+        cbAll.addEventListener('change', function() {
+            rowCbs.forEach(function(cb) { cb.checked = cbAll.checked; });
+            updateBulkBar();
+        });
+    }
+
+    rowCbs.forEach(function(cb) {
+        cb.addEventListener('change', updateBulkBar);
+    });
+
+    // Bulk actions dropdown
+    if (bulkActBtn) {
+        bulkActBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            bulkDd.classList.toggle('open');
+        });
+    }
+
+    // ── Delete logic (shared) ──
+    function deleteOrders(ids) {
+        var word = ids.length === 1 ? 'замовлення' : 'замовлень';
+        if (!confirm('Видалити ' + ids.length + ' ' + word + '? Дія незворотня.')) return;
+
+        fetch('/customerorder/api/delete_orders', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ids: ids})
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.deleted && data.deleted.length > 0) {
+                // Remove deleted rows from DOM
+                data.deleted.forEach(function(id) {
+                    var row = document.querySelector('tr[data-order-id="' + id + '"]');
+                    if (row) row.remove();
+                });
+                updateBulkBar();
+            }
+            if (data.errors && data.errors.length > 0) {
+                var msgs = data.errors.map(function(e) { return '#' + e.id + ': ' + e.error; });
+                alert('Помилки:\n' + msgs.join('\n'));
+            }
+        })
+        .catch(function(err) {
+            alert('Помилка мережі: ' + err.message);
+        });
+    }
+
+    // Bulk delete button
+    if (bulkDelBtn) {
+        bulkDelBtn.addEventListener('click', function() {
+            var ids = getSelectedIds();
+            if (ids.length === 0) return;
+            bulkDd.classList.remove('open');
+            deleteOrders(ids);
+        });
+    }
+
+    // Bulk pack print / queue for orders
+    function orderBulkPackAction(ids, queue) {
+        // Find demands for selected orders, generate packs
+        var fd = new FormData();
+        fd.append('order_ids', ids.join(','));
+        if (queue) fd.append('queue', '1');
+        return fetch('/print/api/generate_pack_for_orders', { method: 'POST', body: fd })
+            .then(function(r) { return r.json(); });
+    }
+
+    var bulkPackBtn = document.getElementById('bulkPackBtn');
+    if (bulkPackBtn) {
+        bulkPackBtn.addEventListener('click', function() {
+            var ids = getSelectedIds();
+            if (!ids.length) return;
+            bulkDd.classList.remove('open');
+            bulkPackBtn.disabled = true;
+            bulkPackBtn.textContent = '⏳ Формую…';
+            orderBulkPackAction(ids, false).then(function(d) {
+                bulkPackBtn.disabled = false;
+                bulkPackBtn.textContent = '📦 Друк пакетів';
+                if (!d.ok) { alert('Помилка: ' + (d.error || '')); return; }
+                var urls = d.urls || [];
+                if (!urls.length) { alert('Немає документів для друку (відвантажень не знайдено)'); return; }
+                urls.forEach(function(u) { window.open(u, '_blank'); });
+                if (typeof showToast === 'function') showToast('Відкрито ' + urls.length + ' документів');
+            }).catch(function() {
+                bulkPackBtn.disabled = false;
+                bulkPackBtn.textContent = '📦 Друк пакетів';
+            });
+        });
+    }
+
+    var bulkQueueBtn = document.getElementById('bulkQueueBtn');
+    if (bulkQueueBtn) {
+        bulkQueueBtn.addEventListener('click', function() {
+            var ids = getSelectedIds();
+            if (!ids.length) return;
+            bulkDd.classList.remove('open');
+            bulkQueueBtn.disabled = true;
+            bulkQueueBtn.textContent = '⏳ Формую…';
+            orderBulkPackAction(ids, true).then(function(d) {
+                bulkQueueBtn.disabled = false;
+                bulkQueueBtn.textContent = '📥 В чергу';
+                if (!d.ok) { alert('Помилка: ' + (d.error || '')); return; }
+                if (typeof showToast === 'function') showToast('Додано ' + (d.queued || 0) + ' пакетів у чергу');
+            }).catch(function() {
+                bulkQueueBtn.disabled = false;
+                bulkQueueBtn.textContent = '📥 В чергу';
+            });
+        });
+    }
+
+    // ── Context menu (per-row actions) ──
+    document.addEventListener('click', function(e) {
+        // Toggle context menu
+        var toggler = e.target.closest('[data-act-toggle]');
+        if (toggler) {
+            e.stopPropagation();
+            var dd = toggler.nextElementSibling;
+            // Close all other menus first
+            document.querySelectorAll('.co-act-dd.open').forEach(function(d) {
+                if (d !== dd) d.classList.remove('open');
+            });
+            dd.classList.toggle('open');
+            return;
+        }
+
+        // Delete button in context menu
+        var delBtn = e.target.closest('[data-delete-order]');
+        if (delBtn) {
+            var orderId = parseInt(delBtn.dataset.deleteOrder);
+            delBtn.closest('.co-act-dd').classList.remove('open');
+            deleteOrders([orderId]);
+            return;
+        }
+
+        // Close all context menus and bulk dropdown on outside click
+        document.querySelectorAll('.co-act-dd.open').forEach(function(d) { d.classList.remove('open'); });
+        bulkDd.classList.remove('open');
+    });
 }());
 </script>
 

@@ -48,9 +48,10 @@ if (!$rTtns['ok'] || empty($rTtns['rows'])) {
 
         // Find or auto-create courier call record
         $rCall = \Database::fetchRow('Papir',
-            "SELECT id FROM np_courier_calls WHERE Barcode = '{$eb}' LIMIT 1");
+            "SELECT id, status FROM np_courier_calls WHERE Barcode = '{$eb}' LIMIT 1");
 
         if ($rCall['ok'] && $rCall['row']) {
+            if ($rCall['row']['status'] === 'done' || $rCall['row']['status'] === 'cancelled') continue;
             $callId = (int)$rCall['row']['id'];
         } else {
             if ($dryRun) {
@@ -103,7 +104,6 @@ if ($rPending['ok'] && !empty($rPending['rows'])) {
     }
 
     $statusUpdated = 0;
-    $ttnsCleared   = 0;
 
     foreach ($bySender as $sr => $calls) {
         $sender = \Papir\Crm\SenderRepository::getByRef($sr);
@@ -135,17 +135,13 @@ if ($rPending['ok'] && !empty($rPending['rows'])) {
                 $callId = (int)$call['id'];
                 \Database::query('Papir',
                     "UPDATE np_courier_calls SET status = '{$localStatus}', updated_at = NOW() WHERE id = {$callId}");
-                // Clean up TTN links for finished calls
-                $del = \Database::query('Papir',
-                    "DELETE FROM np_courier_call_ttns WHERE courier_call_id = {$callId}");
-                $ttnsCleared += $del['affected'] ?: 0;
                 $statusUpdated++;
             }
             echo '[' . date('Y-m-d H:i:s') . '] Call ' . $call['Barcode'] . ' → ' . $localStatus . PHP_EOL;
         }
     }
 
-    echo '[' . date('Y-m-d H:i:s') . '] Status sync: updated=' . $statusUpdated . ', TTN links cleared=' . $ttnsCleared . PHP_EOL;
+    echo '[' . date('Y-m-d H:i:s') . '] Status sync: updated=' . $statusUpdated . PHP_EOL;
 }
 
 if (!$dryRun) {

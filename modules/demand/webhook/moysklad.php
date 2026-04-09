@@ -126,6 +126,16 @@ foreach ($body['events'] as $event) {
         'updated_at'      => isset($doc['updated']) ? substr((string)$doc['updated'], 0, 19) : date('Y-m-d H:i:s'),
     );
 
+    // Papir є джерелом правди для відвантажень — нові demand з МС не створюємо.
+    // Оновлюємо тільки існуючі (статус, суми, profit).
+    $rExisting = Database::fetchRow('Papir',
+        "SELECT id FROM demand WHERE id_ms = '" . Database::escape('Papir', $msId) . "' LIMIT 1");
+    if (!$rExisting['ok'] || empty($rExisting['row'])) {
+        mswhk_demand_log('SKIPPED new demand ms=' . $msId . ' — creation from MS disabled');
+        $processed++;
+        continue;
+    }
+
     $upsert = $repo->upsertFromMs($data);
     if (!$upsert['ok']) {
         $errors[] = 'Upsert failed for ' . $msId;
@@ -149,18 +159,76 @@ foreach ($body['events'] as $event) {
             if (!empty($pos['assortment']['meta']['href'])) {
                 $prodMsId = substr($pos['assortment']['meta']['href'], strrpos($pos['assortment']['meta']['href'], '/') + 1);
             }
+            $qty   = isset($pos['quantity']) ? (float)$pos['quantity'] : 0;
+            $price = isset($pos['price'])    ? round((float)$pos['price'] / 100, 2) : 0;
+            $disc  = isset($pos['discount']) ? (float)$pos['discount'] : 0;
+            $gross = round($qty * $price, 2);
+            $discAmt = round($gross * $disc / 100, 2);
+            $sumRow = round($gross - $discAmt, 2);
             $positions[] = array(
                 'product_ms_id' => $prodMsId,
                 'product_name'  => isset($pos['assortment']['name']) ? (string)$pos['assortment']['name'] : null,
                 'sku'           => isset($pos['assortment']['article']) ? (string)$pos['assortment']['article'] : null,
-                'quantity'      => isset($pos['quantity']) ? (float)$pos['quantity'] : 0,
-                'price'         => isset($pos['price'])    ? round((float)$pos['price'] / 100, 2) : 0,
-                'discount'      => isset($pos['discount']) ? (float)$pos['discount'] : 0,
+                'quantity'      => $qty,
+                'price'         => $price,
+                'discount'      => $disc,
                 'vat'           => isset($pos['vat'])      ? (float)$pos['vat'] : 0,
-                'sum_row'       => isset($pos['sum'])      ? round((float)$pos['sum'] / 100, 2) : 0,
+                'sum_row'       => $sumRow,
             );
         }
         $repo->syncItemsFromMs($localId, $positions, $productMap);
+
+        // Recalculate sum_total, sum_vat, profit from items
+        $rCalc = Database::fetchRow('Papir',
+            "SELECT COALESCE(SUM(di.sum_row), 0) AS sum_total,
+                    COALESCE(SUM(CASE WHEN di.vat_rate > 0
+                        THEN ROUND(di.sum_row - di.sum_row / (1 + di.vat_rate / 100), 2)
+                        ELSE 0 END), 0) AS sum_vat,
+                    COALESCE(SUM(di.quantity * COALESCE(pp.price_purchase, 0)), 0) AS cost_total
+             FROM demand_item di
+             LEFT JOIN product_papir pp ON pp.product_id = di.product_id
+             WHERE di.demand_id = {$localId}");
+        if ($rCalc['ok'] && !empty($rCalc['row'])) {
+            $calcSum  = (float)$rCalc['row']['sum_total'];
+            $calcVat  = (float)$rCalc['row']['sum_vat'];
+            $calcCost = (float)$rCalc['row']['cost_total'];
+
+            $rDem = Database::fetchRow('Papir', "SELECT overhead_costs FROM demand WHERE id = {$localId}");
+            $oh = ($rDem['ok'] && $rDem['row']) ? (float)$rDem['row']['overhead_costs'] : 0;
+
+            $dc = 0;
+            $rTtn = Database::fetchRow('Papir',
+                "SELECT SUM(COALESCE(cost_on_site, 0)) AS ttn_cost
+                 FROM ttn_novaposhta
+                 WHERE demand_id = {$localId} AND payer_type = 'Sender' AND deletion_mark = 0 AND state_id NOT IN (2)");
+            if ($rTtn['ok'] && !empty($rTtn['row'])) $dc = (float)$rTtn['row']['ttn_cost'];
+
+            $profit = round($calcSum - $calcCost - $oh - $dc, 2);
+            Database::update('Papir', 'demand', array(
+                'sum_total'            => round($calcSum, 2),
+                'sum_vat'              => round($calcVat, 2),
+                'delivery_cost_deduct' => round($dc, 2),
+                'profit'               => $profit,
+            ), array('id' => $localId));
+        }
+    }
+
+    // Recalc linked customerorder finance (payment_status, shipment_status) → fires triggers
+    if ($customerorderId) {
+        require_once __DIR__ . '/../../customerorder/services/OrderFinanceHelper.php';
+        OrderFinanceHelper::recalc($customerorderId);
+        mswhk_demand_log('Recalc order id=' . $customerorderId);
+    }
+
+    // Auto-generate print pack when status becomes 'assembled'
+    if ($status === 'assembled' && $localId > 0) {
+        try {
+            require_once __DIR__ . '/../../print/services/PackGenerator.php';
+            PackGenerator::autoGenerate($localId);
+            mswhk_demand_log('Auto-generated pack for demand id=' . $localId);
+        } catch (Exception $e) {
+            mswhk_demand_log('Pack auto-gen error: ' . $e->getMessage());
+        }
     }
 
     $processed++;

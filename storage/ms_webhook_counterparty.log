@@ -2732,3 +2732,330 @@
 2026-04-08 11:35:20 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e084ccd1-3325-11f1-0a80-0db800118766"},"uid":"admin@papierinvest","moment":"2026-04-08 11:35:19"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/254efc24-59fe-11ed-0a80-0f4e001c7a71"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
 2026-04-08 11:35:20 Updated counterparty id=21565 ms=254efc24-59fe-11ed-0a80-0f4e001c7a71
 2026-04-08 11:35:20 Done: processed=1 errors=0
+2026-04-08 12:05:50 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/23c8cbe1-332a-11f1-0a80-055f00140156"},"uid":"admin@papierinvest","moment":"2026-04-08 12:05:50"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bd9d7d95-e4b9-11eb-0a80-0044000db1f1"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:05:51 Updated counterparty id=42361 ms=bd9d7d95-e4b9-11eb-0a80-0044000db1f1
+2026-04-08 12:05:51 Done: processed=1 errors=0
+2026-04-08 12:06:36 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/3f12dc43-332a-11f1-0a80-1bf30012e771"},"uid":"admin@papierinvest","moment":"2026-04-08 12:06:36"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/776718aa-2209-11f1-0a80-030a0024689f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:06:37 Updated counterparty id=116398 ms=776718aa-2209-11f1-0a80-030a0024689f
+2026-04-08 12:06:37 Done: processed=1 errors=0
+2026-04-08 12:09:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a91bf4e8-332a-11f1-0a80-055f001417b7"},"uid":"admin@papierinvest","moment":"2026-04-08 12:09:34"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a907d1a6-332a-11f1-0a80-055f001417af"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:09:34 Created counterparty person id=117039 ms=a907d1a6-332a-11f1-0a80-055f001417af name=Василь Подоляк
+2026-04-08 12:09:34 Created counterparty id=117039 ms=a907d1a6-332a-11f1-0a80-055f001417af
+2026-04-08 12:09:34 Done: processed=1 errors=0
+2026-04-08 12:10:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d2b56aeb-332a-11f1-0a80-1c7e0013416c"},"uid":"admin@papierinvest","moment":"2026-04-08 12:10:44"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a907d1a6-332a-11f1-0a80-055f001417af"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:10:44 Updated counterparty id=117039 ms=a907d1a6-332a-11f1-0a80-055f001417af
+2026-04-08 12:10:44 Done: processed=1 errors=0
+2026-04-08 12:11:08 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e15846c2-332a-11f1-0a80-0cfd00133421"},"uid":"admin@papierinvest","moment":"2026-04-08 12:11:08"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bd9d7d95-e4b9-11eb-0a80-0044000db1f1"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:11:09 Updated counterparty id=42361 ms=bd9d7d95-e4b9-11eb-0a80-0044000db1f1
+2026-04-08 12:11:09 Done: processed=1 errors=0
+2026-04-08 12:11:32 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ef2ab4d0-332a-11f1-0a80-0bc80013e932"},"uid":"admin@papierinvest","moment":"2026-04-08 12:11:31"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a907d1a6-332a-11f1-0a80-055f001417af"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:11:32 Updated counterparty id=117039 ms=a907d1a6-332a-11f1-0a80-055f001417af
+2026-04-08 12:11:32 Done: processed=1 errors=0
+2026-04-08 12:13:29 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/350d11d8-332b-11f1-0a80-1d7500135525"},"uid":"admin@papierinvest","moment":"2026-04-08 12:13:29"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bd9d7d95-e4b9-11eb-0a80-0044000db1f1"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:13:29 Updated counterparty id=42361 ms=bd9d7d95-e4b9-11eb-0a80-0044000db1f1
+2026-04-08 12:13:29 Done: processed=1 errors=0
+2026-04-08 12:15:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/78ba5445-332b-11f1-0a80-17b500138ba7"},"uid":"admin@papierinvest","moment":"2026-04-08 12:15:22"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a907d1a6-332a-11f1-0a80-055f001417af"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:15:23 Updated counterparty id=117039 ms=a907d1a6-332a-11f1-0a80-055f001417af
+2026-04-08 12:15:23 Done: processed=1 errors=0
+2026-04-08 12:21:20 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4dcf3332-332c-11f1-0a80-0bc800142a8e"},"uid":"admin@papierinvest","moment":"2026-04-08 12:21:20"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/20b50b7f-26d7-11f1-0a80-0544007b04a4"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:21:20 Updated counterparty id=116601 ms=20b50b7f-26d7-11f1-0a80-0544007b04a4
+2026-04-08 12:21:20 Done: processed=1 errors=0
+2026-04-08 12:27:30 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/2a42eabb-332d-11f1-0a80-15650013cf5b"},"uid":"admin@papierinvest","moment":"2026-04-08 12:27:30"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/b4149082-3286-11f1-0a80-1c7b00225c70"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:27:30 Updated counterparty id=117014 ms=b4149082-3286-11f1-0a80-1c7b00225c70
+2026-04-08 12:27:30 Done: processed=1 errors=0
+2026-04-08 12:29:15 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/69064acd-332d-11f1-0a80-055f0014ac76"},"uid":"admin@papierinvest","moment":"2026-04-08 12:29:15"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/34f99b7b-0423-11eb-0a80-04f60001ef4d"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:29:16 Updated counterparty id=23715 ms=34f99b7b-0423-11eb-0a80-04f60001ef4d
+2026-04-08 12:29:16 Done: processed=1 errors=0
+2026-04-08 12:30:29 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/94ccc349-332d-11f1-0a80-15650013e12d"},"uid":"admin@papierinvest","moment":"2026-04-08 12:30:28"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a907d1a6-332a-11f1-0a80-055f001417af"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:30:29 Updated counterparty id=117039 ms=a907d1a6-332a-11f1-0a80-055f001417af
+2026-04-08 12:30:29 Done: processed=1 errors=0
+2026-04-08 12:32:38 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e1fbcc0e-332d-11f1-0a80-1bf30013a17e"},"uid":"admin@papierinvest","moment":"2026-04-08 12:32:38"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e1ec4b85-332d-11f1-0a80-1bf30013a175"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:32:38 Created counterparty person id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175 name=Гоєк Олександр
+2026-04-08 12:32:38 Created counterparty id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175
+2026-04-08 12:32:38 Done: processed=1 errors=0
+2026-04-08 12:34:13 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1ad24f2a-332e-11f1-0a80-1c7e0013e445"},"uid":"admin@papierinvest","moment":"2026-04-08 12:34:13"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/254efc24-59fe-11ed-0a80-0f4e001c7a71"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:34:14 Updated counterparty id=21565 ms=254efc24-59fe-11ed-0a80-0f4e001c7a71
+2026-04-08 12:34:14 Done: processed=1 errors=0
+2026-04-08 12:40:38 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0059ceb6-332f-11f1-0a80-1bf30013f26f"},"uid":"admin@papierinvest","moment":"2026-04-08 12:40:38"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e740a076-325b-11f1-0a80-1bee0017ec46"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:40:39 Updated counterparty id=116994 ms=e740a076-325b-11f1-0a80-1bee0017ec46
+2026-04-08 12:40:39 Done: processed=1 errors=0
+2026-04-08 12:41:41 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/25955199-332f-11f1-0a80-1c7e00142d29"},"uid":"admin@papierinvest","moment":"2026-04-08 12:41:41"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e1ec4b85-332d-11f1-0a80-1bf30013a175"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:41:41 Updated counterparty id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175
+2026-04-08 12:41:41 Done: processed=1 errors=0
+2026-04-08 12:50:46 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/6a5cb46b-3330-11f1-0a80-08720014b31d"},"uid":"admin@papierinvest","moment":"2026-04-08 12:50:46"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/37b3da10-2863-11f1-0a80-173500496427"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:50:46 Updated counterparty id=116675 ms=37b3da10-2863-11f1-0a80-173500496427
+2026-04-08 12:50:46 Done: processed=1 errors=0
+2026-04-08 12:52:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/aabd30ff-3330-11f1-0a80-0db80013dd12"},"uid":"admin@papierinvest","moment":"2026-04-08 12:52:34"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/254efc24-59fe-11ed-0a80-0f4e001c7a71"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:52:34 Updated counterparty id=21565 ms=254efc24-59fe-11ed-0a80-0f4e001c7a71
+2026-04-08 12:52:34 Done: processed=1 errors=0
+2026-04-08 12:54:39 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f58cecf2-3330-11f1-0a80-1d7500149816"},"uid":"admin@papierinvest","moment":"2026-04-08 12:54:39"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/f57784b7-3330-11f1-0a80-1d7500149810"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:54:40 Created counterparty person id=117042 ms=f57784b7-3330-11f1-0a80-1d7500149810 name=Медяник Юрій
+2026-04-08 12:54:40 Created counterparty id=117042 ms=f57784b7-3330-11f1-0a80-1d7500149810
+2026-04-08 12:54:40 Done: processed=1 errors=0
+2026-04-08 12:54:40 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f61fc21d-3330-11f1-0a80-09ea0015d5b5"},"uid":"admin@papierinvest","moment":"2026-04-08 12:54:40"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/37b3da10-2863-11f1-0a80-173500496427"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:54:41 Updated counterparty id=116675 ms=37b3da10-2863-11f1-0a80-173500496427
+2026-04-08 12:54:41 Done: processed=1 errors=0
+2026-04-08 12:55:53 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/21996dab-3331-11f1-0a80-17b50014edc3"},"uid":"admin@papierinvest","moment":"2026-04-08 12:55:53"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e1ec4b85-332d-11f1-0a80-1bf30013a175"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:55:54 Updated counterparty id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175
+2026-04-08 12:55:54 Done: processed=1 errors=0
+2026-04-08 12:57:13 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/513f6896-3331-11f1-0a80-1d750014a92a"},"uid":"admin@papierinvest","moment":"2026-04-08 12:57:13"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e740a076-325b-11f1-0a80-1bee0017ec46"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 12:57:14 Updated counterparty id=116994 ms=e740a076-325b-11f1-0a80-1bee0017ec46
+2026-04-08 12:57:14 Done: processed=1 errors=0
+2026-04-08 13:01:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/db2a8b1a-3331-11f1-0a80-1bf300149e2f"},"uid":"admin@papierinvest","moment":"2026-04-08 13:01:04"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/65fd02fe-3252-11f1-0a80-055c00154dc4"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:01:05 Updated counterparty id=116988 ms=65fd02fe-3252-11f1-0a80-055c00154dc4
+2026-04-08 13:01:05 Done: processed=1 errors=0
+2026-04-08 13:04:16 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4d6c07a7-3332-11f1-0a80-055f0015c5d5"},"uid":"admin@papierinvest","moment":"2026-04-08 13:04:16"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/f57784b7-3330-11f1-0a80-1d7500149810"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:04:17 Updated counterparty id=117042 ms=f57784b7-3330-11f1-0a80-1d7500149810
+2026-04-08 13:04:17 Done: processed=1 errors=0
+2026-04-08 13:07:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bdd91d2a-3332-11f1-0a80-1c7e00151bb8"},"uid":"admin@papierinvest","moment":"2026-04-08 13:07:25"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/f57784b7-3330-11f1-0a80-1d7500149810"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:07:25 Updated counterparty id=117042 ms=f57784b7-3330-11f1-0a80-1d7500149810
+2026-04-08 13:07:25 Done: processed=1 errors=0
+2026-04-08 13:12:58 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/84549142-3333-11f1-0a80-18ce00156ebb"},"uid":"admin@papierinvest","moment":"2026-04-08 13:12:58"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/8444fa53-3333-11f1-0a80-18ce00156eb0"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:12:58 Created counterparty person id=117044 ms=8444fa53-3333-11f1-0a80-18ce00156eb0 name=Андрій Войцещук
+2026-04-08 13:12:58 Created counterparty id=117044 ms=8444fa53-3333-11f1-0a80-18ce00156eb0
+2026-04-08 13:12:58 Done: processed=1 errors=0
+2026-04-08 13:27:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/947861f2-3335-11f1-0a80-0cfd0015b562"},"uid":"admin@papierinvest","moment":"2026-04-08 13:27:44"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e1ec4b85-332d-11f1-0a80-1bf30013a175"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:27:44 Updated counterparty id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175
+2026-04-08 13:27:44 Done: processed=1 errors=0
+2026-04-08 13:28:08 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a2baef58-3335-11f1-0a80-1a07001601cb"},"uid":"admin@papierinvest","moment":"2026-04-08 13:28:08"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e1ec4b85-332d-11f1-0a80-1bf30013a175"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:28:08 Updated counterparty id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175
+2026-04-08 13:28:08 Done: processed=1 errors=0
+2026-04-08 13:36:00 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bc41709d-3336-11f1-0a80-1d750015e415"},"uid":"admin@papierinvest","moment":"2026-04-08 13:36:00"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e1ec4b85-332d-11f1-0a80-1bf30013a175"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:36:01 Updated counterparty id=117041 ms=e1ec4b85-332d-11f1-0a80-1bf30013a175
+2026-04-08 13:36:01 Done: processed=1 errors=0
+2026-04-08 13:49:39 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a47f345a-3338-11f1-0a80-1d7500167fef"},"uid":"admin@papierinvest","moment":"2026-04-08 13:49:39"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/f78529a9-00dc-11f1-0a80-0edf001692f5"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:49:40 Updated counterparty id=115124 ms=f78529a9-00dc-11f1-0a80-0edf001692f5
+2026-04-08 13:49:40 Done: processed=1 errors=0
+2026-04-08 13:50:04 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/b329c1fe-3338-11f1-0a80-1bf300167be4"},"uid":"admin@papierinvest","moment":"2026-04-08 13:50:04"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/f78529a9-00dc-11f1-0a80-0edf001692f5"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 13:50:05 Updated counterparty id=115124 ms=f78529a9-00dc-11f1-0a80-0edf001692f5
+2026-04-08 13:50:05 Done: processed=1 errors=0
+2026-04-08 14:26:33 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/cbc759d7-333d-11f1-0a80-1c7e0017fbea"},"uid":"admin@papierinvest","moment":"2026-04-08 14:26:33"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a3746b57-0595-11f0-0a80-105e001f2620"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:26:33 Updated counterparty id=96021 ms=a3746b57-0595-11f0-0a80-105e001f2620
+2026-04-08 14:26:33 Done: processed=1 errors=0
+2026-04-08 14:26:37 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ce4c5f60-333d-11f1-0a80-1d750017c5da"},"uid":"admin@papierinvest","moment":"2026-04-08 14:26:37"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/f78529a9-00dc-11f1-0a80-0edf001692f5"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:26:37 Updated counterparty id=115124 ms=f78529a9-00dc-11f1-0a80-0edf001692f5
+2026-04-08 14:26:37 Done: processed=1 errors=0
+2026-04-08 14:27:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f63947c1-333d-11f1-0a80-1c7e001808c5"},"uid":"admin@papierinvest","moment":"2026-04-08 14:27:44"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/6587a418-9209-11eb-0a80-030c000ced58"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:27:44 Updated counterparty id=30534 ms=6587a418-9209-11eb-0a80-030c000ced58
+2026-04-08 14:27:44 Done: processed=1 errors=0
+2026-04-08 14:28:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/086ea645-333e-11f1-0a80-0cfd0017e8cc"},"uid":"admin@papierinvest","moment":"2026-04-08 14:28:14"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/6587a418-9209-11eb-0a80-030c000ced58"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:28:15 Updated counterparty id=30534 ms=6587a418-9209-11eb-0a80-030c000ced58
+2026-04-08 14:28:15 Done: processed=1 errors=0
+2026-04-08 14:33:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c153dac0-333e-11f1-0a80-08720018543e"},"uid":"admin@papierinvest","moment":"2026-04-08 14:33:24"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/6587a418-9209-11eb-0a80-030c000ced58"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:33:25 Updated counterparty id=30534 ms=6587a418-9209-11eb-0a80-030c000ced58
+2026-04-08 14:33:25 Done: processed=1 errors=0
+2026-04-08 14:35:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1d46dc9d-333f-11f1-0a80-0872001861e8"},"uid":"admin@papierinvest","moment":"2026-04-08 14:35:59"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a3746b57-0595-11f0-0a80-105e001f2620"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:35:59 Updated counterparty id=96021 ms=a3746b57-0595-11f0-0a80-105e001f2620
+2026-04-08 14:35:59 Done: processed=1 errors=0
+2026-04-08 14:38:30 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7782e04d-333f-11f1-0a80-1bf300183e7d"},"uid":"admin@papierinvest","moment":"2026-04-08 14:38:30"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a3746b57-0595-11f0-0a80-105e001f2620"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:38:31 Updated counterparty id=96021 ms=a3746b57-0595-11f0-0a80-105e001f2620
+2026-04-08 14:38:31 Done: processed=1 errors=0
+2026-04-08 14:38:33 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/794316cd-333f-11f1-0a80-1565001855f7"},"uid":"admin@papierinvest","moment":"2026-04-08 14:38:33"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a3746b57-0595-11f0-0a80-105e001f2620"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:38:34 Updated counterparty id=96021 ms=a3746b57-0595-11f0-0a80-105e001f2620
+2026-04-08 14:38:34 Done: processed=1 errors=0
+2026-04-08 14:48:24 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d94a1a0d-3340-11f1-0a80-1c7e0018ceaa"},"uid":"admin@papierinvest","moment":"2026-04-08 14:48:24"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a3746b57-0595-11f0-0a80-105e001f2620"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 14:48:24 Updated counterparty id=96021 ms=a3746b57-0595-11f0-0a80-105e001f2620
+2026-04-08 14:48:24 Done: processed=1 errors=0
+2026-04-08 15:04:38 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/1e2b77a5-3343-11f1-0a80-1a07001981f0"},"uid":"admin@papierinvest","moment":"2026-04-08 15:04:38"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/4399fdd5-f2b4-11f0-0a80-0b2b001327c6"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 15:04:39 Updated counterparty id=114157 ms=4399fdd5-f2b4-11f0-0a80-0b2b001327c6
+2026-04-08 15:04:39 Done: processed=1 errors=0
+2026-04-08 15:05:04 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/2da1c7f7-3343-11f1-0a80-087200194e03"},"uid":"admin@papierinvest","moment":"2026-04-08 15:05:04"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/4399fdd5-f2b4-11f0-0a80-0b2b001327c6"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 15:05:05 Updated counterparty id=114157 ms=4399fdd5-f2b4-11f0-0a80-0b2b001327c6
+2026-04-08 15:05:05 Done: processed=1 errors=0
+2026-04-08 15:06:31 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/610c8846-3343-11f1-0a80-09ea001ab803"},"uid":"admin@papierinvest","moment":"2026-04-08 15:06:30"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/4399fdd5-f2b4-11f0-0a80-0b2b001327c6"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 15:06:31 Updated counterparty id=114157 ms=4399fdd5-f2b4-11f0-0a80-0b2b001327c6
+2026-04-08 15:06:31 Done: processed=1 errors=0
+2026-04-08 15:07:32 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/855b5808-3343-11f1-0a80-055f001a4cf7"},"uid":"admin@papierinvest","moment":"2026-04-08 15:07:31"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/4399fdd5-f2b4-11f0-0a80-0b2b001327c6"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 15:07:32 Updated counterparty id=114157 ms=4399fdd5-f2b4-11f0-0a80-0b2b001327c6
+2026-04-08 15:07:32 Done: processed=1 errors=0
+2026-04-08 15:57:49 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8bf530be-334a-11f1-0a80-0cfd001adf75"},"uid":"admin@papierinvest","moment":"2026-04-08 15:57:49"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/4399fdd5-f2b4-11f0-0a80-0b2b001327c6"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 15:57:49 Updated counterparty id=114157 ms=4399fdd5-f2b4-11f0-0a80-0b2b001327c6
+2026-04-08 15:57:49 Done: processed=1 errors=0
+2026-04-08 16:04:41 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8153729b-334b-11f1-0a80-09ea001ca6f3"},"uid":"admin@papierinvest","moment":"2026-04-08 16:04:41"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/21350962-776d-11ef-0a80-16b10028a16c"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:04:41 Updated counterparty id=84221 ms=21350962-776d-11ef-0a80-16b10028a16c
+2026-04-08 16:04:41 Done: processed=1 errors=0
+2026-04-08 16:10:03 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4163d369-334c-11f1-0a80-049a001be333"},"uid":"admin@papierinvest","moment":"2026-04-08 16:10:03"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/6587a418-9209-11eb-0a80-030c000ced58"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:10:04 Updated counterparty id=30534 ms=6587a418-9209-11eb-0a80-030c000ced58
+2026-04-08 16:10:04 Done: processed=1 errors=0
+2026-04-08 16:10:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/604921d9-334c-11f1-0a80-18ce001baf8d"},"uid":"admin@papierinvest","moment":"2026-04-08 16:10:55"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/6587a418-9209-11eb-0a80-030c000ced58"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:10:55 Updated counterparty id=30534 ms=6587a418-9209-11eb-0a80-030c000ced58
+2026-04-08 16:10:55 Done: processed=1 errors=0
+2026-04-08 16:15:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0ea27e71-334d-11f1-0a80-11c9001c1a0d"},"uid":"admin@papierinvest","moment":"2026-04-08 16:15:47"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/4f453f28-9200-11eb-0a80-01d6001264e1"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:15:48 Updated counterparty id=27370 ms=4f453f28-9200-11eb-0a80-01d6001264e1
+2026-04-08 16:15:48 Done: processed=1 errors=0
+2026-04-08 16:21:17 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d35a31a9-334d-11f1-0a80-055f001d0993"},"uid":"admin@papierinvest","moment":"2026-04-08 16:21:17"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/d348e7cc-334d-11f1-0a80-055f001d098e"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:21:18 Created counterparty person id=117045 ms=d348e7cc-334d-11f1-0a80-055f001d098e name=Максим Сабельников
+2026-04-08 16:21:18 Created counterparty id=117045 ms=d348e7cc-334d-11f1-0a80-055f001d098e
+2026-04-08 16:21:18 Done: processed=1 errors=0
+2026-04-08 16:25:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5b55c673-334e-11f1-0a80-0872001c4722"},"uid":"admin@papierinvest","moment":"2026-04-08 16:25:05"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/5693fe69-3314-11f1-0a80-1a07000f2246"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:25:07 Updated counterparty id=117031 ms=5693fe69-3314-11f1-0a80-1a07000f2246
+2026-04-08 16:25:07 Done: processed=1 errors=0
+2026-04-08 16:30:05 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0e1cbc95-334f-11f1-0a80-17b400118755"},"uid":"olga@papierinvest","moment":"2026-04-08 16:30:05"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/0e0fdc7f-334f-11f1-0a80-17b400118750"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:30:06 Created counterparty person id=117046 ms=0e0fdc7f-334f-11f1-0a80-17b400118750 name=Олег
+2026-04-08 16:30:06 Created counterparty id=117046 ms=0e0fdc7f-334f-11f1-0a80-17b400118750
+2026-04-08 16:30:06 Done: processed=1 errors=0
+2026-04-08 16:33:40 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8e12da49-334f-11f1-0a80-1565001c7add"},"uid":"admin@papierinvest","moment":"2026-04-08 16:33:40"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/de90c477-3257-11f1-0a80-09e70016d56b"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:33:41 Updated counterparty id=116990 ms=de90c477-3257-11f1-0a80-09e70016d56b
+2026-04-08 16:33:41 Done: processed=1 errors=0
+2026-04-08 16:34:06 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/9d98248e-334f-11f1-0a80-09ea001debca"},"uid":"admin@papierinvest","moment":"2026-04-08 16:34:06"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/de90c477-3257-11f1-0a80-09e70016d56b"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 16:34:07 Updated counterparty id=116990 ms=de90c477-3257-11f1-0a80-09e70016d56b
+2026-04-08 16:34:07 Done: processed=1 errors=0
+2026-04-08 17:03:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/af7e36ae-3353-11f1-0a80-0bc8001eb50d"},"uid":"admin@papierinvest","moment":"2026-04-08 17:03:14"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/af6dc458-3353-11f1-0a80-0bc8001eb504"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:03:15 Created counterparty person id=117047 ms=af6dc458-3353-11f1-0a80-0bc8001eb504 name=Андрей Кормуш
+2026-04-08 17:03:15 Created counterparty id=117047 ms=af6dc458-3353-11f1-0a80-0bc8001eb504
+2026-04-08 17:03:15 Done: processed=1 errors=0
+2026-04-08 17:26:08 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e23bd4e7-3356-11f1-0a80-049a001e61e3"},"uid":"admin@papierinvest","moment":"2026-04-08 17:26:08"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e22baaa8-3356-11f1-0a80-049a001e61de"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:26:08 Created counterparty person id=117048 ms=e22baaa8-3356-11f1-0a80-049a001e61de name=Костя Ширков
+2026-04-08 17:26:08 Created counterparty id=117048 ms=e22baaa8-3356-11f1-0a80-049a001e61de
+2026-04-08 17:26:08 Done: processed=1 errors=0
+2026-04-08 17:26:10 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e34e0791-3356-11f1-0a80-1565001e3d66"},"uid":"admin@papierinvest","moment":"2026-04-08 17:26:09"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e33f1357-3356-11f1-0a80-1565001e3d61"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:26:10 Created counterparty person id=117049 ms=e33f1357-3356-11f1-0a80-1565001e3d61 name=Никита
+2026-04-08 17:26:10 Created counterparty id=117049 ms=e33f1357-3356-11f1-0a80-1565001e3d61
+2026-04-08 17:26:10 Done: processed=1 errors=0
+2026-04-08 17:30:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8fdc91e8-3357-11f1-0a80-1a07001e99ad"},"uid":"admin@papierinvest","moment":"2026-04-08 17:30:59"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e0a9ea70-eeab-11ea-0a80-0220000cbd9b"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:30:59 Updated counterparty id=47055 ms=e0a9ea70-eeab-11ea-0a80-0220000cbd9b
+2026-04-08 17:30:59 Done: processed=1 errors=0
+2026-04-08 17:32:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ba833a3d-3357-11f1-0a80-1a07001ea00b"},"uid":"admin@papierinvest","moment":"2026-04-08 17:32:10"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/ba72628a-3357-11f1-0a80-1a07001ea003"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:32:11 Created counterparty person id=117050 ms=ba72628a-3357-11f1-0a80-1a07001ea003 name=Максим Капуш
+2026-04-08 17:32:11 Created counterparty id=117050 ms=ba72628a-3357-11f1-0a80-1a07001ea003
+2026-04-08 17:32:11 Done: processed=1 errors=0
+2026-04-08 17:54:14 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/cf6d4c5f-335a-11f1-0a80-11c9001f86ce"},"uid":"admin@papierinvest","moment":"2026-04-08 17:54:14"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/cf58604d-335a-11f1-0a80-11c9001f86c5"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:54:15 Created counterparty person id=117051 ms=cf58604d-335a-11f1-0a80-11c9001f86c5 name=иван черниенко
+2026-04-08 17:54:15 Created counterparty id=117051 ms=cf58604d-335a-11f1-0a80-11c9001f86c5
+2026-04-08 17:54:15 Done: processed=1 errors=0
+2026-04-08 17:54:16 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d0a4c20d-335a-11f1-0a80-18ce001f4e8b"},"uid":"admin@papierinvest","moment":"2026-04-08 17:54:16"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/d094b4e3-335a-11f1-0a80-18ce001f4e81"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:54:17 Created counterparty person id=117052 ms=d094b4e3-335a-11f1-0a80-18ce001f4e81 name=Юрій БРАЦЕЙКО
+2026-04-08 17:54:17 Created counterparty id=117052 ms=d094b4e3-335a-11f1-0a80-18ce001f4e81
+2026-04-08 17:54:17 Done: processed=1 errors=0
+2026-04-08 17:55:26 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/fa607dc3-335a-11f1-0a80-11c9001f9176"},"uid":"admin@papierinvest","moment":"2026-04-08 17:55:26"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/cf58604d-335a-11f1-0a80-11c9001f86c5"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:55:27 Updated counterparty id=117051 ms=cf58604d-335a-11f1-0a80-11c9001f86c5
+2026-04-08 17:55:27 Done: processed=1 errors=0
+2026-04-08 17:55:34 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ff0f30c0-335a-11f1-0a80-1d75001f1498"},"uid":"admin@papierinvest","moment":"2026-04-08 17:55:34"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/d094b4e3-335a-11f1-0a80-18ce001f4e81"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:55:34 Updated counterparty id=117052 ms=d094b4e3-335a-11f1-0a80-18ce001f4e81
+2026-04-08 17:55:34 Done: processed=1 errors=0
+2026-04-08 17:55:44 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/04ca2c74-335b-11f1-0a80-1a07001f75fd"},"uid":"admin@papierinvest","moment":"2026-04-08 17:55:44"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/cf58604d-335a-11f1-0a80-11c9001f86c5"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 17:55:44 Updated counterparty id=117051 ms=cf58604d-335a-11f1-0a80-11c9001f86c5
+2026-04-08 17:55:44 Done: processed=1 errors=0
+2026-04-08 18:21:07 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/90ce46e4-335e-11f1-0a80-1bf3001ff41b"},"uid":"admin@papierinvest","moment":"2026-04-08 18:21:07"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/90bb258d-335e-11f1-0a80-1bf3001ff414"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 18:21:08 Created counterparty person id=117053 ms=90bb258d-335e-11f1-0a80-1bf3001ff414 name=Валентин Штейн
+2026-04-08 18:21:08 Created counterparty id=117053 ms=90bb258d-335e-11f1-0a80-1bf3001ff414
+2026-04-08 18:21:08 Done: processed=1 errors=0
+2026-04-08 18:30:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/ef050838-335f-11f1-0a80-1bf3002055b1"},"uid":"admin@papierinvest","moment":"2026-04-08 18:30:55"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/90bb258d-335e-11f1-0a80-1bf3001ff414"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 18:30:55 Updated counterparty id=117053 ms=90bb258d-335e-11f1-0a80-1bf3001ff414
+2026-04-08 18:30:55 Done: processed=1 errors=0
+2026-04-08 18:40:23 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/41b4c651-3361-11f1-0a80-0db8001fcfeb"},"uid":"admin@papierinvest","moment":"2026-04-08 18:40:23"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/2a5cd9c7-cabb-11f0-0a80-0d1b00145c02"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 18:40:24 Updated counterparty id=110584 ms=2a5cd9c7-cabb-11f0-0a80-0d1b00145c02
+2026-04-08 18:40:24 Done: processed=1 errors=0
+2026-04-08 18:40:48 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5074acee-3361-11f1-0a80-1bf30020a960"},"uid":"admin@papierinvest","moment":"2026-04-08 18:40:47"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/2a5cd9c7-cabb-11f0-0a80-0d1b00145c02"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 18:40:48 Updated counterparty id=110584 ms=2a5cd9c7-cabb-11f0-0a80-0d1b00145c02
+2026-04-08 18:40:48 Done: processed=1 errors=0
+2026-04-08 18:42:36 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/90da7065-3361-11f1-0a80-0bc80021dfce"},"uid":"admin@papierinvest","moment":"2026-04-08 18:42:36"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/2a5cd9c7-cabb-11f0-0a80-0d1b00145c02"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 18:42:36 Updated counterparty id=110584 ms=2a5cd9c7-cabb-11f0-0a80-0d1b00145c02
+2026-04-08 18:42:36 Done: processed=1 errors=0
+2026-04-08 19:12:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/b2d50c6a-3365-11f1-0a80-1c7e00214648"},"uid":"admin@papierinvest","moment":"2026-04-08 19:12:11"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/b2bff34a-3365-11f1-0a80-1c7e00214643"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:12:11 Created counterparty person id=117054 ms=b2bff34a-3365-11f1-0a80-1c7e00214643 name=Данило Черепаноа
+2026-04-08 19:12:11 Created counterparty id=117054 ms=b2bff34a-3365-11f1-0a80-1c7e00214643
+2026-04-08 19:12:11 Done: processed=1 errors=0
+2026-04-08 19:26:09 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a6495b1b-3367-11f1-0a80-1c7e0021a41a"},"uid":"admin@papierinvest","moment":"2026-04-08 19:26:08"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a639d185-3367-11f1-0a80-1c7e0021a40a"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:26:09 Created counterparty person id=117055 ms=a639d185-3367-11f1-0a80-1c7e0021a40a name=Наталя Староконь
+2026-04-08 19:26:09 Created counterparty id=117055 ms=a639d185-3367-11f1-0a80-1c7e0021a40a
+2026-04-08 19:26:09 Done: processed=1 errors=0
+2026-04-08 19:29:11 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/13384e0a-3368-11f1-0a80-18ce00220b60"},"uid":"admin@papierinvest","moment":"2026-04-08 19:29:11"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/13298213-3368-11f1-0a80-18ce00220b5b"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:29:12 Created counterparty person id=117056 ms=13298213-3368-11f1-0a80-18ce00220b5b name=Вова mozhdami
+2026-04-08 19:29:12 Created counterparty id=117056 ms=13298213-3368-11f1-0a80-18ce00220b5b
+2026-04-08 19:29:12 Done: processed=1 errors=0
+2026-04-08 19:48:13 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/bb53c4c1-336a-11f1-0a80-055f0023e6fc"},"uid":"admin@papierinvest","moment":"2026-04-08 19:48:12"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bb43d7f0-336a-11f1-0a80-055f0023e6f7"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:48:13 Created counterparty person id=117057 ms=bb43d7f0-336a-11f1-0a80-055f0023e6f7 name=Олег Корда
+2026-04-08 19:48:13 Created counterparty id=117057 ms=bb43d7f0-336a-11f1-0a80-055f0023e6f7
+2026-04-08 19:48:13 Done: processed=1 errors=0
+2026-04-08 19:53:12 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/6dbb9ec4-336b-11f1-0a80-15650022ee49"},"uid":"admin@papierinvest","moment":"2026-04-08 19:53:12"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/78cd7e79-31c3-11f1-0a80-0868007fb75f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:53:12 Updated counterparty id=116966 ms=78cd7e79-31c3-11f1-0a80-0868007fb75f
+2026-04-08 19:53:12 Done: processed=1 errors=0
+2026-04-08 19:53:42 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/7fb0ee03-336b-11f1-0a80-1d750022b738"},"uid":"admin@papierinvest","moment":"2026-04-08 19:53:42"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/78cd7e79-31c3-11f1-0a80-0868007fb75f"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:53:42 Updated counterparty id=116966 ms=78cd7e79-31c3-11f1-0a80-0868007fb75f
+2026-04-08 19:53:42 Done: processed=1 errors=0
+2026-04-08 19:57:19 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0135b433-336c-11f1-0a80-1c7e002288d1"},"uid":"admin@papierinvest","moment":"2026-04-08 19:57:19"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/d0e43ff6-0e6e-11f1-0a80-0fb90021cb29"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:57:20 Updated counterparty id=115435 ms=d0e43ff6-0e6e-11f1-0a80-0fb90021cb29
+2026-04-08 19:57:20 Done: processed=1 errors=0
+2026-04-08 19:59:46 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/58f7350a-336c-11f1-0a80-11c900233671"},"uid":"admin@papierinvest","moment":"2026-04-08 19:59:46"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/ba72628a-3357-11f1-0a80-1a07001ea003"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 19:59:47 Updated counterparty id=117050 ms=ba72628a-3357-11f1-0a80-1a07001ea003
+2026-04-08 19:59:47 Done: processed=1 errors=0
+2026-04-08 20:01:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a0e7ca4c-336c-11f1-0a80-11c900234939"},"uid":"admin@papierinvest","moment":"2026-04-08 20:01:47"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/ba72628a-3357-11f1-0a80-1a07001ea003"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:01:48 Updated counterparty id=117050 ms=ba72628a-3357-11f1-0a80-1a07001ea003
+2026-04-08 20:01:48 Done: processed=1 errors=0
+2026-04-08 20:10:54 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e6c5c7da-336d-11f1-0a80-17b500238c7d"},"uid":"admin@papierinvest","moment":"2026-04-08 20:10:54"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/d0e43ff6-0e6e-11f1-0a80-0fb90021cb29"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:10:54 Updated counterparty id=115435 ms=d0e43ff6-0e6e-11f1-0a80-0fb90021cb29
+2026-04-08 20:10:54 Done: processed=1 errors=0
+2026-04-08 20:18:22 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f1b001ca-336e-11f1-0a80-1a070023a21b"},"uid":"admin@papierinvest","moment":"2026-04-08 20:18:21"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/2de15b46-aa91-11f0-0a80-145f0018feef"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:18:22 Updated counterparty id=108039 ms=2de15b46-aa91-11f0-0a80-145f0018feef
+2026-04-08 20:18:22 Done: processed=1 errors=0
+2026-04-08 20:20:55 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4d6486e2-336f-11f1-0a80-1bf3002402bd"},"uid":"admin@papierinvest","moment":"2026-04-08 20:20:55"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a639d185-3367-11f1-0a80-1c7e0021a40a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:20:56 Updated counterparty id=117055 ms=a639d185-3367-11f1-0a80-1c7e0021a40a
+2026-04-08 20:20:56 Done: processed=1 errors=0
+2026-04-08 20:55:32 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/22fde49d-3374-11f1-0a80-07940000dcb7"},"uid":"admin@papierinvest","moment":"2026-04-08 20:55:32"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/5ee987e1-777f-11ec-0a80-030c00415308"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:55:33 Updated counterparty id=29545 ms=5ee987e1-777f-11ec-0a80-030c00415308
+2026-04-08 20:55:33 Done: processed=1 errors=0
+2026-04-08 20:55:54 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/30628cd3-3374-11f1-0a80-1a0a0000bcd0"},"uid":"admin@papierinvest","moment":"2026-04-08 20:55:54"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/5ee987e1-777f-11ec-0a80-030c00415308"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:55:55 Updated counterparty id=29545 ms=5ee987e1-777f-11ec-0a80-030c00415308
+2026-04-08 20:55:55 Done: processed=1 errors=0
+2026-04-08 20:58:27 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8ba7a23c-3374-11f1-0a80-1a0a0000c97d"},"uid":"admin@papierinvest","moment":"2026-04-08 20:58:27"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bf593353-1d0d-11ef-0a80-148f00307172"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:58:28 Updated counterparty id=77763 ms=bf593353-1d0d-11ef-0a80-148f00307172
+2026-04-08 20:58:28 Done: processed=1 errors=0
+2026-04-08 20:58:52 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/9a2d89de-3374-11f1-0a80-196c0000f983"},"uid":"admin@papierinvest","moment":"2026-04-08 20:58:52"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bf593353-1d0d-11ef-0a80-148f00307172"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 20:58:52 Updated counterparty id=77763 ms=bf593353-1d0d-11ef-0a80-148f00307172
+2026-04-08 20:58:52 Done: processed=1 errors=0
+2026-04-08 21:05:47 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/91c56814-3375-11f1-0a80-1a0a0000fafd"},"uid":"admin@papierinvest","moment":"2026-04-08 21:05:47"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/b2bff34a-3365-11f1-0a80-1c7e00214643"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 21:05:47 Updated counterparty id=117054 ms=b2bff34a-3365-11f1-0a80-1c7e00214643
+2026-04-08 21:05:47 Done: processed=1 errors=0
+2026-04-08 22:39:23 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a4f57737-3382-11f1-0a80-079400032df4"},"uid":"admin@papierinvest","moment":"2026-04-08 22:39:23"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a4e723c6-3382-11f1-0a80-079400032dee"},"action":"CREATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 22:39:23 Created counterparty person id=117058 ms=a4e723c6-3382-11f1-0a80-079400032dee name=Марина Дідук
+2026-04-08 22:39:23 Created counterparty id=117058 ms=a4e723c6-3382-11f1-0a80-079400032dee
+2026-04-08 22:39:23 Done: processed=1 errors=0
+2026-04-08 22:40:43 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/d4e7c202-3382-11f1-0a80-196c00032465"},"uid":"admin@papierinvest","moment":"2026-04-08 22:40:43"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a4e723c6-3382-11f1-0a80-079400032dee"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 22:40:44 Updated counterparty id=117058 ms=a4e723c6-3382-11f1-0a80-079400032dee
+2026-04-08 22:40:44 Done: processed=1 errors=0
+2026-04-08 22:41:16 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e85649df-3382-11f1-0a80-0bdc0002e786"},"uid":"admin@papierinvest","moment":"2026-04-08 22:41:16"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a4e723c6-3382-11f1-0a80-079400032dee"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 22:41:16 Updated counterparty id=117058 ms=a4e723c6-3382-11f1-0a80-079400032dee
+2026-04-08 22:41:16 Done: processed=1 errors=0
+2026-04-08 22:44:25 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/5900a951-3383-11f1-0a80-14840002de8c"},"uid":"admin@papierinvest","moment":"2026-04-08 22:44:25"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a4e723c6-3382-11f1-0a80-079400032dee"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 22:44:25 Updated counterparty id=117058 ms=a4e723c6-3382-11f1-0a80-079400032dee
+2026-04-08 22:44:25 Done: processed=1 errors=0
+2026-04-08 22:56:00 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/f77261d6-3384-11f1-0a80-0bdc0003222e"},"uid":"admin@papierinvest","moment":"2026-04-08 22:56:00"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bf593353-1d0d-11ef-0a80-148f00307172"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 22:56:01 Updated counterparty id=77763 ms=bf593353-1d0d-11ef-0a80-148f00307172
+2026-04-08 22:56:01 Done: processed=1 errors=0
+2026-04-08 23:04:28 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/25f50309-3386-11f1-0a80-148400034ba0"},"uid":"admin@papierinvest","moment":"2026-04-08 23:04:28"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/d0e43ff6-0e6e-11f1-0a80-0fb90021cb29"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 23:04:28 Updated counterparty id=115435 ms=d0e43ff6-0e6e-11f1-0a80-0fb90021cb29
+2026-04-08 23:04:28 Done: processed=1 errors=0
+2026-04-08 23:05:24 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/4735a62f-3386-11f1-0a80-06e20003b7c0"},"uid":"admin@papierinvest","moment":"2026-04-08 23:05:23"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/bb43d7f0-336a-11f1-0a80-055f0023e6f7"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-08 23:05:24 Updated counterparty id=117057 ms=bb43d7f0-336a-11f1-0a80-055f0023e6f7
+2026-04-08 23:05:24 Done: processed=1 errors=0
+2026-04-09 00:11:30 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/834acfe3-338f-11f1-0a80-16f600046341"},"uid":"admin@papierinvest","moment":"2026-04-09 00:11:30"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/b2bff34a-3365-11f1-0a80-1c7e00214643"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 00:11:30 Updated counterparty id=117054 ms=b2bff34a-3365-11f1-0a80-1c7e00214643
+2026-04-09 00:11:30 Done: processed=1 errors=0
+2026-04-09 00:19:28 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/a0218a67-3390-11f1-0a80-07940004e4f5"},"uid":"admin@papierinvest","moment":"2026-04-09 00:19:28"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a4e723c6-3382-11f1-0a80-079400032dee"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 00:19:28 Updated counterparty id=117058 ms=a4e723c6-3382-11f1-0a80-079400032dee
+2026-04-09 00:19:28 Done: processed=1 errors=0
+2026-04-09 01:18:38 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e44347ed-3398-11f1-0a80-0bdc000580ce"},"uid":"admin@papierinvest","moment":"2026-04-09 01:18:38"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a639d185-3367-11f1-0a80-1c7e0021a40a"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 01:18:38 Updated counterparty id=117055 ms=a639d185-3367-11f1-0a80-1c7e0021a40a
+2026-04-09 01:18:38 Done: processed=1 errors=0
+2026-04-09 01:24:59 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c7af42f9-3399-11f1-0a80-16f60005bb9e"},"uid":"admin@papierinvest","moment":"2026-04-09 01:24:59"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/2a5cd9c7-cabb-11f0-0a80-0d1b00145c02"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 01:25:00 Updated counterparty id=110584 ms=2a5cd9c7-cabb-11f0-0a80-0d1b00145c02
+2026-04-09 01:25:00 Done: processed=1 errors=0
+2026-04-09 01:25:43 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/e1d4b96f-3399-11f1-0a80-196c0005fa6e"},"uid":"admin@papierinvest","moment":"2026-04-09 01:25:43"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/90bb258d-335e-11f1-0a80-1bf3001ff414"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 01:25:44 Updated counterparty id=117053 ms=90bb258d-335e-11f1-0a80-1bf3001ff414
+2026-04-09 01:25:44 Done: processed=1 errors=0
+2026-04-09 01:26:38 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/02b0d9e9-339a-11f1-0a80-16f60005c0ce"},"uid":"admin@papierinvest","moment":"2026-04-09 01:26:38"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e22baaa8-3356-11f1-0a80-049a001e61de"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 01:26:39 Updated counterparty id=117048 ms=e22baaa8-3356-11f1-0a80-049a001e61de
+2026-04-09 01:26:39 Done: processed=1 errors=0
+2026-04-09 02:31:24 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/0e8253f0-33a3-11f1-0a80-0562000653d6"},"uid":"admin@papierinvest","moment":"2026-04-09 02:31:24"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/cf58604d-335a-11f1-0a80-11c9001f86c5"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 02:31:24 Updated counterparty id=117051 ms=cf58604d-335a-11f1-0a80-11c9001f86c5
+2026-04-09 02:31:24 Done: processed=1 errors=0
+2026-04-09 04:12:57 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/3e1292dc-33b1-11f1-0a80-1c8100080495"},"uid":"admin@papierinvest","moment":"2026-04-09 04:12:56"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/2afb5a0e-331b-11f1-0a80-17b500101515"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 04:12:57 Updated counterparty id=117034 ms=2afb5a0e-331b-11f1-0a80-17b500101515
+2026-04-09 04:12:57 Done: processed=1 errors=0
+2026-04-09 04:15:10 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/8d869ce0-33b1-11f1-0a80-1c8100080a74"},"uid":"admin@papierinvest","moment":"2026-04-09 04:15:10"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/e851154e-325b-11f1-0a80-01b600178a57"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 04:15:12 Updated counterparty id=116995 ms=e851154e-325b-11f1-0a80-01b600178a57
+2026-04-09 04:15:12 Done: processed=1 errors=0
+2026-04-09 04:16:41 Incoming: {"auditContext":{"meta":{"type":"audit","href":"https://api.moysklad.ru/api/remap/1.2/audit/c40fcc2d-33b1-11f1-0a80-079400089d34"},"uid":"admin@papierinvest","moment":"2026-04-09 04:16:41"},"events":[{"meta":{"type":"counterparty","href":"https://api.moysklad.ru/api/remap/1.2/entity/counterparty/a6320178-3274-11f1-0a80-11c0001dcc33"},"action":"UPDATE","accountId":"41980b61-d29a-11ea-0a80-051900006d1e"}]}
+2026-04-09 04:16:42 Updated counterparty id=117006 ms=a6320178-3274-11f1-0a80-11c0001dcc33
+2026-04-09 04:16:42 Done: processed=1 errors=0

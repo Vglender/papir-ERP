@@ -402,12 +402,16 @@ require_once __DIR__ . '/../../shared/layout.php';
       <div class="sc-form-section-label">Подія</div>
       <div class="sc-field" style="margin-bottom:0">
         <select id="scEventType" onchange="SC.updateEventDesc()" style="font-size:13px">
-          <option value="order_created">📦 Новий заказ</option>
-          <option value="order_status_changed">🔄 Зміна статусу заказу</option>
-          <option value="order_cancelled">❌ Скасування заказу</option>
-          <option value="task_done">✅ Виконання задачі</option>
-          <option value="task_created">📌 Створення задачі</option>
-          <option value="document_created">📄 Новий документ</option>
+          <option value="order_created">Новий заказ</option>
+          <option value="order_status_changed">Зміна статусу заказу</option>
+          <option value="order_cancelled">Скасування заказу</option>
+          <option value="order_payment_changed">Змінився статус оплати</option>
+          <option value="order_shipment_changed">Змінився статус відвантаження</option>
+          <option value="order_ttn_created">Створено ТТН</option>
+          <option value="order_delivery_created">Створено доставку</option>
+          <option value="task_done">Виконання задачі</option>
+          <option value="task_created">Створення задачі</option>
+          <option value="document_created">Новий документ</option>
         </select>
         <div class="sc-event-desc" id="scEventDesc">Спрацьовує коли з МойСклад надходить нове замовлення</div>
       </div>
@@ -508,12 +512,16 @@ var SC_COND_FIELDS = [
     {key:'order.comment_manager',      label:'Коментар менеджера',      type:'text'}
 ];
 var SC_EVENT_DESCS = {
-    'order_created':        'Спрацьовує коли з МойСклад надходить нове замовлення',
-    'order_status_changed': 'Спрацьовує при кожній зміні статусу замовлення',
-    'order_cancelled':      'Спрацьовує коли замовлення переходить у статус «Скасовано»',
-    'task_done':            'Спрацьовує коли оператор завершує задачу (✓ Done)',
-    'task_created':         'Спрацьовує при створенні нової задачі',
-    'document_created':     'Спрацьовує при створенні нового документа'
+    'order_created':          'Спрацьовує коли з МойСклад надходить нове замовлення',
+    'order_status_changed':   'Спрацьовує при кожній зміні статусу замовлення',
+    'order_cancelled':        'Спрацьовує коли замовлення переходить у статус «Скасовано»',
+    'order_payment_changed':  'Спрацьовує коли змінюється статус оплати замовлення',
+    'order_shipment_changed': 'Спрацьовує коли змінюється статус відвантаження замовлення',
+    'order_ttn_created':      'Спрацьовує при створенні ТТН для замовлення',
+    'order_delivery_created': 'Спрацьовує при створенні документа доставки',
+    'task_done':              'Спрацьовує коли оператор завершує задачу',
+    'task_created':           'Спрацьовує при створенні нової задачі',
+    'document_created':       'Спрацьовує при створенні нового документа'
 };
 
 var SC = {

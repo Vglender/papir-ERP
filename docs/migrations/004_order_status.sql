@@ -71,7 +71,7 @@ INSERT INTO `order_status_ms_mapping` (`ms_state_id`, `ms_state_name`, `papir_co
 ('5f821bb6-0877-11eb-0a80-049300051d5e', 'Передан в сборку',         'in_progress'),
 ('8b254fcf-5f64-11ec-0a80-05b1002d087c', 'Передан в сборку (2)',     'in_progress'),
 ('fde33ac6-53eb-11eb-0a80-01b2004a71d4', 'Комплект',                 'in_progress'),
-('41c486a9-d29a-11ea-0a80-0517000f0d4a', 'Передан в доставку',       'shipped'),
+('41c486a9-d29a-11ea-0a80-0517000f0d4a', 'Передан в доставку',       'in_progress'),
 ('023eff4b-7aca-11eb-0a80-03f8003813ff', 'Наложка выкуплена',        'completed'),
 ('bc5a77c2-d2ad-11ea-0a80-02ef0007cc9f', 'Выполнен',                 'completed'),
 ('da89dea4-179c-11ec-0a80-09820031f9b6', 'Выполнен (2)',              'completed'),

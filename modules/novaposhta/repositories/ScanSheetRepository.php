@@ -46,6 +46,7 @@ class ScanSheetRepository
              LEFT JOIN np_sender s ON s.Ref = ss.sender_ref
              LEFT JOIN (
                  SELECT scan_sheet_ref,
+                        COUNT(*) AS ttn_count,
                         SUM(cost) AS total_cost,
                         SUM(COALESCE(afterpayment_on_goods_cost, backward_delivery_money)) AS total_redelivery,
                         SUM(seats_amount) AS total_seats

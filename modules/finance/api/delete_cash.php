@@ -19,6 +19,9 @@ if ($id > 0) {
         echo json_encode(array('ok' => false, 'error' => 'Помилка видалення'));
         exit;
     }
+    // Clean up document_link
+    $dlType = ($cur['ok'] && $cur['row'] && $cur['row']['direction'] === 'in') ? 'cashin' : 'cashout';
+    Database::query('Papir', "DELETE FROM document_link WHERE from_type='{$dlType}' AND from_id={$id}");
 
     $msErrors = array();
     if ($cur['ok'] && $cur['row'] && !empty($cur['row']['id_ms'])) {
@@ -50,6 +53,8 @@ if ($ids !== '') {
         echo json_encode(array('ok' => false, 'error' => 'Помилка видалення'));
         exit;
     }
+    // Clean up document_link (cashin/cashout)
+    Database::query('Papir', "DELETE FROM document_link WHERE from_type IN ('cashin','cashout') AND from_id IN ({$inClause})");
 
     $msErrors = array();
     if ($curRows['ok'] && !empty($curRows['rows'])) {

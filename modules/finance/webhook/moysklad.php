@@ -24,6 +24,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../../database/database.php';
 require_once __DIR__ . '/../../moysklad/moysklad_api.php';
 require_once __DIR__ . '/../../moysklad/src/WebhookCpHelper.php';
+require_once __DIR__ . '/../../customerorder/services/OrderFinanceHelper.php';
 
 function mswhk_log($msg) {
     @file_put_contents('/var/www/papir/storage/ms_webhook_finance.log', date('Y-m-d H:i:s') . ' ' . $msg . "\n", FILE_APPEND);
@@ -242,6 +243,7 @@ function mswhk_upsert(array $doc, $type, array &$errors)
 function mswhk_sync_links($localId, $fromMsId, $type, array $operations)
 {
     $fromType = $type; // 'paymentin' или 'paymentout'
+    $affectedOrderIds = array();
 
     foreach ($operations as $op) {
         if (empty($op['meta']['href'])) {
@@ -299,6 +301,15 @@ function mswhk_sync_links($localId, $fromMsId, $type, array $operations)
                 'linked_sum' => $linkedSum,
             ));
         }
+
+        if ($toType === 'customerorder' && $toId) {
+            $affectedOrderIds[$toId] = true;
+        }
+    }
+
+    // Перерахувати payment_status для всіх зачеплених замовлень
+    foreach ($affectedOrderIds as $orderId => $_) {
+        OrderFinanceHelper::recalc($orderId);
     }
 }
 

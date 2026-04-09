@@ -83,6 +83,9 @@ class TaskQueueRunner
                 case 'set_next_action':
                     list($ok, $note) = self::doSetNextAction($item, $params);
                     break;
+                case 'create_salesreturn':
+                    list($ok, $note) = self::doCreateSalesreturn($item, $params);
+                    break;
                 case 'wait':
                     $ok   = true;
                     $note = 'Waited';
@@ -238,6 +241,199 @@ class TaskQueueRunner
         }
     }
 
+    // ── Create salesreturn (повернення) from order's demand ─────────────────
+
+    private static function doCreateSalesreturn($item, $params)
+    {
+        $orderId = (int)$item['order_id'];
+        if (!$orderId) return array(false, 'No order_id in context');
+
+        // Find active demand linked to this order
+        $rDem = Database::fetchRow('Papir',
+            "SELECT d.id, d.id_ms, d.counterparty_id, d.description,
+                    o.id_ms   AS org_ms,
+                    cp.id_ms  AS cp_ms,
+                    co.organization_id AS order_org_id
+             FROM document_link dl
+             JOIN demand d ON (d.id_ms = dl.from_ms_id OR (dl.from_ms_id IS NULL AND d.id = dl.from_id))
+             LEFT JOIN customerorder co ON co.id = dl.to_id
+             LEFT JOIN organization  o  ON o.id  = co.organization_id
+             LEFT JOIN counterparty  cp ON cp.id = d.counterparty_id
+             WHERE dl.from_type = 'demand'
+               AND dl.to_type   = 'customerorder'
+               AND dl.to_id     = {$orderId}
+               AND d.deleted_at IS NULL
+               AND d.status NOT IN ('cancelled','returned')
+             ORDER BY d.moment DESC
+             LIMIT 1");
+        if (!$rDem['ok'] || empty($rDem['row'])) {
+            return array(false, 'No active demand found for order #' . $orderId);
+        }
+        $demand   = $rDem['row'];
+        $demandId = (int)$demand['id'];
+
+        // Check if salesreturn already exists for this demand
+        $rEx = Database::fetchRow('Papir',
+            "SELECT sr.id FROM document_link dl
+             JOIN salesreturn sr ON sr.id = dl.from_id
+             WHERE dl.from_type = 'salesreturn' AND dl.to_type = 'demand' AND dl.to_id = {$demandId}
+             LIMIT 1");
+        if ($rEx['ok'] && !empty($rEx['row'])) {
+            return array(true, 'Salesreturn already exists: #' . (int)$rEx['row']['id']);
+        }
+
+        // Load demand items
+        $rItems = Database::fetchAll('Papir',
+            "SELECT di.product_id,
+                    COALESCE(di.product_ms_id, pp.id_ms) AS product_ms_id,
+                    COALESCE(NULLIF(di.product_name,''), pd_uk.name, pd_ru.name, '') AS product_name,
+                    di.quantity, di.price, di.discount_percent, di.vat_rate, di.sum_row, di.line_no
+             FROM demand_item di
+             LEFT JOIN product_papir pp ON pp.product_id = di.product_id
+             LEFT JOIN product_description pd_uk ON pd_uk.product_id = di.product_id AND pd_uk.language_id = 2
+             LEFT JOIN product_description pd_ru ON pd_ru.product_id = di.product_id AND pd_ru.language_id = 1
+             WHERE di.demand_id = {$demandId}
+             ORDER BY di.line_no ASC");
+        $items = ($rItems['ok'] && !empty($rItems['rows'])) ? $rItems['rows'] : array();
+        if (empty($items)) {
+            return array(false, 'No items in demand #' . $demandId);
+        }
+
+        $sumTotal = 0.0;
+        foreach ($items as $it) { $sumTotal += (float)$it['sum_row']; }
+        $sumTotal = round($sumTotal * 100) / 100;
+
+        $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+            mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff),
+            mt_rand(0,0x0fff)|0x4000, mt_rand(0,0x3fff)|0x8000,
+            mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff));
+
+        Database::begin('Papir');
+        try {
+            $rIns = Database::insert('Papir', 'salesreturn', array(
+                'uuid'            => $uuid,
+                'source'          => 'papir',
+                'moment'          => date('Y-m-d H:i:s'),
+                'applicable'      => 0,
+                'counterparty_id' => !empty($demand['counterparty_id']) ? (int)$demand['counterparty_id'] : null,
+                'demand_id'       => $demandId,
+                'sum_total'       => $sumTotal,
+                'sum_paid'        => 0,
+                'description'     => isset($params['description']) ? $params['description'] : 'Авто-повернення (сценарій)',
+                'sync_state'      => 'new',
+            ));
+            if (!$rIns['ok'] || empty($rIns['insert_id'])) throw new Exception('Salesreturn insert failed');
+            $newId = (int)$rIns['insert_id'];
+
+            // Copy items
+            $ln = 1;
+            foreach ($items as $it) {
+                $pid   = !empty($it['product_id'])   ? (int)$it['product_id']  : null;
+                $pmsId = !empty($it['product_ms_id']) ? $it['product_ms_id']   : null;
+                $qty   = (float)$it['quantity'];
+                $price = (float)$it['price'];
+                $disc  = (float)$it['discount_percent'];
+                $gross = round($qty * $price * 100) / 100;
+                $discAmt = round($gross * $disc / 100 * 100) / 100;
+                $sumRow  = round(($gross - $discAmt) * 100) / 100;
+
+                $pmsEsc = $pmsId ? "'" . Database::escape('Papir', $pmsId) . "'" : 'NULL';
+                $pidSql = $pid   ? $pid : 'NULL';
+
+                Database::query('Papir',
+                    "INSERT INTO salesreturn_item (salesreturn_id, line_no, product_id, product_ms_id, quantity, price, sum_row)
+                     VALUES ({$newId}, {$ln}, {$pidSql}, {$pmsEsc}, {$qty}, {$price}, {$sumRow})");
+                $ln++;
+            }
+
+            // document_link: salesreturn → demand
+            Database::insert('Papir', 'document_link', array(
+                'from_type'  => 'salesreturn',
+                'from_id'    => $newId,
+                'to_type'    => 'demand',
+                'to_id'      => $demandId,
+                'link_type'  => 'return',
+                'linked_sum' => $sumTotal,
+            ));
+
+            Database::commit('Papir');
+
+            // Try push to MoySklad (non-blocking)
+            self::pushSalesreturnToMs($newId, $demand, $items);
+
+            return array(true, "Salesreturn #{$newId} created from demand #{$demandId} (sum={$sumTotal})");
+        } catch (Exception $e) {
+            Database::rollback('Papir');
+            return array(false, $e->getMessage());
+        }
+    }
+
+    /**
+     * Push salesreturn to MoySklad (best-effort, non-blocking).
+     */
+    private static function pushSalesreturnToMs($salesreturnId, $demand, $items)
+    {
+        if (empty($demand['id_ms']) || empty($demand['org_ms'])) return;
+
+        try {
+            require_once __DIR__ . '/../../moysklad/moysklad_api.php';
+            $ms   = new \MoySkladApi();
+            $base = $ms->getEntityBaseUrl();
+
+            $payload = array(
+                'applicable'   => false,
+                'organization' => array('meta' => array(
+                    'href' => $base . 'organization/' . $demand['org_ms'],
+                    'type' => 'organization', 'mediaType' => 'application/json',
+                )),
+                'demand' => array('meta' => array(
+                    'href' => $base . 'demand/' . $demand['id_ms'],
+                    'type' => 'demand', 'mediaType' => 'application/json',
+                )),
+            );
+
+            if (!empty($demand['cp_ms'])) {
+                $payload['agent'] = array('meta' => array(
+                    'href' => $base . 'counterparty/' . $demand['cp_ms'],
+                    'type' => 'counterparty', 'mediaType' => 'application/json',
+                ));
+            }
+
+            $positions = array();
+            foreach ($items as $it) {
+                if (empty($it['product_ms_id'])) continue;
+                $positions[] = array(
+                    'quantity'   => (float)$it['quantity'],
+                    'price'      => (int)round((float)$it['price'] * 100),
+                    'discount'   => (float)$it['discount_percent'],
+                    'vat'        => (float)$it['vat_rate'],
+                    'assortment' => array('meta' => array(
+                        'href' => $base . 'product/' . $it['product_ms_id'],
+                        'type' => 'product', 'mediaType' => 'application/json',
+                    )),
+                );
+            }
+            if (!empty($positions)) $payload['positions'] = $positions;
+
+            $msResult = $ms->querySend($base . 'salesreturn', $payload, 'POST');
+            if (!empty($msResult['id'])) {
+                Database::update('Papir', 'salesreturn',
+                    array('id_ms' => $msResult['id'],
+                          'number' => !empty($msResult['name']) ? $msResult['name'] : null,
+                          'sync_state' => 'synced'),
+                    array('id' => $salesreturnId));
+            } else {
+                Database::update('Papir', 'salesreturn',
+                    array('sync_state' => 'error'),
+                    array('id' => $salesreturnId));
+            }
+        } catch (Exception $e) {
+            Database::update('Papir', 'salesreturn',
+                array('sync_state' => 'error'),
+                array('id' => $salesreturnId));
+        }
+    }
+
     private static function doCreateTask($item, $params)
     {
         $cpId = (int)$item['counterparty_id'];
@@ -335,12 +531,13 @@ class TaskQueueRunner
         $triggerId  = (int)$doneItem['trigger_id'];
         $ctxJson    = Database::escape('Papir', json_encode($context, JSON_UNESCAPED_UNICODE));
 
-        // Check next step condition before scheduling
+        // Check next step condition before scheduling — skip if condition fails
         if (!empty($nextStep['condition_key'])) {
             $mockTrigger = array(
                 'condition_key'   => $nextStep['condition_key'],
                 'condition_op'    => $nextStep['condition_op'],
                 'condition_value' => $nextStep['condition_value'],
+                'conditions'      => null,
             );
             // Reload fresh order context for condition check
             if ($orderId) {
@@ -350,6 +547,11 @@ class TaskQueueRunner
                 if ($or['ok'] && $or['row']) {
                     $context['order'] = $or['row'];
                 }
+            }
+
+            if (!\TriggerEngine::evaluateCondition($mockTrigger, $context)) {
+                // Condition not met — skip this step, try the one after
+                return;
             }
         }
 

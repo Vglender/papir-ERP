@@ -43,4 +43,10 @@ if (!$r['ok']) {
     exit;
 }
 
-echo json_encode(array('ok' => true, 'deleted' => $r['affected_rows']));
+// Also clear FK reference if demand is linked via customerorder_id
+if ($docType === 'demand') {
+    Database::query('Papir',
+        "UPDATE demand SET customerorder_id = NULL WHERE id = {$docId} AND customerorder_id = {$orderId}");
+}
+
+echo json_encode(array('ok' => true, 'deleted' => 1));

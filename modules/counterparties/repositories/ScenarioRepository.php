@@ -176,6 +176,7 @@ class ScenarioRepository
             'order_shipment_changed' => 'Змінився статус відвантаження',
             'order_ttn_created'      => 'Створено ТТН',
             'order_delivery_created' => 'Створено доставку',
+            'ttn_status_changed'     => 'Зміна статусу ТТН',
         );
         return isset($map[$type]) ? $map[$type] : $type;
     }
@@ -188,7 +189,8 @@ class ScenarioRepository
             'create_task'   => 'Створити задачу оператору',
             'change_status'    => 'Змінити статус заказу',
             'set_next_action'  => 'Встановити наступну дію',
-            'wait'             => 'Очікувати',
+            'wait'               => 'Очікувати',
+            'create_salesreturn' => 'Створити повернення (salesreturn)',
         );
         return isset($map[$type]) ? $map[$type] : $type;
     }

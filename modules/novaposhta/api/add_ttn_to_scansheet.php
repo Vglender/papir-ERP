@@ -33,7 +33,13 @@ if (!$ttn['int_doc_number']) {
 }
 
 // Resolve scan sheet ref: use provided, else find open, else null (create new)
-if (!$targetSheet) {
+if ($targetSheet) {
+    $ss = \Papir\Crm\ScanSheetRepository::getByRef($targetSheet);
+    if ($ss && $ss['status'] !== 'open') {
+        echo json_encode(array('ok' => false, 'error' => 'Реєстр закритий — додавання ТТН неможливе'));
+        exit;
+    }
+} else {
     $eSenderRef = \Database::escape('Papir', $ttn['sender_ref']);
     $rSheet = \Database::fetchRow('Papir',
         "SELECT Ref FROM np_scan_sheets

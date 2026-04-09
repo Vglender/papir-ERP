@@ -20,6 +20,9 @@ class PrintContextBuilder
             case 'order':
                 require_once __DIR__ . '/context/OrderContextBuilder.php';
                 return OrderContextBuilder::build($entityId, $orgId);
+            case 'demand':
+                require_once __DIR__ . '/context/DemandContextBuilder.php';
+                return DemandContextBuilder::build($entityId, $orgId);
             default:
                 return array();
         }

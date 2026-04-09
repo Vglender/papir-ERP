@@ -176,7 +176,8 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
 
     if ($counterpartyId    !== null) $data['counterparty_id']     = $counterpartyId;
     if ($organizationId    !== null) $data['organization_id']     = $organizationId;
-    if ($status            !== null) $data['status']              = $status;
+    // Статус НЕ пишемо для існуючих замовлень — Papir є джерелом правди.
+    // Для нових — ставимо тільки якщо це ранній статус (draft/new/confirmed).
     if ($managerEmployeeId !== null) $data['manager_employee_id'] = $managerEmployeeId;
 
     $existing = Database::fetchRow('Papir',
@@ -188,27 +189,28 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         $localId   = (int)$existing['row']['id'];
         $oldStatus = (string)$existing['row']['status'];
 
+        // Статус з МС НЕ перезаписуємо — Papir керує статусами через сценарії та ТТН-тригери.
+        // Логуємо для аудиту що МС хотів змінити, але не застосовуємо.
+        if ($status !== null && $status !== $oldStatus) {
+            mswhk_order_log('IGNORED status from MS: ' . $oldStatus . ' → ' . $status . ' for order id=' . $localId);
+        }
+
         Database::update('Papir', 'customerorder', $data, array('id' => $localId));
 
-        if ($status !== null && $status !== $oldStatus) {
-            DocumentHistory::logAuto('customerorder', $localId, 'status_change', array(
-                'field_name'  => 'status',
-                'field_label' => 'Статус',
-                'old_value'   => $oldStatus,
-                'new_value'   => $status,
-                'actor_type'  => 'webhook',
-                'actor_label' => 'МС webhook',
-                'comment'     => 'webhook МС',
-            ));
-        }
         OrderFinanceHelper::recalc($localId);
-        mswhk_order_log('Updated order id=' . $localId . ' ms=' . $msId . ' status=' . $status);
+        mswhk_order_log('Updated order id=' . $localId . ' ms=' . $msId . ' (status kept: ' . $oldStatus . ')');
     } else {
         $isNew = true;
         $data['uuid'] = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
             mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff),
             mt_rand(0,0x0fff)|0x4000, mt_rand(0,0x3fff)|0x8000,
             mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff));
+        // Для нового замовлення: приймаємо тільки ранні статуси з МС.
+        // Пізні (shipped/received/completed/return) ігноруємо — Papir вирішує сам.
+        $earlyStatuses = array('draft', 'new', 'confirmed', 'waiting_payment', 'in_progress');
+        if ($status !== null && in_array($status, $earlyStatuses)) {
+            $data['status'] = $status;
+        }
         if (!isset($data['status'])) $data['status'] = 'new';
 
         $ins = Database::insert('Papir', 'customerorder', $data);
@@ -237,9 +239,66 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
     // Позиции синхронизируются из МС только при первичном импорте нового заказа.
     // Для существующих заказов Papir является источником правды по позициям —
     // вебхук МС обновляет только поля шапки (статус, оплаты, отгрузку).
+    // Дані доставки: заглядаємо в oc_order і зберігаємо в customerorder_shipping
     if ($isNew) {
+        mswhk_order_sync_shipping($localId, $number, $counterpartyId);
         mswhk_order_sync_items($localId, $doc, $ms);
     }
+}
+
+/**
+ * Зберегти дані доставки з oc_order у customerorder_shipping.
+ * Тимчасовий костиль — до імпорту заказів напряму (без МС).
+ */
+function mswhk_order_sync_shipping($localId, $orderNumber, $counterpartyId)
+{
+    if (!$orderNumber) return;
+    if (!preg_match('/^(\d+)(OFF|MFF)$/i', $orderNumber, $m)) return;
+
+    $ocOrderId = (int)$m[1];
+    $db = (strtoupper($m[2]) === 'MFF') ? 'mff' : 'off';
+
+    $rOc = Database::fetchRow($db,
+        "SELECT o.shipping_firstname, o.shipping_lastname, o.telephone,
+                o.shipping_city, o.shipping_address_1,
+                o.shipping_method, o.shipping_code, o.novaposhta_cn_ref, o.shipping_postcode,
+                sf.shipping_street, sf.shipping_house, sf.shipping_flat, sf.no_call
+         FROM oc_order o
+         LEFT JOIN oc_order_simple_fields sf ON sf.order_id = o.order_id
+         WHERE o.order_id = {$ocOrderId} LIMIT 1");
+
+    if (!$rOc['ok'] || empty($rOc['row'])) return;
+    $oc = $rOc['row'];
+
+    $hasData = !empty($oc['shipping_city']) || !empty($oc['shipping_address_1'])
+            || !empty($oc['shipping_firstname']) || !empty($oc['telephone']);
+    if (!$hasData) return;
+
+    // Перевірити чи вже є
+    $rEx = Database::fetchRow('Papir',
+        "SELECT id FROM customerorder_shipping WHERE customerorder_id = {$localId} LIMIT 1");
+    if ($rEx['ok'] && !empty($rEx['row'])) return;
+
+    $noCall = (!empty($oc['no_call']) && mb_strtolower(trim($oc['no_call']), 'UTF-8') !== 'так') ? 1 : 0;
+
+    Database::insert('Papir', 'customerorder_shipping', array(
+        'customerorder_id'      => $localId,
+        'counterparty_id'       => $counterpartyId ? (int)$counterpartyId : null,
+        'recipient_first_name'  => $oc['shipping_firstname'] ?: null,
+        'recipient_last_name'   => $oc['shipping_lastname'] ?: null,
+        'recipient_phone'       => $oc['telephone'] ?: null,
+        'city_name'             => $oc['shipping_city'] ?: null,
+        'branch_name'           => $oc['shipping_address_1'] ?: null,
+        'np_warehouse_ref'      => $oc['novaposhta_cn_ref'] ?: null,
+        'street'                => !empty($oc['shipping_street']) ? mb_substr($oc['shipping_street'], 0, 128, 'UTF-8') : null,
+        'house'                 => !empty($oc['shipping_house']) ? mb_substr($oc['shipping_house'], 0, 128, 'UTF-8') : null,
+        'flat'                  => !empty($oc['shipping_flat']) ? mb_substr($oc['shipping_flat'], 0, 128, 'UTF-8') : null,
+        'postcode'              => !empty($oc['shipping_postcode']) ? $oc['shipping_postcode'] : null,
+        'delivery_code'         => $oc['shipping_code'] ?: null,
+        'delivery_method_name'  => $oc['shipping_method'] ? trim($oc['shipping_method']) : null,
+        'no_call'               => $noCall,
+        'source'                => 'site_' . $db,
+    ));
 }
 
 function mswhk_order_sync_items($localId, array $doc, MoySkladApi $ms)

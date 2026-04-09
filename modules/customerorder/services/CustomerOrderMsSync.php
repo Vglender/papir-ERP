@@ -30,10 +30,10 @@ class CustomerOrderMsSync
         'confirmed'         => '8b9e1475-dce9-11ea-0a80-006100019351',
         'in_progress'       => '5f821bb6-0877-11eb-0a80-049300051d5e',
         'waiting_payment'   => '34fe6465-f5be-11eb-0a80-0d4800058863',
-        'paid'              => 'ad2d88b8-7abf-11eb-0a80-03f80037a302',
-        'partially_shipped' => '5f821bb6-0877-11eb-0a80-049300051d5e',
-        'shipped'           => '41c486a9-d29a-11ea-0a80-0517000f0d4a',
-        'completed'         => 'bc5a77c2-d2ad-11ea-0a80-02ef0007cc9f',
+        'shipped'           => '41c486a9-d29a-11ea-0a80-0517000f0d4a', // Передан в доставку
+        'received'          => 'bc5a77c2-d2ad-11ea-0a80-02ef0007cc9f', // Выполнен (в МС немає "отримано")
+        'completed'         => 'bc5a77c2-d2ad-11ea-0a80-02ef0007cc9f', // Выполнен
+        'return'            => '41c488a7-d29a-11ea-0a80-0517000f0d4d', // Отменен (в МС немає "повернення")
         'cancelled'         => '41c488a7-d29a-11ea-0a80-0517000f0d4d',
     );
 

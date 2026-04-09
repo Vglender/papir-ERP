@@ -7,7 +7,8 @@ $entityType = isset($_GET['entity_type']) ? trim((string)$_GET['entity_type']) :
 
 // Which template type codes are relevant per entity type
 $typeMap = array(
-    'order' => array('invoice', 'waybill', 'act', 'contract'),
+    'order'  => array('invoice', 'waybill', 'act', 'contract'),
+    'demand' => array('waybill', 'act'),
 );
 
 $allowedCodes = isset($typeMap[$entityType]) ? $typeMap[$entityType] : array();

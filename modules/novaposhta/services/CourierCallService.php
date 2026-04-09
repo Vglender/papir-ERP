@@ -80,7 +80,7 @@ class CourierCallService
 
         if (!empty($sheetResult['errors'])) {
             foreach ($sheetResult['errors'] as $e) {
-                $result['errors'][] = $e;
+                $result['warnings'][] = 'Реєстр: ' . $e;
             }
         }
 
@@ -91,8 +91,8 @@ class CourierCallService
             $result['data']['sheets'] = $sheetResult['sheet_number'];
         }
 
-        // Update scan_sheet_ref on TTN if changed
-        if ($sheetRef && $sheetRef !== $ttn['scan_sheet_ref']) {
+        // Update scan_sheet_ref on TTN only if NP accepted it (no item-level errors)
+        if ($sheetRef && $sheetRef !== $ttn['scan_sheet_ref'] && empty($sheetResult['errors'])) {
             $eSheet = \Database::escape('Papir', $sheetRef);
             $eDoc   = \Database::escape('Papir', $intDocNumber);
             \Database::query('Papir',
@@ -198,8 +198,12 @@ class CourierCallService
             }
 
             if ($closest) {
-                $sheetRef = $closest['Ref'];
-                $isNew = false;
+                // Check local status — don't use locally-closed sheets
+                $localSheet = ScanSheetRepository::getByRef($closest['Ref']);
+                if (!$localSheet || $localSheet['status'] === 'open') {
+                    $sheetRef = $closest['Ref'];
+                    $isNew = false;
+                }
             }
         }
 
@@ -220,13 +224,17 @@ class CourierCallService
 
             // Sync sheet to local DB
             if ($sheetRef) {
-                ScanSheetRepository::save(array(
+                $saveData = array(
                     'Ref'        => $sheetRef,
                     'Number'     => $sheetNumber,
                     'DateTime'   => date('Y-m-d H:i:s'),
                     'sender_ref' => $sender['Ref'],
                     'status'     => 'open',
-                ));
+                );
+                if (isset($r['data'][0]['Count'])) {
+                    $saveData['Count'] = (int)$r['data'][0]['Count'];
+                }
+                ScanSheetRepository::save($saveData);
             }
         } else {
             $errors[] = $r['error'] ?: 'Помилка додавання до реєстру';
@@ -246,6 +254,7 @@ class CourierCallService
         if (empty($data)) return;
         foreach ((array)$data as $item) {
             if (!is_array($item)) continue;
+            // Top-level item errors (data[].Errors)
             if (!empty($item['Errors'])) {
                 foreach ((array)$item['Errors'] as $e) {
                     $errors[] = is_array($e) ? $e['Error'] : $e;
@@ -256,6 +265,27 @@ class CourierCallService
                     $errors[] = is_array($w) ? $w['Warning'] : $w;
                 }
             }
+            // Nested Data.Errors (data[].Data.Errors) — NP hides per-document errors here
+            if (!empty($item['Data']['Errors'])) {
+                foreach ((array)$item['Data']['Errors'] as $e) {
+                    $errors[] = is_array($e)
+                        ? (isset($e['Number']) ? $e['Number'] . ': ' : '') . (isset($e['Error']) ? $e['Error'] : '')
+                        : $e;
+                }
+            }
+            if (!empty($item['Data']['Warnings'])) {
+                foreach ((array)$item['Data']['Warnings'] as $w) {
+                    $errors[] = is_array($w)
+                        ? (isset($w['Number']) ? $w['Number'] . ': ' : '') . (isset($w['Warning']) ? $w['Warning'] : '')
+                        : $w;
+                }
+            }
+        }
+        // Log item-level messages so we can debug NP rejections
+        if (!empty($errors)) {
+            $line = '[' . date('Y-m-d H:i:s') . '] ITEM_ERR ScanSheet.insertDocuments | '
+                  . implode('; ', $errors);
+            error_log($line . PHP_EOL, 3, NovaPoshta::LOG_FILE);
         }
     }
 
@@ -436,8 +466,9 @@ class CourierCallService
     {
         $eCall = \Database::escape('Papir', $callNumber);
         $rCall = \Database::fetchRow('Papir',
-            "SELECT id FROM np_courier_calls WHERE Barcode = '{$eCall}' LIMIT 1");
+            "SELECT id, status FROM np_courier_calls WHERE Barcode = '{$eCall}' LIMIT 1");
         if (!$rCall['ok'] || !$rCall['row']) return;
+        if ($rCall['row']['status'] === 'done' || $rCall['row']['status'] === 'cancelled') return;
 
         $callId = (int)$rCall['row']['id'];
         CourierCallRepository::upsertTtn($callId, $intDocNumber, $ttnId, $weight);
