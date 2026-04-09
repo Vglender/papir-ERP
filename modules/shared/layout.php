@@ -53,7 +53,6 @@ $_nav = array(
               array('key' => 'np-ttns',    'label' => 'НП · ТТН',            'url' => '/novaposhta/ttns'),
               array('key' => 'np-scan',    'label' => 'НП · Реєстри',      'url' => '/novaposhta/scansheets'),
               array('key' => 'np-courier', 'label' => 'НП · Виклики кур.',  'url' => '/novaposhta/courier-calls'),
-              array('key' => 'np-senders', 'label' => 'НП · Відправники',  'url' => '/novaposhta/senders'),
           )),
     array('key' => 'finance', 'label' => 'Фінанси',    'color' => '#ea580c',
           'items' => array(
@@ -65,10 +64,14 @@ $_nav = array(
           )),
     array('key' => 'integr',  'label' => 'Інтеграції', 'color' => '#475569',
           'items' => array(
-              array('key' => 'moysklad', 'label' => 'МойСклад',        'url' => '#'),
-              array('key' => 'merchant', 'label' => 'Google Merchant', 'url' => '/integr/merchant'),
-              array('key' => 'ai',       'label' => 'AI',              'url' => '/ai'),
-              array('key' => 'ukrsib',   'label' => 'УкрСибБанк',     'url' => '/ukrsib_token_status'),
+              array('key' => 'catalog',         'label' => 'Усі додатки',   'url' => '/integrations'),
+              array('key' => 'communications',  'label' => 'Комунікації',   'url' => '/integrations?cat=communications'),
+              array('key' => 'delivery',        'label' => 'Доставка',      'url' => '/integrations?cat=delivery'),
+              array('key' => 'finance-int',     'label' => 'Фінанси',       'url' => '/integrations?cat=finance'),
+              array('key' => 'advertising',     'label' => 'Реклама',       'url' => '/integrations?cat=advertising'),
+              array('key' => 'analytics-int',   'label' => 'Аналітика',     'url' => '/integrations?cat=analytics'),
+              array('key' => 'social',          'label' => 'Соцмережі',     'url' => '/integrations?cat=social'),
+              array('key' => 'sites-int',       'label' => 'Сайти',         'url' => '/integrations?cat=sites'),
           )),
     array('key' => 'analytics', 'label' => 'Аналітика', 'color' => '#db2777',
           'items' => array(
@@ -78,7 +81,7 @@ $_nav = array(
     array('key' => 'tools',   'label' => 'Інструменти', 'color' => '#b45309',
           'items' => array(
               array('key' => 'payments',   'label' => 'Платежі',     'url' => '/payments'),
-              array('key' => 'ms-attrs',   'label' => 'МС атрибути', 'url' => '/docum/attr'),
+              // МС атрибути — loaded from manifest if active
               array('key' => 'image-audit','label' => 'Фото аудит',  'url' => '/image-audit'),
               array('key' => 'cp-dedup',   'label' => 'Дублікати контрагентів', 'url' => '/counterparties/dedup'),
           )),
@@ -98,6 +101,17 @@ $_nav = array(
               array('key' => 'backlog',       'label' => 'Бэклог',        'url' => '/system/backlog'),
           )),
 );
+
+// ── Inject nav items from active app manifests ──────────────────────────
+require_once __DIR__ . '/../integrations/AppRegistry.php';
+AppRegistry::boot();
+foreach ($_nav as &$_navGroup) {
+    $_appItems = AppRegistry::getNavItems($_navGroup['key']);
+    if ($_appItems) {
+        $_navGroup['items'] = array_merge($_navGroup['items'], $_appItems);
+    }
+}
+unset($_navGroup);
 
 $_activeNav  = isset($activeNav) ? $activeNav : '';
 $_subNav     = isset($subNav)    ? $subNav    : '';

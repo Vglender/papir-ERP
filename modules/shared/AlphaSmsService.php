@@ -1,10 +1,23 @@
 <?php
 
+require_once __DIR__ . '/../integrations/IntegrationSettingsService.php';
+
 class AlphaSmsService
 {
-    const API_URL    = 'https://alphasms.com.ua/api/json.php';
-    const API_KEY    = 'b91da24ccc1696f137169368f81e4033da5deffd';
-    const ALPHA_NAME = 'OfficeTorg';
+    private static $cfg = null;
+
+    private static function cfg($key)
+    {
+        if (self::$cfg === null) {
+            $all = IntegrationSettingsService::getAll('alphasms');
+            self::$cfg = array(
+                'api_url'    => isset($all['api_url'])    ? $all['api_url']['value']    : 'https://alphasms.com.ua/api/json.php',
+                'api_key'    => isset($all['api_key'])    ? $all['api_key']['value']    : '',
+                'alpha_name' => isset($all['alpha_name']) ? $all['alpha_name']['value'] : 'OfficeTorg',
+            );
+        }
+        return self::$cfg[$key];
+    }
 
     public static function sendViber($phone, $text)
     {
@@ -17,24 +30,25 @@ class AlphaSmsService
         $smsText = preg_replace('/[^\x{0000}-\x{FFFF}]/u', '', $text);
         $smsText = trim(preg_replace('/\s+/u', ' ', $smsText));
         if ($smsText === '') {
-            $smsText = 'Повідомлення від ' . self::ALPHA_NAME;
+            $smsText = 'Повідомлення від ' . self::cfg('alpha_name');
         }
 
         $payload = array(
-            'auth' => self::API_KEY,
+            'auth' => self::cfg('api_key'),
             'data' => array(array(
                 'type'            => 'viber+sms',
                 'phone'           => $phone,
-                'viber_signature' => self::ALPHA_NAME,
+                'viber_signature' => self::cfg('alpha_name'),
                 'viber_type'      => 'text',
                 'viber_message'   => $text,
-                'sms_signature'   => self::ALPHA_NAME,
+                'sms_signature'   => self::cfg('alpha_name'),
                 'sms_message'     => $smsText,
             ))
         );
         $resp = self::post($payload);
         if (!$resp || empty($resp['success'])) {
             $err = isset($resp['error']) ? $resp['error'] : 'Alpha SMS error';
+            error_log('[AlphaSMS] sendViber FAIL phone=' . $phone . ' error=' . $err);
             return array('ok' => false, 'error' => $err);
         }
         $msgId = isset($resp['data'][0]['data']['msg_id']) ? $resp['data'][0]['data']['msg_id'] : null;
@@ -47,17 +61,18 @@ class AlphaSmsService
         $item    = array(
             'type'            => 'viber',
             'phone'           => $phone,
-            'viber_signature' => self::ALPHA_NAME,
+            'viber_signature' => self::cfg('alpha_name'),
             'viber_type'      => 'image',
             'viber_image'     => $imageUrl,
         );
         if ($caption) {
             $item['viber_caption'] = $caption;
         }
-        $payload = array('auth' => self::API_KEY, 'data' => array($item));
+        $payload = array('auth' => self::cfg('api_key'), 'data' => array($item));
         $resp = self::post($payload);
         if (!$resp || empty($resp['success'])) {
             $err = isset($resp['error']) ? $resp['error'] : 'Alpha SMS error';
+            error_log('[AlphaSMS] sendViberImage FAIL phone=' . $phone . ' error=' . $err);
             return array('ok' => false, 'error' => $err);
         }
         $msgId = isset($resp['data'][0]['data']['msg_id']) ? $resp['data'][0]['data']['msg_id'] : null;
@@ -68,17 +83,18 @@ class AlphaSmsService
     {
         $phone   = self::normalizePhone($phone);
         $payload = array(
-            'auth' => self::API_KEY,
+            'auth' => self::cfg('api_key'),
             'data' => array(array(
                 'type'          => 'sms',
                 'phone'         => $phone,
-                'sms_signature' => self::ALPHA_NAME,
+                'sms_signature' => self::cfg('alpha_name'),
                 'sms_message'   => $text,
             ))
         );
         $resp = self::post($payload);
         if (!$resp || empty($resp['success'])) {
             $err = isset($resp['error']) ? $resp['error'] : 'Alpha SMS error';
+            error_log('[AlphaSMS] sendSms FAIL phone=' . $phone . ' error=' . $err);
             return array('ok' => false, 'error' => $err);
         }
         $msgId = isset($resp['data'][0]['data']['msg_id']) ? $resp['data'][0]['data']['msg_id'] : null;
@@ -127,7 +143,7 @@ class AlphaSmsService
     private static function post($data)
     {
         $payload = json_encode($data, JSON_UNESCAPED_UNICODE);
-        $ch = curl_init(self::API_URL);
+        $ch = curl_init(self::cfg('api_url'));
         curl_setopt_array($ch, array(
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,

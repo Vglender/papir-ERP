@@ -41,6 +41,15 @@ class Router
 		'/analytics/google'                       => '/modules/analytics/index.php',
 		'/analytics/shopping'                     => '/modules/analytics/shopping.php',
 		'/analytics/api/get_report'               => '/modules/analytics/api/get_report.php',
+		'/integrations'                           => '/modules/integrations/index.php',
+		'/integrations/app'                       => '/modules/integrations/app.php',
+		'/integrations/api/get_settings'          => '/modules/integrations/api/get_settings.php',
+		'/integrations/api/save_settings'         => '/modules/integrations/api/save_settings.php',
+		'/integrations/api/save_np_keys'          => '/modules/integrations/api/save_np_keys.php',
+		'/integrations/api/save_connection'       => '/modules/integrations/api/save_connection.php',
+		'/integrations/api/delete_connection'     => '/modules/integrations/api/delete_connection.php',
+		'/integrations/api/toggle_app'            => '/modules/integrations/api/toggle_app.php',
+		'/integrations/api/toggle_ms_webhook'     => '/modules/integrations/api/toggle_ms_webhook.php',
 		'/integr/merchant'                        => '/modules/merchant/index.php',
 		'/integr/merchant/feed'                   => '/modules/merchant/feed.php',
 		'/integr/merchant/feed_mff'               => '/modules/merchant/feed_mff.php',
@@ -116,11 +125,8 @@ class Router
 		'/finance/mutual'        => '/modules/finance/mutual.php',
 		'/finance/salary'        => '/modules/finance/salary.php',
 		'/finance/adjustments'   => '/modules/finance/adjustments.php',
+		// MoySklad routes loaded from app.manifest.php via AppRegistry
 		'/finance/webhook/moysklad' => '/modules/finance/webhook/moysklad.php',
-		'/docum/attr' => '/modules/moysklad/tools/dashboard.php',
-		'/moysklad/api/webhooks_list'   => '/modules/moysklad/api/webhooks_list.php',
-		'/moysklad/api/webhook_create'  => '/modules/moysklad/api/webhook_create.php',
-		'/moysklad/api/webhook_delete'  => '/modules/moysklad/api/webhook_delete.php',
 		'/counterparties'                         => '/modules/counterparties/index.php',
 		'/counterparties/view'                    => '/modules/counterparties/view.php',
 		'/counterparties/panel'                   => '/modules/counterparties/panel.php',
@@ -236,9 +242,9 @@ class Router
 		'/novaposhta/ttns'                    => '/modules/novaposhta/index.php',
 		'/novaposhta/scansheets'              => '/modules/novaposhta/scansheets.php',
 		'/novaposhta/print/scansheet'         => '/modules/novaposhta/print_scansheet.php',
-		'/novaposhta/senders'                 => '/modules/novaposhta/senders.php',
 		'/novaposhta/api/refresh_sender'        => '/modules/novaposhta/api/refresh_sender.php',
 		'/novaposhta/api/save_sender_settings'  => '/modules/novaposhta/api/save_sender_settings.php',
+		'/novaposhta/api/save_sender_org'       => '/modules/novaposhta/api/save_sender_org.php',
 		'/novaposhta/api/set_default_address' => '/modules/novaposhta/api/set_default_address.php',
 		'/novaposhta/api/set_default_contact' => '/modules/novaposhta/api/set_default_contact.php',
 		'/novaposhta/api/set_default_sender'    => '/modules/novaposhta/api/set_default_sender.php',
@@ -361,8 +367,23 @@ class Router
 
     ];
 
+    /**
+     * Merge routes from active app manifests (AppRegistry).
+     */
+    public function loadAppRoutes()
+    {
+        require_once __DIR__ . '/../modules/integrations/AppRegistry.php';
+        foreach (\AppRegistry::getRoutes() as $path => $file) {
+            if (!isset($this->routes[$path])) {
+                $this->routes[$path] = $file;
+            }
+        }
+    }
+
     public function handleRequest($requestUri)
     {
+        $this->loadAppRoutes();
+
         $path = parse_url($requestUri, PHP_URL_PATH);
         $filePath = $this->resolveRoute($path);
 

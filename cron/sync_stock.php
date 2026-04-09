@@ -16,6 +16,9 @@
  *   0 * /4 * * * php /var/www/papir/cron/sync_stock.php >> /var/log/papir/sync_stock.log 2>&1
  */
 
+require_once __DIR__ . '/../modules/integrations/AppRegistry.php';
+AppRegistry::guard('moysklad');
+
 define('CRON_MODE', true);
 
 require_once __DIR__ . '/../modules/database/database.php';

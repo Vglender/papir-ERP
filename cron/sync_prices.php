@@ -116,42 +116,47 @@ do {
 
 logLine('Phase 2 done: off=' . $pushOff . ' mff=' . $pushMff, 'success');
 
-// ── Phase 3: Push to MoySklad ────────────────────────────────────────────────
+// ── Phase 3: Push to MoySklad (skipped if app inactive) ─────────────────────
 
-logLine('Phase 3: Pushing to MoySklad (~15 req/s)...', 'info');
+require_once __DIR__ . '/../modules/integrations/AppRegistry.php';
+$pushMs = 0;
+if (AppRegistry::isActive('moysklad')) {
+    logLine('Phase 3: Pushing to MoySklad (~15 req/s)...', 'info');
 
-$msExporter = new MoySkladPriceExport(new MoySkladApi());
-$offset     = 0;
-$batchSize  = 50;
-$pushMs     = 0;
+    $msExporter = new MoySkladPriceExport(new MoySkladApi());
+    $offset     = 0;
+    $batchSize  = 50;
 
-do {
-    $batchResult = Database::fetchAll('Papir',
-        "SELECT p.product_id, p.product_article, p.id_off, p.id_mf, p.id_ms,
-                p.price_purchase, p.price_sale, p.price_wholesale, p.price_dealer, p.quantity,
-                p.link_off, p.links_mf, p.links_prom,
-                dp.qty_1, dp.price_1, dp.qty_2, dp.price_2, dp.qty_3, dp.price_3
-         FROM product_papir p
-         LEFT JOIN product_discount_profile dp ON dp.product_id = p.product_id
-         WHERE p.status = 1 AND p.price_sale > 0
-         ORDER BY p.product_id ASC
-         LIMIT " . $batchSize . " OFFSET " . $offset
-    );
+    do {
+        $batchResult = Database::fetchAll('Papir',
+            "SELECT p.product_id, p.product_article, p.id_off, p.id_mf, p.id_ms,
+                    p.price_purchase, p.price_sale, p.price_wholesale, p.price_dealer, p.quantity,
+                    p.link_off, p.links_mf, p.links_prom,
+                    dp.qty_1, dp.price_1, dp.qty_2, dp.price_2, dp.qty_3, dp.price_3
+             FROM product_papir p
+             LEFT JOIN product_discount_profile dp ON dp.product_id = p.product_id
+             WHERE p.status = 1 AND p.price_sale > 0
+             ORDER BY p.product_id ASC
+             LIMIT " . $batchSize . " OFFSET " . $offset
+        );
 
-    if (!$batchResult['ok'] || empty($batchResult['rows'])) {
-        break;
-    }
+        if (!$batchResult['ok'] || empty($batchResult['rows'])) {
+            break;
+        }
 
-    $rows = $batchResult['rows'];
+        $rows = $batchResult['rows'];
 
-    $rMs = $msExporter->pushBatch($rows);
-    $pushMs += $rMs['pushed'];
+        $rMs = $msExporter->pushBatch($rows);
+        $pushMs += $rMs['pushed'];
 
-    $offset += count($rows);
-    logLine('MoySklad pushed: ' . $pushMs, 'progress');
-} while (count($rows) === $batchSize);
+        $offset += count($rows);
+        logLine('MoySklad pushed: ' . $pushMs, 'progress');
+    } while (count($rows) === $batchSize);
 
-logLine('Phase 3 done: ms=' . $pushMs, 'success');
+    logLine('Phase 3 done: ms=' . $pushMs, 'success');
+} else {
+    logLine('Phase 3: MoySklad skipped (app inactive)', 'info');
+}
 
 // ────────────────────────────────────────────────────────────────────────────
 

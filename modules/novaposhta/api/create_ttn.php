@@ -1,11 +1,14 @@
 <?php
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../novaposhta_bootstrap.php';
+require_once __DIR__ . '/../NpDefaults.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     echo json_encode(array('ok' => false, 'error' => 'POST required'));
     exit;
 }
+
+$_d = \Papir\Crm\NpDefaults::all();
 
 // Collect all params from POST
 $params = array(
@@ -17,7 +20,7 @@ $params = array(
     'city_sender_desc'         => isset($_POST['city_sender_desc'])         ? trim($_POST['city_sender_desc'])         : '',
     'city_recipient_ref'       => isset($_POST['city_recipient_ref'])       ? trim($_POST['city_recipient_ref'])       : '',
     'city_recipient_desc'      => isset($_POST['city_recipient_desc'])      ? trim($_POST['city_recipient_desc'])      : '',
-    'service_type'             => isset($_POST['service_type'])             ? trim($_POST['service_type'])             : 'WarehouseWarehouse',
+    'service_type'             => isset($_POST['service_type'])             ? trim($_POST['service_type'])             : $_d['service_type'],
     'recipient_type'           => isset($_POST['recipient_type'])           ? trim($_POST['recipient_type'])           : 'PrivatePerson',
     'recipient_first_name'     => isset($_POST['recipient_first_name'])     ? trim($_POST['recipient_first_name'])     : '',
     'recipient_last_name'      => isset($_POST['recipient_last_name'])      ? trim($_POST['recipient_last_name'])      : '',
@@ -34,15 +37,15 @@ $params = array(
     'recipient_building'       => isset($_POST['recipient_building'])       ? trim($_POST['recipient_building'])       : '',
     'recipient_flat'           => isset($_POST['recipient_flat'])           ? trim($_POST['recipient_flat'])           : '',
     // Cargo
-    'weight'                   => isset($_POST['weight'])                   ? (float)$_POST['weight']                 : 0.5,
-    'seats_amount'             => isset($_POST['seats_amount'])             ? (int)$_POST['seats_amount']             : 1,
-    'cargo_type'               => isset($_POST['cargo_type'])               ? trim($_POST['cargo_type'])               : 'Cargo',
-    'description'              => isset($_POST['description'])              ? trim($_POST['description'])              : 'Товар',
+    'weight'                   => isset($_POST['weight'])                   ? (float)$_POST['weight']                 : $_d['weight'],
+    'seats_amount'             => isset($_POST['seats_amount'])             ? (int)$_POST['seats_amount']             : $_d['seats_amount'],
+    'cargo_type'               => isset($_POST['cargo_type'])               ? trim($_POST['cargo_type'])               : $_d['cargo_type'],
+    'description'              => isset($_POST['description'])              ? trim($_POST['description'])              : $_d['description'],
     'additional_info'          => isset($_POST['additional_info'])          ? trim($_POST['additional_info'])          : '',
     'cost'                     => isset($_POST['cost'])                     ? (int)$_POST['cost']                     : 1,
     // Payment
-    'payment_method'           => isset($_POST['payment_method'])           ? trim($_POST['payment_method'])           : 'Cash',
-    'payer_type'               => isset($_POST['payer_type'])               ? trim($_POST['payer_type'])               : 'Recipient',
+    'payment_method'           => isset($_POST['payment_method'])           ? trim($_POST['payment_method'])           : $_d['payment_method'],
+    'payer_type'               => isset($_POST['payer_type'])               ? trim($_POST['payer_type'])               : $_d['payer_type'],
     'backward_delivery_money'  => isset($_POST['backward_delivery_money'])  ? (float)$_POST['backward_delivery_money'] : 0,
     'date'                     => isset($_POST['date'])                     ? trim($_POST['date'])                     : date('d.m.Y'),
     'sender_phone'             => isset($_POST['sender_phone'])             ? trim($_POST['sender_phone'])             : '',

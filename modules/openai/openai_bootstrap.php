@@ -14,9 +14,8 @@ require_once __DIR__ . '/AiPromptBuilder.php';
 function openai_client() {
     static $key = null;
     if ($key === null) {
-        $OPENAI_API_KEY = '';
-        include __DIR__ . '/storage/openai_auth.php';
-        $key = (string)$OPENAI_API_KEY;
+        require_once __DIR__ . '/../integrations/IntegrationSettingsService.php';
+        $key = (string)IntegrationSettingsService::get('openai', 'api_key', '');
     }
     return new \Papir\Crm\OpenAiClient($key);
 }

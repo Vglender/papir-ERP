@@ -2,10 +2,29 @@
 namespace Papir\Crm;
 
 /**
- * np_sender + np_sender_address
+ * np_sender + np_sender_address.
+ *
+ * API keys are read from integration_connections (primary) with fallback
+ * to np_sender.api (legacy). is_default also comes from integration_connections.
  */
 class SenderRepository
 {
+    /**
+     * Enrich sender row with API key + flags from integration_connections.
+     */
+    private static function enrichWithConnection($sender)
+    {
+        if (!$sender) return $sender;
+        require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+        $conn = \IntegrationSettingsService::findConnectionByMeta('novaposhta', 'sender_ref', $sender['Ref']);
+        if ($conn) {
+            $sender['api']        = $conn['api_key'];
+            $sender['is_default'] = (int)$conn['is_default'];
+            $sender['conn_active'] = (int)$conn['is_active'];
+        }
+        return $sender;
+    }
+
     public static function getAll()
     {
         $r = \Database::fetchAll('Papir',
@@ -13,26 +32,70 @@ class SenderRepository
              FROM np_sender s
              LEFT JOIN organization o ON o.id = s.organization_id
              ORDER BY s.is_default DESC, s.Description");
-        return ($r['ok']) ? $r['rows'] : array();
+        if (!$r['ok']) return array();
+        $rows = $r['rows'];
+        // Enrich with connection data
+        require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+        $conns = \IntegrationSettingsService::getConnections('novaposhta');
+        $connMap = array();
+        foreach ($conns as $c) {
+            if (isset($c['metadata']['sender_ref'])) {
+                $connMap[$c['metadata']['sender_ref']] = $c;
+            }
+        }
+        foreach ($rows as &$s) {
+            if (isset($connMap[$s['Ref']])) {
+                $c = $connMap[$s['Ref']];
+                $s['api']        = $c['api_key'];
+                $s['is_default'] = (int)$c['is_default'];
+                $s['conn_active'] = (int)$c['is_active'];
+            }
+        }
+        unset($s);
+        // Re-sort: default first
+        usort($rows, function($a, $b) {
+            return (isset($b['is_default']) ? $b['is_default'] : 0) - (isset($a['is_default']) ? $a['is_default'] : 0);
+        });
+        return $rows;
     }
 
     public static function getDefault()
     {
+        // Try integration_connections first
+        require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+        $conn = \IntegrationSettingsService::getDefaultConnection('novaposhta');
+        if ($conn && !empty($conn['metadata']['sender_ref'])) {
+            $sender = self::getByRefRaw($conn['metadata']['sender_ref']);
+            if ($sender) {
+                $sender['api']        = $conn['api_key'];
+                $sender['is_default'] = 1;
+                return $sender;
+            }
+        }
+        // Fallback: old logic
         $r = \Database::fetchRow('Papir',
             "SELECT * FROM np_sender WHERE is_default = 1 LIMIT 1");
         if ($r['ok'] && $r['row']) return $r['row'];
-        // Fallback: first sender
         $r2 = \Database::fetchRow('Papir',
             "SELECT * FROM np_sender ORDER BY Ref LIMIT 1");
         return ($r2['ok'] && $r2['row']) ? $r2['row'] : null;
     }
 
-    public static function getByRef($ref)
+    /**
+     * Raw DB fetch without connection enrichment (to avoid loops).
+     */
+    private static function getByRefRaw($ref)
     {
         $e = \Database::escape('Papir', $ref);
         $r = \Database::fetchRow('Papir',
             "SELECT * FROM np_sender WHERE Ref = '{$e}' LIMIT 1");
         return ($r['ok'] && $r['row']) ? $r['row'] : null;
+    }
+
+    public static function getByRef($ref)
+    {
+        $sender = self::getByRefRaw($ref);
+        return self::enrichWithConnection($sender);
     }
 
     /** Get sender for a given organization_id */

@@ -1,4 +1,13 @@
 <?php
+require_once __DIR__ . '/../../integrations/AppRegistry.php';
+AppRegistry::guard('moysklad');
+require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+if (IntegrationSettingsService::get('moysklad', 'wh_counterparty', '1') !== '1') {
+    header('Content-Type: application/json');
+    echo json_encode(array('ok' => true, 'skipped' => true, 'reason' => 'webhook_disabled'));
+    exit;
+}
+
 /**
  * МойСклад → Papir webhook для counterparty.
  * Принимает события CREATE/UPDATE/DELETE для counterparty.

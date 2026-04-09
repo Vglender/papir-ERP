@@ -1,6 +1,8 @@
 <?php
 namespace Papir\Crm;
 
+require_once __DIR__ . '/../NpDefaults.php';
+
 /**
  * TTN create / update / delete via NP API + DB sync.
  */
@@ -54,7 +56,7 @@ class TtnService
         $npAddressRef = $addrResult['ref'];
 
         // 4. Prepare InternetDocument.save payload
-        $serviceType = isset($params['service_type']) ? $params['service_type'] : 'WarehouseWarehouse';
+        $serviceType = isset($params['service_type']) ? $params['service_type'] : NpDefaults::get('service_type', 'WarehouseWarehouse');
         $senderAddrRef = isset($params['sender_address_ref']) ? $params['sender_address_ref'] : '';
 
         // Resolve ContactSender + SendersPhone from np_sender_contact_persons
@@ -115,12 +117,12 @@ class TtnService
             'ContactRecipient'=> $npContactRef ? $npContactRef : $npRecipientRef,
             'RecipientsPhone' => self::normalizePhone($params['recipient_phone']),
             'ServiceType'     => $serviceType,
-            'PaymentMethod'   => isset($params['payment_method']) ? $params['payment_method'] : 'Cash',
-            'PayerType'       => isset($params['payer_type'])     ? $params['payer_type']     : 'Recipient',
-            'CargoType'       => isset($params['cargo_type'])     ? $params['cargo_type']     : 'Cargo',
-            'Weight'          => isset($params['weight'])         ? (float)$params['weight']  : 0.5,
-            'SeatsAmount'     => isset($params['seats_amount'])   ? (int)$params['seats_amount'] : 1,
-            'Description'     => isset($params['description'])    ? $params['description']    : 'Товар',
+            'PaymentMethod'   => isset($params['payment_method']) ? $params['payment_method'] : NpDefaults::get('payment_method', 'Cash'),
+            'PayerType'       => isset($params['payer_type'])     ? $params['payer_type']     : NpDefaults::get('payer_type', 'Recipient'),
+            'CargoType'       => isset($params['cargo_type'])     ? $params['cargo_type']     : NpDefaults::get('cargo_type', 'Cargo'),
+            'Weight'          => isset($params['weight'])         ? (float)$params['weight']  : NpDefaults::get('weight', 0.5),
+            'SeatsAmount'     => isset($params['seats_amount'])   ? (int)$params['seats_amount'] : NpDefaults::get('seats_amount', 1),
+            'Description'     => isset($params['description'])    ? $params['description']    : NpDefaults::get('description', 'Товар'),
             'AdditionalInformation' => isset($params['additional_info']) ? $params['additional_info'] : '',
             'Cost'            => isset($params['cost'])           ? (int)$params['cost']      : 1,
             'DateTime'        => isset($params['date'])           ? $params['date'] : date('d.m.Y'),
@@ -192,6 +194,19 @@ class TtnService
         }
 
         $r = $np->call('InternetDocument', 'save', $docProps);
+
+        // NonCash not available for this counterparty — retry with Cash
+        if (!$r['ok'] && $docProps['PaymentMethod'] === 'NonCash') {
+            $errStr = mb_strtolower($r['error'], 'UTF-8');
+            $nonCashErr = (strpos($errStr, 'noncash') !== false)
+                       || (strpos($errStr, 'безготівк') !== false)
+                       || (strpos($errStr, 'форма розрахунку') !== false);
+            if ($nonCashErr) {
+                $docProps['PaymentMethod'] = 'Cash';
+                $r = $np->call('InternetDocument', 'save', $docProps);
+            }
+        }
+
         if (!$r['ok']) {
             return array('ok' => false, 'error' => $r['error']);
         }
@@ -586,7 +601,12 @@ class TtnService
             'edrpou' => '', 'counterparty_type' => 'PrivatePerson', 'full_name' => '',
         );
 
-        $cpId = $order['contact_person_id'] ?: $order['counterparty_id'];
+        $counterpartyId  = !empty($order['counterparty_id'])    ? (int)$order['counterparty_id']    : 0;
+        $contactPersonId = !empty($order['contact_person_id']) ? (int)$order['contact_person_id'] : 0;
+
+        // Always determine type by the main counterparty (counterparty_id).
+        // contact_person_id is a person linked to the org, not a standalone recipient.
+        $cpId = $counterpartyId ?: $contactPersonId;
         if (!$cpId) return $recipient;
 
         $rCp = \Database::fetchRow('Papir',
@@ -612,13 +632,12 @@ class TtnService
             $recipient['phone']            = $cp['company_phone'] ?: '';
             $recipient['edrpou']           = $cp['edrpou']     ?: '';
             $recipient['counterparty_type']= 'Organization';
-            // Contact person for org: use order's contact_person_id if different from counterparty_id
-            $contactId = !empty($order['contact_person_id']) ? (int)$order['contact_person_id'] : 0;
-            if ($contactId && $contactId != $cpId) {
+            // Contact person for org: use order's contact_person_id if set
+            if ($contactPersonId && $contactPersonId != $cpId) {
                 $rContact = \Database::fetchRow('Papir',
                     "SELECT cpp.first_name, cpp.last_name, cpp.middle_name, cpp.phone
                      FROM counterparty_person cpp
-                     WHERE cpp.counterparty_id = {$contactId} LIMIT 1");
+                     WHERE cpp.counterparty_id = {$contactPersonId} LIMIT 1");
                 if ($rContact['ok'] && !empty($rContact['row'])) {
                     $c = $rContact['row'];
                     $recipient['contact_person'] = trim(($c['last_name'] ?: '') . ' ' . ($c['first_name'] ?: ''));
@@ -626,6 +645,9 @@ class TtnService
                         $recipient['phone'] = $c['phone'];
                     }
                 }
+            } else {
+                // No separate contact person — use default
+                $recipient['contact_person'] = 'Представник організації';
             }
         }
         $recipient['counterparty_id'] = (int)$cpId;
@@ -672,7 +694,6 @@ class TtnService
                 'CounterpartyType'     => 'Organization',
                 'CounterpartyFullName' => isset($params['recipient_full_name']) ? $params['recipient_full_name'] : '',
                 'EDRPOU'               => isset($params['recipient_edrpou'])    ? $params['recipient_edrpou']    : '',
-                'Phone'                => self::normalizePhone($params['recipient_phone']),
             );
         } else {
             $cpProps = array(
@@ -689,13 +710,30 @@ class TtnService
         if (!$r['ok']) return array('ok' => false, 'error' => 'Cannot create recipient: ' . $r['error']);
 
         $npData = isset($r['data'][0]) ? $r['data'][0] : array();
-        // data[0].Ref = generic PrivatePerson ref (same for all, used in Recipient field)
-        // data[0].ContactPerson.data[0].Ref = unique contact person ref (used in ContactRecipient)
-        $npRef     = isset($npData['Ref']) ? $npData['Ref'] : '';
-        $npContact = isset($npData['ContactPerson']['data'][0]['Ref'])
-            ? $npData['ContactPerson']['data'][0]['Ref']
-            : $npRef;
+        $npRef  = isset($npData['Ref']) ? $npData['Ref'] : '';
         if (!$npRef) return array('ok' => false, 'error' => 'No Ref in NP counterparty response');
+
+        if ($isOrg) {
+            // For Organization: create contact person separately via ContactPersonGeneral.save()
+            $phone = self::normalizePhone($params['recipient_phone']);
+            $lastName  = isset($params['recipient_last_name'])  ? $params['recipient_last_name']  : '';
+            $firstName = isset($params['recipient_first_name']) ? $params['recipient_first_name'] : '';
+            $cpContactProps = array(
+                'CounterpartyRef' => $npRef,
+                'LastName'        => $lastName,
+                'FirstName'       => $firstName ?: $lastName,
+                'Phone'           => $phone,
+            );
+            $rCp = $np->call('ContactPersonGeneral', 'save', $cpContactProps);
+            if (!$rCp['ok']) return array('ok' => false, 'error' => 'Cannot create contact person: ' . $rCp['error']);
+            $npContact = isset($rCp['data'][0]['Ref']) ? $rCp['data'][0]['Ref'] : '';
+            if (!$npContact) return array('ok' => false, 'error' => 'No Ref in NP contact person response');
+        } else {
+            // For PrivatePerson: ContactPerson is returned inline
+            $npContact = isset($npData['ContactPerson']['data'][0]['Ref'])
+                ? $npData['ContactPerson']['data'][0]['Ref']
+                : $npRef;
+        }
 
         // Cache
         NpCounterpartyRepository::upsert($npData, $senderRef, $counterpartyId ?: null);

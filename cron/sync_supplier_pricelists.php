@@ -96,6 +96,12 @@ foreach ($pricelists as $pricelist) {
 
     switch ($pricelist['source_type']) {
         case 'moy_sklad':
+            require_once __DIR__ . '/../modules/integrations/AppRegistry.php';
+            if (!AppRegistry::isActive('moysklad')) {
+                logLine("  Skipped: MoySklad app inactive");
+                $result = array('ok' => true, 'skipped' => true);
+                break;
+            }
             require_once __DIR__ . '/../modules/moysklad/moysklad_api.php';
             $syncer = new MoySkladPriceSync(new SupplierRepository(), $pricelistRepo, $itemRepo);
             $result = $syncer->sync($plId);

@@ -1,7 +1,17 @@
 <?php
+require_once __DIR__ . '/../../integrations/AppRegistry.php';
+AppRegistry::guard('moysklad');
+require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+require_once __DIR__ . '/../../integrations/MsExchangeGuard.php';
+if (IntegrationSettingsService::get('moysklad', 'wh_customerorder', '1') !== '1') {
+    header('Content-Type: application/json');
+    echo json_encode(array('ok' => true, 'skipped' => true, 'reason' => 'webhook_disabled'));
+    exit;
+}
+
 /**
  * МойСклад → Papir webhook для customerorder.
- * Принимает события CREATE/UPDATE/DELETE для customerorder.
+ * Принимает події CREATE/UPDATE/DELETE для customerorder.
  *
  * Relay: http://159.69.1.229/order_relay.php → https://papir.officetorg.com.ua/customerorder/webhook/moysklad
  * Логи: /var/www/papir/storage/ms_webhook_customerorder.log
@@ -60,8 +70,10 @@ foreach ($body['events'] as $event) {
     if ($msId === '') { $errors[] = 'No UUID in href: ' . $href; continue; }
 
     if ($action === 'DELETE') {
-        mswhk_order_delete($msId, $errors);
-        $processed++;
+        if (MsExchangeGuard::isAllowed('order', 'D', 'from')) {
+            mswhk_order_delete($msId, $errors);
+            $processed++;
+        }
         continue;
     }
 
@@ -186,6 +198,12 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
     $isNew = false;
 
     if ($existing['ok'] && !empty($existing['row'])) {
+        // UPDATE from MS — check CRUD guard
+        if (!MsExchangeGuard::isAllowed('order', 'U', 'from')) {
+            mswhk_order_log('CRUD SKIP update from MS for order ms=' . $msId);
+            return;
+        }
+
         $localId   = (int)$existing['row']['id'];
         $oldStatus = (string)$existing['row']['status'];
 
@@ -200,6 +218,12 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         OrderFinanceHelper::recalc($localId);
         mswhk_order_log('Updated order id=' . $localId . ' ms=' . $msId . ' (status kept: ' . $oldStatus . ')');
     } else {
+        // CREATE from MS — check CRUD guard
+        if (!MsExchangeGuard::isAllowed('order', 'C', 'from')) {
+            mswhk_order_log('CRUD SKIP create from MS for order ms=' . $msId);
+            return;
+        }
+
         $isNew = true;
         $data['uuid'] = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
             mt_rand(0,0xffff), mt_rand(0,0xffff), mt_rand(0,0xffff),

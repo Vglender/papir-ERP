@@ -4,6 +4,17 @@
  * URL в МС (через relay): http://159.69.1.229/demand_relay.php
  * Логи: /var/www/papir/storage/ms_webhook_demand.log
  */
+require_once __DIR__ . '/../../integrations/AppRegistry.php';
+AppRegistry::guard('moysklad');
+// Per-webhook toggle
+require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+require_once __DIR__ . '/../../integrations/MsExchangeGuard.php';
+if (IntegrationSettingsService::get('moysklad', 'wh_demand', '1') !== '1') {
+    header('Content-Type: application/json');
+    echo json_encode(array('ok' => true, 'skipped' => true, 'reason' => 'webhook_disabled'));
+    exit;
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 require_once __DIR__ . '/../../database/database.php';
@@ -65,9 +76,11 @@ foreach ($body['events'] as $event) {
     if ($msId === '') { $errors[] = 'No UUID in href'; continue; }
 
     if ($action === 'DELETE') {
-        $repo->markDeleted($msId);
-        mswhk_demand_log('DELETE demand ms=' . $msId);
-        $processed++;
+        if (MsExchangeGuard::isAllowed('demand', 'D', 'from')) {
+            $repo->markDeleted($msId);
+            mswhk_demand_log('DELETE demand ms=' . $msId);
+            $processed++;
+        }
         continue;
     }
 
@@ -126,14 +139,24 @@ foreach ($body['events'] as $event) {
         'updated_at'      => isset($doc['updated']) ? substr((string)$doc['updated'], 0, 19) : date('Y-m-d H:i:s'),
     );
 
-    // Papir є джерелом правди для відвантажень — нові demand з МС не створюємо.
-    // Оновлюємо тільки існуючі (статус, суми, profit).
+    // Check if demand exists locally
     $rExisting = Database::fetchRow('Papir',
         "SELECT id FROM demand WHERE id_ms = '" . Database::escape('Papir', $msId) . "' LIMIT 1");
+
     if (!$rExisting['ok'] || empty($rExisting['row'])) {
-        mswhk_demand_log('SKIPPED new demand ms=' . $msId . ' — creation from MS disabled');
-        $processed++;
-        continue;
+        // CREATE from MS — controlled by CRUD setting
+        if (!MsExchangeGuard::isAllowed('demand', 'C', 'from')) {
+            mswhk_demand_log('CRUD SKIP create demand ms=' . $msId);
+            $processed++;
+            continue;
+        }
+    } else {
+        // UPDATE from MS — controlled by CRUD setting
+        if (!MsExchangeGuard::isAllowed('demand', 'U', 'from')) {
+            mswhk_demand_log('CRUD SKIP update demand ms=' . $msId);
+            $processed++;
+            continue;
+        }
     }
 
     $upsert = $repo->upsertFromMs($data);

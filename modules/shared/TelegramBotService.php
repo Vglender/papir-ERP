@@ -1,12 +1,23 @@
 <?php
 
+require_once __DIR__ . '/../integrations/IntegrationSettingsService.php';
+
 /**
  * Telegram Bot API wrapper.
  */
 class TelegramBotService
 {
-    const TOKEN   = '932088148:AAFHo4RqBSep81y9JGtEiJuJHWEwfWHBR6Y';
     const API_URL = 'https://api.telegram.org/bot';
+
+    private static $token = null;
+
+    private static function getToken()
+    {
+        if (self::$token === null) {
+            self::$token = IntegrationSettingsService::get('telegram', 'bot_token', '');
+        }
+        return self::$token;
+    }
 
     /**
      * Send text message to a chat_id.
@@ -79,7 +90,7 @@ class TelegramBotService
             return null;
         }
         $filePath    = $result['result']['file_path'];
-        $downloadUrl = 'https://api.telegram.org/file/bot' . self::TOKEN . '/' . $filePath;
+        $downloadUrl = 'https://api.telegram.org/file/bot' . self::getToken() . '/' . $filePath;
 
         // Download
         $ch = curl_init($downloadUrl);
@@ -125,7 +136,7 @@ class TelegramBotService
 
     private static function call($method, $data)
     {
-        $url = self::API_URL . self::TOKEN . '/' . $method;
+        $url = self::API_URL . self::getToken() . '/' . $method;
         $ch  = curl_init($url);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));

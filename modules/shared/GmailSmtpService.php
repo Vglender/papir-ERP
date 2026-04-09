@@ -1,16 +1,29 @@
 <?php
 
+require_once __DIR__ . '/../integrations/IntegrationSettingsService.php';
+
 /**
  * Minimal Gmail SMTP sender via SSL (port 465).
  * Uses App Password authentication.
  */
 class GmailSmtpService
 {
-    const SMTP_HOST  = 'ssl://smtp.gmail.com';
-    const SMTP_PORT  = 465;
-    const FROM_EMAIL = 'papierinvest@gmail.com';
-    const FROM_NAME  = 'Papir CRM';
-    const APP_PASS   = 'dhdjsinqzviptfod';  // App Password без пробелов
+    private static $cfg = null;
+
+    private static function cfg($key)
+    {
+        if (self::$cfg === null) {
+            $all = IntegrationSettingsService::getAll('gmail_smtp');
+            self::$cfg = array(
+                'smtp_host'  => isset($all['smtp_host'])  ? $all['smtp_host']['value']  : 'ssl://smtp.gmail.com',
+                'smtp_port'  => isset($all['smtp_port'])  ? (int)$all['smtp_port']['value'] : 465,
+                'from_email' => isset($all['from_email']) ? $all['from_email']['value'] : '',
+                'from_name'  => isset($all['from_name'])  ? $all['from_name']['value']  : 'Papir CRM',
+                'app_pass'   => isset($all['app_pass'])   ? $all['app_pass']['value']   : '',
+            );
+        }
+        return self::$cfg[$key];
+    }
 
     /**
      * Send email with optional file attachment.
@@ -32,7 +45,7 @@ class GmailSmtpService
 
         $errno  = 0;
         $errstr = '';
-        $sock   = @fsockopen(self::SMTP_HOST, self::SMTP_PORT, $errno, $errstr, 15);
+        $sock   = @fsockopen(self::cfg('smtp_host'), self::cfg('smtp_port'), $errno, $errstr, 15);
         if (!$sock) {
             return array('ok' => false, 'error' => 'SMTP connect failed: ' . $errstr);
         }
@@ -61,14 +74,14 @@ class GmailSmtpService
             return array('ok' => false, 'error' => 'AUTH LOGIN: ' . $read);
         }
 
-        self::smtpWrite($sock, base64_encode(self::FROM_EMAIL));
+        self::smtpWrite($sock, base64_encode(self::cfg('from_email')));
         $read = self::smtpRead($sock);
         if (!self::smtpOk($read, '334')) {
             fclose($sock);
             return array('ok' => false, 'error' => 'AUTH user: ' . $read);
         }
 
-        self::smtpWrite($sock, base64_encode(self::APP_PASS));
+        self::smtpWrite($sock, base64_encode(self::cfg('app_pass')));
         $read = self::smtpRead($sock);
         if (!self::smtpOk($read, '235')) {
             fclose($sock);
@@ -76,7 +89,7 @@ class GmailSmtpService
         }
 
         // MAIL FROM
-        self::smtpWrite($sock, 'MAIL FROM:<' . self::FROM_EMAIL . '>');
+        self::smtpWrite($sock, 'MAIL FROM:<' . self::cfg('from_email') . '>');
         $read = self::smtpRead($sock);
         if (!self::smtpOk($read, '250')) {
             fclose($sock);
@@ -101,7 +114,7 @@ class GmailSmtpService
 
         // Build message
         $date    = date('r');
-        $fromFmt = self::encodeHeader(self::FROM_NAME) . ' <' . self::FROM_EMAIL . '>';
+        $fromFmt = self::encodeHeader(self::cfg('from_name')) . ' <' . self::cfg('from_email') . '>';
         $toFmt   = ($toName ? self::encodeHeader($toName) . ' ' : '') . '<' . $toEmail . '>';
         $subjFmt = self::encodeHeader($subject);
 

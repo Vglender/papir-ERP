@@ -1,4 +1,14 @@
 <?php
+require_once __DIR__ . '/../../integrations/AppRegistry.php';
+AppRegistry::guard('moysklad');
+require_once __DIR__ . '/../../integrations/IntegrationSettingsService.php';
+require_once __DIR__ . '/../../integrations/MsExchangeGuard.php';
+if (IntegrationSettingsService::get('moysklad', 'wh_finance', '1') !== '1') {
+    header('Content-Type: application/json');
+    echo json_encode(array('ok' => true, 'skipped' => true, 'reason' => 'webhook_disabled'));
+    exit;
+}
+
 /**
  * МойСклад → Papir webhook.
  * Принимает события CREATE/UPDATE/DELETE для paymentin, paymentout, cashin, cashout.
@@ -85,8 +95,10 @@ foreach ($body['events'] as $event) {
     }
 
     if ($action === 'DELETE') {
-        mswhk_handle_delete($msId, $type, $errors);
-        $processed++;
+        if (MsExchangeGuard::isAllowed('finance', 'D', 'from')) {
+            mswhk_handle_delete($msId, $type, $errors);
+            $processed++;
+        }
         continue;
     }
 
@@ -222,10 +234,18 @@ function mswhk_upsert(array $doc, $type, array &$errors)
     }
 
     if ($existing['ok'] && !empty($existing['row'])) {
+        if (!MsExchangeGuard::isAllowed('finance', 'U', 'from')) {
+            mswhk_log('CRUD SKIP update finance ms=' . $msId);
+            return;
+        }
         $localId = (int)$existing['row']['id'];
         Database::update('Papir', $table, $data, array('id' => $localId));
         mswhk_log('Updated ' . $table . ' id=' . $localId . ' ms_id=' . $msId);
     } else {
+        if (!MsExchangeGuard::isAllowed('finance', 'C', 'from')) {
+            mswhk_log('CRUD SKIP create finance ms=' . $msId);
+            return;
+        }
         $ins = Database::insert('Papir', $table, $data);
         if (!$ins['ok']) {
             $errors[] = 'Insert failed for ' . $msId . ': ' . (isset($ins['error']) ? $ins['error'] : '?');
