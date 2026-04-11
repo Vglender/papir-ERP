@@ -158,6 +158,12 @@ class CourierCallService
             self::saveTtnToCallInDB($callNumber, $intDocNumber, (int)$ttn['id'], $ttnWeight);
         }
 
+        // ── 5. Fire ttn_handed_to_courier — посилка фізично передана ──────
+        // Знімає next_action='hand_over' через сценарій. Клієнта не турбуємо.
+        if (empty($result['errors'])) {
+            TtnService::fireTtnHandedToCourier((int)$ttn['id']);
+        }
+
         return $result;
     }
 

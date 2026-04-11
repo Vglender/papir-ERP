@@ -44,6 +44,7 @@ function npTtnPageUrl($p, $search, $stateGroup, $dateFrom, $dateTo, $draft, $sen
 $draftOldThreshold = strtotime('-2 days');
 ?>
 <link rel="stylesheet" href="/modules/shared/ttn-detail-modal.css?v=<?php echo filemtime('/var/www/papir/modules/shared/ttn-detail-modal.css'); ?>">
+<link rel="stylesheet" href="/modules/shared/np-ttn-create-modal.css?v=<?php echo filemtime('/var/www/papir/modules/shared/np-ttn-create-modal.css'); ?>">
 <style>
 .np-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
 .np-toolbar h1 { margin:0; font-size:18px; font-weight:700; flex-shrink:0; }
@@ -127,6 +128,10 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
   <form method="get" action="<?php echo $curUrl; ?>" id="ttnFilterForm">
     <div class="np-toolbar">
       <h1>ТТН Нова Пошта</h1>
+      <button type="button" class="btn btn-sm btn-primary" id="ttnBtnNew"
+              title="Створити довільну ТТН (без прив'язки до замовлення)">
+        + Нова ТТН
+      </button>
       <button type="button" class="btn btn-sm btn-ghost" id="ttnBtnSync"
               title="Завантажити нові ТТН з кабінету НП (останні 26 год.)">
         <span id="ttnSyncIcon">↻</span> З НП
@@ -948,6 +953,20 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
 }());
 </script>
 
+<!-- ══ TTN NP CREATE MODAL ══ -->
+<div class="modal-overlay" id="newTtnModal">
+    <div class="modal-box" style="width:560px; max-width:98vw;">
+        <div class="modal-head">
+            <span>Нова ТТН Нова Пошта</span>
+            <button class="modal-close" id="newTtnModalClose">&#x2715;</button>
+        </div>
+        <div class="modal-body" id="npTtnBody" style="overflow-y:auto; max-height:calc(100vh - 180px); padding:14px 16px;">
+            <div style="text-align:center; color:#9ca3af; padding:30px;">Завантаження…</div>
+        </div>
+    </div>
+</div>
+
+<script src="/modules/shared/np-ttn-create-modal.js?v=<?php echo filemtime('/var/www/papir/modules/shared/np-ttn-create-modal.js'); ?>"></script>
 <script src="/modules/shared/ttn-detail-modal.js?v=<?php echo filemtime('/var/www/papir/modules/shared/ttn-detail-modal.js'); ?>"></script>
 <script>
 // ── TTN Detail Modal — init shared component ────────────────────────────
@@ -962,6 +981,22 @@ tr.ttn-draft-old > td:first-child { border-left:3px solid #f59e0b; }
         // Reload table to reflect changes
         setTimeout(function(){ window.location.reload(); }, 600);
     };
+}());
+
+// ── "+ Нова ТТН" button → open create modal (standalone, no order) ──────
+(function () {
+    var btn = document.getElementById('ttnBtnNew');
+    if (!btn || !window.NpTtnCreateModal) return;
+    btn.addEventListener('click', function() {
+        window.NpTtnCreateModal.open(0, {
+            onCreated: function(res) {
+                if (typeof showToast === 'function') {
+                    showToast('ТТН ' + (res.int_doc_number || '') + ' створено ✓');
+                }
+                setTimeout(function(){ window.location.reload(); }, 700);
+            }
+        });
+    });
 }());
 
 

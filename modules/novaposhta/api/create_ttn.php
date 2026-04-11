@@ -125,23 +125,16 @@ if (!empty($result['ok']) && $params['customerorder_id'] > 0) {
     }
 }
 
-// Fire trigger event for scenarios
-if (!empty($result['ok']) && $params['customerorder_id'] > 0) {
-    $orderId = (int)$params['customerorder_id'];
+// Fire trigger event for scenarios — передаємо повний контекст (order + ttn)
+// через спільний helper, щоб сценарії могли резолвити {{ttn.int_doc_number}}.
+if (!empty($result['ok']) && $params['customerorder_id'] > 0 && !empty($result['ttn_id'])) {
     require_once __DIR__ . '/../../counterparties/counterparties_bootstrap.php';
-    $rOrd = \Database::fetchRow('Papir',
-        "SELECT * FROM customerorder WHERE id={$orderId} LIMIT 1");
-    if ($rOrd['ok'] && !empty($rOrd['row'])) {
-        $order = $rOrd['row'];
-        TriggerEngine::fire('order_ttn_created', array(
-            'order'           => $order,
-            'order_id'        => $orderId,
-            'counterparty_id' => (int)$order['counterparty_id'],
-            'ttn_type'        => 'novaposhta',
-        ));
-        // Виконати задачі зі сценарію негайно
-        TaskQueueRunner::runPending();
-    }
+    \Papir\Crm\TtnService::fireOrderTtnCreated(
+        (int)$params['customerorder_id'],
+        (int)$result['ttn_id']
+    );
+    // Виконати задачі зі сценарію негайно
+    TaskQueueRunner::runPending();
 }
 
 echo json_encode($result);

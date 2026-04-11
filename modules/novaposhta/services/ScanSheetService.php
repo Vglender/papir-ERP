@@ -51,12 +51,19 @@ class ScanSheetService
                 'status'          => 'open',
             ));
 
-            // Tag each TTN with the scan sheet ref
+            // Tag each TTN with the scan sheet ref + fire ttn_handed_to_courier
             foreach ($ttnRefs as $tRef) {
                 $eTRef = \Database::escape('Papir', $tRef);
                 $eSsRef = \Database::escape('Papir', $ssRef);
                 \Database::query('Papir',
                     "UPDATE ttn_novaposhta SET scan_sheet_ref = '{$eSsRef}' WHERE ref = '{$eTRef}'");
+
+                // Look up TTN id → fire handed_to_courier (no-op if no linked order)
+                $rTtnId = \Database::fetchRow('Papir',
+                    "SELECT id FROM ttn_novaposhta WHERE ref = '{$eTRef}' LIMIT 1");
+                if ($rTtnId['ok'] && !empty($rTtnId['row'])) {
+                    TtnService::fireTtnHandedToCourier((int)$rTtnId['row']['id']);
+                }
             }
         }
 

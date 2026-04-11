@@ -349,7 +349,106 @@ class TtnService
             "UPDATE customerorder SET next_action=NULL, next_action_label=NULL, updated_at=NOW()
              WHERE id={$orderId} AND next_action='ship'");
 
+        // Fire order_ttn_created — це альтернативна точка входу, коли ТТН
+        // з'явилась через cron sync_ttns_from_np, а не через ручне create_ttn.php.
+        // Без цього fire сценарії (scen#5 shipped + scen#14 notify client) не
+        // запускались би для ТТН з cron-синку.
+        self::fireOrderTtnCreated($orderId, $ttnId);
+
         return $orderId;
+    }
+
+    /**
+     * Fire order_ttn_created trigger з повним контекстом (order + ttn).
+     * Використовується і з autoMatchOrder, і з link_documents.php.
+     */
+    public static function fireOrderTtnCreated($orderId, $ttnId)
+    {
+        $orderId = (int)$orderId;
+        $ttnId   = (int)$ttnId;
+        if (!$orderId || !$ttnId) return;
+
+        require_once __DIR__ . '/../../counterparties/services/TriggerEngine.php';
+        require_once __DIR__ . '/../../counterparties/repositories/ScenarioRepository.php';
+
+        $rOrd = \Database::fetchRow('Papir',
+            "SELECT * FROM customerorder WHERE id={$orderId} LIMIT 1");
+        if (!$rOrd['ok'] || empty($rOrd['row'])) return;
+
+        $rTtn = \Database::fetchRow('Papir',
+            "SELECT id, int_doc_number, state_define, state_name, moment
+             FROM ttn_novaposhta WHERE id={$ttnId} LIMIT 1");
+        if (!$rTtn['ok'] || empty($rTtn['row'])) return;
+
+        \TriggerEngine::fire('order_ttn_created', array(
+            'order'           => $rOrd['row'],
+            'order_id'        => $orderId,
+            'counterparty_id' => (int)$rOrd['row']['counterparty_id'],
+            'ttn_type'        => 'novaposhta',
+            'ttn'             => array(
+                'id'             => (int)$rTtn['row']['id'],
+                'int_doc_number' => $rTtn['row']['int_doc_number'],
+                'state_define'   => $rTtn['row']['state_define'],
+                'state_name'     => $rTtn['row']['state_name'],
+            ),
+        ));
+    }
+
+    /**
+     * Знайти order_id, прив'язаний до ТТН через document_link.
+     * Повертає 0, якщо лінк відсутній.
+     */
+    public static function findOrderIdByTtnId($ttnId)
+    {
+        $ttnId = (int)$ttnId;
+        if (!$ttnId) return 0;
+        $r = \Database::fetchRow('Papir',
+            "SELECT to_id FROM document_link
+             WHERE from_type='ttn_np' AND from_id={$ttnId} AND to_type='customerorder'
+             LIMIT 1");
+        return ($r['ok'] && !empty($r['row'])) ? (int)$r['row']['to_id'] : 0;
+    }
+
+    /**
+     * Fire ttn_handed_to_courier — ТТН фактично передано в НП
+     * (сканування на реєстр + виклик кур'єра). Використовується з
+     * CourierCallService::processScan і ScanSheetService::addDocuments.
+     *
+     * Якщо orderId не переданий — намагається знайти через document_link.
+     * Тихий no-op якщо замовлення не знайдено.
+     */
+    public static function fireTtnHandedToCourier($ttnId, $orderId = 0)
+    {
+        $ttnId   = (int)$ttnId;
+        $orderId = (int)$orderId;
+        if (!$ttnId) return;
+        if (!$orderId) $orderId = self::findOrderIdByTtnId($ttnId);
+        if (!$orderId) return;
+
+        require_once __DIR__ . '/../../counterparties/services/TriggerEngine.php';
+        require_once __DIR__ . '/../../counterparties/repositories/ScenarioRepository.php';
+
+        $rOrd = \Database::fetchRow('Papir',
+            "SELECT * FROM customerorder WHERE id={$orderId} LIMIT 1");
+        if (!$rOrd['ok'] || empty($rOrd['row'])) return;
+
+        $rTtn = \Database::fetchRow('Papir',
+            "SELECT id, int_doc_number, state_define, state_name
+             FROM ttn_novaposhta WHERE id={$ttnId} LIMIT 1");
+        if (!$rTtn['ok'] || empty($rTtn['row'])) return;
+
+        \TriggerEngine::fire('ttn_handed_to_courier', array(
+            'order'           => $rOrd['row'],
+            'order_id'        => $orderId,
+            'counterparty_id' => (int)$rOrd['row']['counterparty_id'],
+            'ttn_type'        => 'novaposhta',
+            'ttn'             => array(
+                'id'             => (int)$rTtn['row']['id'],
+                'int_doc_number' => $rTtn['row']['int_doc_number'],
+                'state_define'   => $rTtn['row']['state_define'],
+                'state_name'     => $rTtn['row']['state_name'],
+            ),
+        ));
     }
 
     /**
@@ -443,12 +542,40 @@ class TtnService
      */
     public static function getFormPrefill($orderId)
     {
+        $orderId = (int)$orderId;
+
+        // Standalone TTN (no order context)
+        if ($orderId <= 0) {
+            $defSender = SenderRepository::getDefault();
+            $senderRef = $defSender ? $defSender['Ref'] : null;
+            $senderDefaultAddr = $senderRef ? SenderRepository::getDefaultAddress($senderRef) : null;
+
+            $result = array(
+                'order_id'             => 0,
+                'sum_total'            => 0,
+                'backward_money_hint'  => 0,
+                'recipient'            => array(
+                    'first_name' => '', 'last_name' => '', 'middle_name' => '', 'phone' => '',
+                    'edrpou' => '', 'counterparty_type' => 'PrivatePerson', 'full_name' => '',
+                ),
+                'sender_ref'           => $senderRef,
+                'senders'              => SenderRepository::getAll(),
+                'existing_ttns'        => array(),
+                'sender_address_ref'   => $senderDefaultAddr ? $senderDefaultAddr['Ref'] : '',
+                'city_sender_ref'      => $senderDefaultAddr ? ($senderDefaultAddr['CityRef'] ?: '') : '',
+                'city_sender_desc'     => $senderDefaultAddr ? ($senderDefaultAddr['CityDescription'] ?: '') : '',
+                'description_hint'     => NpDefaults::get('description', 'Канцтовари'),
+                'additional_info_hint' => '',
+            );
+            return array('ok' => true, 'data' => $result);
+        }
+
         $rOrder = \Database::fetchRow('Papir',
             "SELECT co.id, co.number, co.source, co.sum_total, co.organization_id,
                     co.counterparty_id, co.contact_person_id,
                     co.payment_method_id, co.sum_paid
              FROM customerorder co
-             WHERE co.id = " . (int)$orderId . " AND co.deleted_at IS NULL LIMIT 1");
+             WHERE co.id = " . $orderId . " AND co.deleted_at IS NULL LIMIT 1");
 
         if (!$rOrder['ok'] || !$rOrder['row']) {
             return array('ok' => false, 'error' => 'Order not found');
