@@ -25,6 +25,7 @@ require_once __DIR__ . '/../MsAttributesParser.php';
 require_once __DIR__ . '/../../shared/DocumentHistory.php';
 require_once __DIR__ . '/../../counterparties/counterparties_bootstrap.php';
 require_once __DIR__ . '/../services/OrderFinanceHelper.php';
+require_once __DIR__ . '/../services/OrderOrgResolver.php';
 
 function mswhk_order_log($msg) {
     @file_put_contents('/var/www/papir/storage/ms_webhook_customerorder.log',
@@ -128,13 +129,20 @@ function mswhk_order_upsert(array $doc, MoySkladApi $ms, array &$errors)
         $counterpartyId = mswhk_cp_resolve($agentMs, $agentDoc, 'mswhk_order_log');
     }
 
-    // Организация
+    // Организация: спочатку за UUID з МС, якщо не знайдено —
+    // fallback через OrderOrgResolver (VAT-статус контрагента).
     $organizationId = null;
     if (!empty($doc['organization']['meta']['href'])) {
         $orgMs = mswhk_order_uuid($doc['organization']['meta']['href']);
         $r = Database::fetchRow('Papir',
             "SELECT id FROM organization WHERE id_ms = '" . Database::escape('Papir', $orgMs) . "' LIMIT 1");
         if ($r['ok'] && !empty($r['row'])) $organizationId = (int)$r['row']['id'];
+    }
+    if ($organizationId === null) {
+        $resolved = OrderOrgResolver::resolve($counterpartyId, '', (string)$desc);
+        if (!empty($resolved['organization_id'])) {
+            $organizationId = (int)$resolved['organization_id'];
+        }
     }
 
     // Статус из UUID → order_status_ms_mapping

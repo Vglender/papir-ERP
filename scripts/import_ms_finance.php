@@ -62,6 +62,18 @@ if ($r['ok']) foreach ($r['rows'] as $row) $importedBank[$row['id_ms']] = true;
 
 out('В finance_cash: ' . count($importedCash) . ', в finance_bank: ' . count($importedBank));
 
+// Локальні мапи UUID → int id (Papir — джерело правди, МС-UUID лише маппінг)
+out('Завантаження локальних cp/org map...');
+$cpMap = array();
+$r = Database::fetchAll('Papir', "SELECT id, id_ms FROM counterparty WHERE id_ms IS NOT NULL");
+if ($r['ok']) foreach ($r['rows'] as $row) $cpMap[$row['id_ms']] = (int)$row['id'];
+
+$orgMap = array();
+$r = Database::fetchAll('Papir', "SELECT id, id_ms FROM organization WHERE id_ms IS NOT NULL");
+if ($r['ok']) foreach ($r['rows'] as $row) $orgMap[$row['id_ms']] = (int)$row['id'];
+
+out('cp map: ' . count($cpMap) . ', org map: ' . count($orgMap));
+
 // ── Завантажити атрибут moving для paymentin / paymentout ────────────────
 
 out('Завантаження атрибутів moving...');
@@ -86,7 +98,7 @@ $stats = array(
     'skipped'  => 0, 'errors'    => 0,
 );
 
-function importRows($msTable, $targetTable, $direction, $movingSet, &$importedSet, &$stats, $dryRun) {
+function importRows($msTable, $targetTable, $direction, $movingSet, &$importedSet, &$cpMap, &$orgMap, &$stats, $dryRun) {
     $batchSize = 1000;
     $offset    = 0;
 
@@ -128,6 +140,14 @@ function importRows($msTable, $targetTable, $direction, $movingSet, &$importedSe
             $docNumS     = nullOrStr('Papir', $row['name']);
             $agentS      = nullOrStr('Papir', $row['agent']);
             $orgS        = nullOrStr('Papir', $row['organization']);
+
+            // Локальні FK (резолв через мапи)
+            $agentRaw = trim((string)$row['agent']);
+            $orgRaw   = trim((string)$row['organization']);
+            $cpId     = ($agentRaw !== '' && isset($cpMap[$agentRaw]))  ? $cpMap[$agentRaw]  : null;
+            $orgIdL   = ($orgRaw   !== '' && isset($orgMap[$orgRaw]))   ? $orgMap[$orgRaw]   : null;
+            $cpIdSql  = $cpId   ? $cpId   : 'NULL';
+            $orgIdSql = $orgIdL ? $orgIdL : 'NULL';
             $descS       = nullOrStr('Papir', $row['description']);
             $extCodeS    = nullOrStr('Papir', $row['externalCode']);
             $stateS      = ($hasState && !empty($row['state'])) ? nullOrStr('Papir', $row['state']) : 'NULL';
@@ -137,20 +157,24 @@ function importRows($msTable, $targetTable, $direction, $movingSet, &$importedSe
 
             if ($targetTable === 'finance_cash') {
                 $sql = "INSERT INTO finance_cash
-                    (id_ms, direction, moment, doc_number, sum, agent_ms, organization_ms,
+                    (id_ms, direction, moment, doc_number, sum,
+                     agent_ms, counterparty_id, organization_ms, organization_id,
                      is_posted, is_moving, expense_item_ms, description, payment_purpose,
                      external_code, state_ms, operations, source)
                     VALUES
-                    ({$idMsS}, '{$direction}', {$moment}, {$docNumS}, {$sum}, {$agentS}, {$orgS},
+                    ({$idMsS}, '{$direction}', {$moment}, {$docNumS}, {$sum},
+                     {$agentS}, {$cpIdSql}, {$orgS}, {$orgIdSql},
                      {$applicable}, {$isMoving}, {$expItemS}, {$descS}, {$purposeS},
                      {$extCodeS}, {$stateS}, {$operations}, 'moysklad')";
             } else {
                 $sql = "INSERT INTO finance_bank
-                    (id_ms, direction, moment, doc_number, sum, agent_ms, organization_ms,
+                    (id_ms, direction, moment, doc_number, sum,
+                     agent_ms, cp_id, organization_ms,
                      is_posted, is_moving, expense_item_ms, agent_account_ms, description,
                      payment_purpose, external_code, state_ms, operations, source)
                     VALUES
-                    ({$idMsS}, '{$direction}', {$moment}, {$docNumS}, {$sum}, {$agentS}, {$orgS},
+                    ({$idMsS}, '{$direction}', {$moment}, {$docNumS}, {$sum},
+                     {$agentS}, {$cpIdSql}, {$orgS},
                      {$applicable}, {$isMoving}, {$expItemS}, {$agentAccS}, {$descS},
                      {$purposeS}, {$extCodeS}, {$stateS}, {$operations}, 'moysklad')";
             }
@@ -173,20 +197,28 @@ function importRows($msTable, $targetTable, $direction, $movingSet, &$importedSe
 
 // ── Імпорт ───────────────────────────────────────────────────────────────
 
-out('--- cashin → finance_cash (in) ---');
-importRows('cashin',     'finance_cash', 'in',  array(), $importedCash, $stats, $dryRun);
-out("cash_in: {$stats['cash_in']}");
+// cashin — керується через MsExchangeGuard (finance_cashin.C.from).
+// За замовчуванням вхід з МС вимкнено: Papir тепер джерело правди для ПКО.
+// Ввімкнути назад можна в UI: Інтеграції → МС → "Каса — ПКО (накладенка)".
+require_once __DIR__ . '/../modules/integrations/MsExchangeGuard.php';
+if (MsExchangeGuard::isAllowed('finance_cashin', 'C', 'from')) {
+    out('--- cashin → finance_cash (in) ---');
+    importRows('cashin',     'finance_cash', 'in',  array(), $importedCash, $cpMap, $orgMap, $stats, $dryRun);
+    out("cash_in: {$stats['cash_in']}");
+} else {
+    out('--- cashin SKIPPED (disabled via MS settings) ---');
+}
 
 out('--- cashout → finance_cash (out) ---');
-importRows('cashout',    'finance_cash', 'out', array(), $importedCash, $stats, $dryRun);
+importRows('cashout',    'finance_cash', 'out', array(), $importedCash, $cpMap, $orgMap, $stats, $dryRun);
 out("cash_out: {$stats['cash_out']}");
 
 out('--- paymentin → finance_bank (in) ---');
-importRows('paymentin',  'finance_bank', 'in',  $movingPaymentin,  $importedBank, $stats, $dryRun);
+importRows('paymentin',  'finance_bank', 'in',  $movingPaymentin,  $importedBank, $cpMap, $orgMap, $stats, $dryRun);
 out("bank_in: {$stats['bank_in']}");
 
 out('--- paymentout → finance_bank (out) ---');
-importRows('paymentout', 'finance_bank', 'out', $movingPaymentout, $importedBank, $stats, $dryRun);
+importRows('paymentout', 'finance_bank', 'out', $movingPaymentout, $importedBank, $cpMap, $orgMap, $stats, $dryRun);
 out("bank_out: {$stats['bank_out']}");
 
 // ── Підсумок ─────────────────────────────────────────────────────────────

@@ -155,7 +155,10 @@ function finance_ms_push($localId, array $formData, $existingIdMs = '')
 
 /**
  * Собрать payload для МС (cashin/cashout).
- * Отличие от bank: agent передаётся через agent_ms UUID напрямую (не через cp_id).
+ *
+ * Локальные ключи (counterparty_id, organization_id) — основа правды;
+ * agent_ms / organization_ms используем только если уже заполнены или
+ * если их можно резолвить из локальных id (через counterparty.id_ms / organization.id_ms).
  */
 function _finance_ms_cash_build_payload(array $formData, MoySkladApi $ms)
 {
@@ -167,12 +170,30 @@ function _finance_ms_cash_build_payload(array $formData, MoySkladApi $ms)
     $docNumber   = isset($formData['doc_number']) ? trim((string)$formData['doc_number']) : '';
     $desc        = isset($formData['description'])     ? trim((string)$formData['description'])     : '';
     $purpose     = isset($formData['payment_purpose']) ? trim((string)$formData['payment_purpose']) : '';
+    $cpId        = isset($formData['counterparty_id']) ? (int)$formData['counterparty_id'] : 0;
+    $orgId       = isset($formData['organization_id']) ? (int)$formData['organization_id'] : 0;
     $agentMs     = isset($formData['agent_ms'])        ? trim((string)$formData['agent_ms'])        : '';
     $agentMsType = isset($formData['agent_ms_type']) && $formData['agent_ms_type'] !== ''
         ? (string)$formData['agent_ms_type']
         : 'counterparty';
     $expCatId    = isset($formData['expense_category_id']) ? (int)$formData['expense_category_id'] : 0;
     $orgMs       = isset($formData['organization_ms']) ? trim((string)$formData['organization_ms']) : '';
+
+    // Резолв id_ms за локальним FK, якщо UUID-маппінг ще порожній.
+    if ($agentMs === '' && $cpId > 0) {
+        $cpRow = Database::fetchRow('Papir',
+            "SELECT id_ms FROM counterparty WHERE id = {$cpId} LIMIT 1");
+        if ($cpRow['ok'] && !empty($cpRow['row']['id_ms'])) {
+            $agentMs = (string)$cpRow['row']['id_ms'];
+        }
+    }
+    if ($orgMs === '' && $orgId > 0) {
+        $orgRow = Database::fetchRow('Papir',
+            "SELECT id_ms FROM organization WHERE id = {$orgId} LIMIT 1");
+        if ($orgRow['ok'] && !empty($orgRow['row']['id_ms'])) {
+            $orgMs = (string)$orgRow['row']['id_ms'];
+        }
+    }
 
     $payload = array(
         'applicable' => $isPosted,

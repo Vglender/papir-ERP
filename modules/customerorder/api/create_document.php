@@ -181,6 +181,7 @@ $orgMs = ($rCpOrg['ok'] && $rCpOrg['row']) ? (string)$rCpOrg['row']['org_ms'] : 
 
 $sumTotal = round((float)$order['sum_total'] * 100) / 100;
 $cpId     = !empty($order['counterparty_id']) ? (int)$order['counterparty_id'] : 0;
+$orgIdL   = !empty($order['organization_id']) ? (int)$order['organization_id'] : 0;
 $moment   = date('Y-m-d H:i:s');
 
 // ── Create paymentin (finance_bank direction=in) ──────────────────────────────
@@ -239,6 +240,8 @@ if ($toType === 'cashin') {
         'direction'    => 'in',
         'moment'       => $moment,
         'sum'          => $sumTotal,
+        'counterparty_id' => $cpId   > 0 ? $cpId   : null,
+        'organization_id' => $orgIdL > 0 ? $orgIdL : null,
         'agent_ms'     => $cpMs !== '' ? $cpMs : null,
         'agent_ms_type'=> 'counterparty',
         'organization_ms' => $orgMs,
@@ -263,6 +266,8 @@ if ($toType === 'cashin') {
         'doc_number'      => '',
         'description'     => (string)$order['description'],
         'payment_purpose' => '',
+        'counterparty_id' => $cpId,
+        'organization_id' => $orgIdL,
         'agent_ms'        => $cpMs,
         'agent_ms_type'   => 'counterparty',
         'expense_category_id' => 0,

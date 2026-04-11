@@ -35,7 +35,16 @@ $docs = array(
         'C_from' => $_gs('ms_finance_C_from','1'), 'C_to' => $_gs('ms_finance_C_to','0'),
         'U_from' => $_gs('ms_finance_U_from','1'), 'U_to' => $_gs('ms_finance_U_to','0'),
         'D_from' => $_gs('ms_finance_D_from','1'), 'D_to' => $_gs('ms_finance_D_to','1'),
-        'note'   => 'Створення: тільки з МС',
+        'note'   => 'Payment/cash — загальний контроль',
+    ),
+    'finance_cashin' => array(
+        'label' => 'Каса — ПКО (накладенка)',
+        'wh'    => 'wh_finance',
+        'wh_on' => $_gs('wh_finance','1') === '1',
+        'C_from' => $_gs('ms_finance_cashin_C_from','0'), 'C_to' => $_gs('ms_finance_cashin_C_to','1'),
+        'U_from' => $_gs('ms_finance_cashin_U_from','0'), 'U_to' => $_gs('ms_finance_cashin_U_to','1'),
+        'D_from' => $_gs('ms_finance_cashin_D_from','0'), 'D_to' => $_gs('ms_finance_cashin_D_to','1'),
+        'note'   => 'Papir = джерело правди (сценарій по ТТН)',
     ),
 );
 

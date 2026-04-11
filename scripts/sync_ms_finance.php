@@ -30,13 +30,29 @@ if (!flock($_lockFp, LOCK_EX | LOCK_NB)) {
 require_once __DIR__ . '/../modules/database/database.php';
 require_once __DIR__ . '/../modules/moysklad/moysklad_api.php';
 
-$dryRun   = in_array('--dry-run', $argv);
-$fullSync = in_array('--full', $argv);
-$logFile  = '/tmp/sync_ms_finance.log';
-$myPid    = getmypid();
+$dryRun       = in_array('--dry-run', $argv);
+$fullSync     = in_array('--full', $argv);
+$cashinOnly   = in_array('--cashin-only', $argv);
+$bypassGuard  = in_array('--bypass-guard', $argv);
+$logFile      = '/tmp/sync_ms_finance.log';
+$myPid        = getmypid();
+
+// Override дати через --from=YYYY-MM-DD (для одноразового backfill).
+$fromOverride = null;
+foreach ($argv as $a) {
+    if (strpos($a, '--from=') === 0) {
+        $fromOverride = substr($a, 7);
+    }
+}
 
 // Інкрементальний синк: документи оновлені за останні 48 годин
-$updatedFrom = $fullSync ? null : date('Y-m-d H:i:s', strtotime('-48 hours'));
+if ($fromOverride !== null) {
+    $updatedFrom = $fromOverride;
+} elseif ($fullSync) {
+    $updatedFrom = null;
+} else {
+    $updatedFrom = date('Y-m-d H:i:s', strtotime('-48 hours'));
+}
 
 function out($msg) { echo date('[H:i:s] ') . $msg . PHP_EOL; }
 
@@ -74,7 +90,7 @@ out($fullSync ? 'Режим: ПОВНИЙ (всі документи)' : 'Реж
 $ms         = new MoySkladApi();
 $entityBase = $ms->getEntityBaseUrl(); // .../entity/
 
-// ── Завантажити map: agent_ms (UUID контрагента МС) → counterparty.id ────
+// ── Завантажити map: id_ms (UUID МС) → локальний id ──────────────────────
 
 out('Завантаження counterparty map...');
 $cpMap = array(); // uuid → counterparty.id
@@ -85,6 +101,16 @@ if ($r['ok']) {
     }
 }
 out('Контрагентів у map: ' . count($cpMap));
+
+out('Завантаження organization map...');
+$orgMap = array(); // uuid → organization.id
+$r = Database::fetchAll('Papir', "SELECT id, id_ms FROM organization WHERE id_ms IS NOT NULL");
+if ($r['ok']) {
+    foreach ($r['rows'] as $row) {
+        $orgMap[$row['id_ms']] = (int)$row['id'];
+    }
+}
+out('Організацій у map: ' . count($orgMap));
 
 // ── Завантажити існуючі записи: id_ms → updated_at ───────────────────────
 
@@ -165,10 +191,10 @@ function fetchMsFinanceDocs($ms, $entityBase, $docType, $updatedFrom) {
 // ── Синк одного типу документів ──────────────────────────────────────────
 
 function syncDocType($docType, $targetTable, $direction, $movingAttrId,
-                     &$existingSet, &$cpMap, &$stats, $dryRun,
+                     &$existingSet, &$cpMap, &$orgMap, &$stats, $dryRun,
                      $ms, $entityBase, $updatedFrom) {
 
-    $hasCpId           = ($targetTable === 'finance_bank');
+    // Обидві таблиці тепер мають локальні FK як джерело правди.
     $hasExpenseItem    = in_array($docType, array('cashout', 'paymentout'));
     $hasPaymentPurpose = in_array($docType, array('cashout', 'paymentin', 'paymentout'));
     $hasState          = in_array($docType, array('cashin', 'paymentin', 'paymentout'));
@@ -224,8 +250,11 @@ function syncDocType($docType, $targetTable, $direction, $movingAttrId,
             }
         }
 
-        $cpId    = ($hasCpId && $agentMs !== '' && isset($cpMap[$agentMs])) ? $cpMap[$agentMs] : null;
-        $cpIdSql = $cpId ? $cpId : 'NULL';
+        // Локальні FK через map'и (cp/org).
+        $cpId    = ($agentMs !== '' && isset($cpMap[$agentMs])) ? $cpMap[$agentMs] : null;
+        $orgIdL  = ($orgMs   !== '' && isset($orgMap[$orgMs]))  ? $orgMap[$orgMs]  : null;
+        $cpIdSql = $cpId   ? $cpId   : 'NULL';
+        $orgIdSql= $orgIdL ? $orgIdL : 'NULL';
         $updSql  = $updatedMs ? "'" . Database::escape('Papir', $updatedMs) . "'" : 'NOW()';
 
         $agentS    = nullOrStr($agentMs);
@@ -259,7 +288,8 @@ function syncDocType($docType, $targetTable, $direction, $movingAttrId,
                     Database::query('Papir',
                         "UPDATE finance_cash SET
                          sum={$sum}, is_posted={$applicable}, is_moving={$isMoving},
-                         agent_ms={$agentS}, organization_ms={$orgS},
+                         agent_ms={$agentS}, counterparty_id={$cpIdSql},
+                         organization_ms={$orgS}, organization_id={$orgIdSql},
                          description={$descS}, payment_purpose={$purposeS},
                          expense_item_ms={$expItemS}, state_ms={$stateS},
                          operations={$opsCount}, updated_at={$updSql}
@@ -283,12 +313,14 @@ function syncDocType($docType, $targetTable, $direction, $movingAttrId,
 
         if ($targetTable === 'finance_cash') {
             $sql = "INSERT INTO finance_cash
-                (id_ms, direction, moment, doc_number, sum, agent_ms, organization_ms,
+                (id_ms, direction, moment, doc_number, sum, agent_ms, counterparty_id,
+                 organization_ms, organization_id,
                  is_posted, is_moving, expense_item_ms, description, payment_purpose,
                  external_code, state_ms, operations, source, updated_at)
                 VALUES
                 ({$idMsS}, '{$direction}', {$momentSql}, {$docNumS}, {$sum},
-                 {$agentS}, {$orgS}, {$applicable}, {$isMoving}, {$expItemS},
+                 {$agentS}, {$cpIdSql}, {$orgS}, {$orgIdSql},
+                 {$applicable}, {$isMoving}, {$expItemS},
                  {$descS}, {$purposeS}, {$extCodeS}, {$stateS}, {$opsCount},
                  'moysklad', {$updSql})";
         } else {
@@ -316,44 +348,97 @@ function syncDocType($docType, $targetTable, $direction, $movingAttrId,
 
 // ── Синк по типах ─────────────────────────────────────────────────────────
 
-out('--- cashin ---');
-syncDocType('cashin',     'finance_cash', 'in',  null,
-            $existingCash, $cpMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
+// cashin — керується через MsExchangeGuard (finance_cashin.C.from).
+// За замовчуванням вхід з МС вимкнено: Papir тепер джерело правди для ПКО
+// (створюються через TaskQueueRunner::doCreateCashin по "ТТН отримано").
+// Ввімкнути назад можна в UI: Інтеграції → МС → "Каса — ПКО (накладенка)".
+// --bypass-guard + --cashin-only використовуються для одноразового backfill.
+require_once __DIR__ . '/../modules/integrations/MsExchangeGuard.php';
+$cashinAllowed = $bypassGuard || MsExchangeGuard::isAllowed('finance_cashin', 'C', 'from');
 
-out('--- cashout ---');
-syncDocType('cashout',    'finance_cash', 'out', null,
-            $existingCash, $cpMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
-
-out('--- paymentin ---');
-syncDocType('paymentin',  'finance_bank', 'in',  $movingAttrIds['paymentin'],
-            $existingBank, $cpMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
-
-out('--- paymentout ---');
-syncDocType('paymentout', 'finance_bank', 'out', $movingAttrIds['paymentout'],
-            $existingBank, $cpMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
-
-// ── Backfill cp_id для існуючих finance_bank без cp_id ───────────────────
-
-out('--- backfill cp_id в finance_bank ---');
-$bfR = Database::fetchAll('Papir',
-    "SELECT id, agent_ms FROM finance_bank WHERE cp_id IS NULL AND agent_ms IS NOT NULL"
-);
-$bfCount = 0;
-if ($bfR['ok']) {
-    foreach ($bfR['rows'] as $row) {
-        $agentMs = $row['agent_ms'];
-        if (!isset($cpMap[$agentMs])) continue;
-        $cpId = $cpMap[$agentMs];
-        if (!$dryRun) {
-            Database::query('Papir',
-                "UPDATE finance_bank SET cp_id={$cpId} WHERE id=" . (int)$row['id']
-            );
-        }
-        $bfCount++;
-    }
+if ($cashinAllowed) {
+    out('--- cashin ---');
+    syncDocType('cashin',     'finance_cash', 'in',  null,
+                $existingCash, $cpMap, $orgMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
+} else {
+    out('--- cashin SKIPPED (disabled via MS settings) ---');
 }
-$stats['backfill'] = $bfCount;
-out("backfill: {$bfCount}");
+
+if (!$cashinOnly) {
+    out('--- cashout ---');
+    syncDocType('cashout',    'finance_cash', 'out', null,
+                $existingCash, $cpMap, $orgMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
+
+    out('--- paymentin ---');
+    syncDocType('paymentin',  'finance_bank', 'in',  $movingAttrIds['paymentin'],
+                $existingBank, $cpMap, $orgMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
+
+    out('--- paymentout ---');
+    syncDocType('paymentout', 'finance_bank', 'out', $movingAttrIds['paymentout'],
+                $existingBank, $cpMap, $orgMap, $stats, $dryRun, $ms, $entityBase, $updatedFrom);
+} else {
+    out('--- cashout/paymentin/paymentout SKIPPED (cashin-only mode) ---');
+}
+
+// ── Backfill локальних FK для рядків, де UUID-маппінг є, а локальний id ще NULL.
+// Спрацьовує коли в Papir з'явилися нові cp/org з відомими id_ms, які раніше
+// були імпортовані без локального id.
+
+if (!$cashinOnly) {
+    out('--- backfill локальних FK ---');
+    $bfCount = 0;
+
+    // finance_bank.cp_id
+    $bfR = Database::fetchAll('Papir',
+        "SELECT id, agent_ms FROM finance_bank WHERE cp_id IS NULL AND agent_ms IS NOT NULL"
+    );
+    if ($bfR['ok']) {
+        foreach ($bfR['rows'] as $row) {
+            if (!isset($cpMap[$row['agent_ms']])) continue;
+            $cpId = $cpMap[$row['agent_ms']];
+            if (!$dryRun) {
+                Database::query('Papir',
+                    "UPDATE finance_bank SET cp_id={$cpId} WHERE id=" . (int)$row['id']);
+            }
+            $bfCount++;
+        }
+    }
+
+    // finance_cash.counterparty_id
+    $bfR = Database::fetchAll('Papir',
+        "SELECT id, agent_ms FROM finance_cash WHERE counterparty_id IS NULL AND agent_ms IS NOT NULL"
+    );
+    if ($bfR['ok']) {
+        foreach ($bfR['rows'] as $row) {
+            if (!isset($cpMap[$row['agent_ms']])) continue;
+            $cpId = $cpMap[$row['agent_ms']];
+            if (!$dryRun) {
+                Database::query('Papir',
+                    "UPDATE finance_cash SET counterparty_id={$cpId} WHERE id=" . (int)$row['id']);
+            }
+            $bfCount++;
+        }
+    }
+
+    // finance_cash.organization_id
+    $bfR = Database::fetchAll('Papir',
+        "SELECT id, organization_ms FROM finance_cash WHERE organization_id IS NULL AND organization_ms IS NOT NULL"
+    );
+    if ($bfR['ok']) {
+        foreach ($bfR['rows'] as $row) {
+            if (!isset($orgMap[$row['organization_ms']])) continue;
+            $orgIdL = $orgMap[$row['organization_ms']];
+            if (!$dryRun) {
+                Database::query('Papir',
+                    "UPDATE finance_cash SET organization_id={$orgIdL} WHERE id=" . (int)$row['id']);
+            }
+            $bfCount++;
+        }
+    }
+
+    $stats['backfill'] = $bfCount;
+    out("backfill: {$bfCount}");
+}
 
 // ── Підсумок ──────────────────────────────────────────────────────────────
 

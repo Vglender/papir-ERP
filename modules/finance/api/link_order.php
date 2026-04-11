@@ -90,7 +90,7 @@ $orderCpMs   = ($rOrder['ok'] && $rOrder['row']) ? (string)$rOrder['row']['cp_id
 
 if ($orderCpId > 0 && $orderCpId !== UNMATCHED_CP_ID) {
     if ($paymentType === 'paymentin') {
-        // finance_bank has cp_id column
+        // finance_bank: локальний cp_id — джерело правди
         $currentCpId = !empty($pay['cp_id']) ? (int)$pay['cp_id'] : 0;
         if ($currentCpId === 0 || $currentCpId === UNMATCHED_CP_ID) {
             Database::update('Papir', 'finance_bank',
@@ -99,23 +99,15 @@ if ($orderCpId > 0 && $orderCpId !== UNMATCHED_CP_ID) {
             $cpUpdated = true;
         }
     } else {
-        // finance_cash: check if current agent_ms maps to НЕРАЗОБРАННОЕ or is empty
-        $currentAgentMs = !empty($pay['agent_ms']) ? trim($pay['agent_ms']) : '';
-        $isUnmatched = false;
-        if ($currentAgentMs === '') {
-            $isUnmatched = true;
-        } else {
-            // Check if agent_ms maps to НЕРАЗОБРАННОЕ
-            $rCp = Database::fetchRow('Papir',
-                "SELECT id, name FROM counterparty WHERE id_ms = '" . Database::escape('Papir', $currentAgentMs) . "' LIMIT 1");
-            if (!$rCp['ok'] || empty($rCp['row']) || $rCp['row']['name'] === 'НЕРАЗОБРАННОЕ') {
-                $isUnmatched = true;
+        // finance_cash: локальний counterparty_id — джерело правди.
+        // Заповнюємо також agent_ms (маппінг), якщо локальний cp має id_ms.
+        $currentCpId = !empty($pay['counterparty_id']) ? (int)$pay['counterparty_id'] : 0;
+        if ($currentCpId === 0 || $currentCpId === UNMATCHED_CP_ID) {
+            $upd = array('counterparty_id' => $orderCpId);
+            if ($orderCpMs !== '') {
+                $upd['agent_ms'] = $orderCpMs;
             }
-        }
-        if ($isUnmatched && $orderCpMs !== '') {
-            Database::update('Papir', 'finance_cash',
-                array('agent_ms' => $orderCpMs),
-                array('id' => $paymentId));
+            Database::update('Papir', 'finance_cash', $upd, array('id' => $paymentId));
             $cpUpdated = true;
         }
     }

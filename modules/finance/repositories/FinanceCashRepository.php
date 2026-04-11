@@ -70,8 +70,14 @@ class FinanceCashRepository
 
     private function baseFrom()
     {
+        // counterparty_id — локальний FK, джерело правди (як cp_id у finance_bank).
+        // agent_ms лишається в таблиці, але читаємо через нього лише як fallback
+        // для legacy-рядків (~1097), де cp був видалений локально, але існував
+        // у МС. Це покриває обидва кейси без розгалуження UI-логіки.
         return "FROM finance_cash fc
-                LEFT JOIN counterparty cp ON cp.id_ms = fc.agent_ms
+                LEFT JOIN counterparty cp
+                       ON cp.id = fc.counterparty_id
+                       OR (fc.counterparty_id IS NULL AND cp.id_ms = fc.agent_ms)
                 LEFT JOIN finance_expense_category fec ON fec.id = fc.expense_category_id";
     }
 
@@ -85,7 +91,8 @@ class FinanceCashRepository
         $r = Database::fetchAll('Papir',
             "SELECT fc.id, fc.id_ms, fc.direction, fc.moment, fc.doc_number,
                     fc.sum, fc.description, fc.payment_purpose, fc.is_posted, fc.is_moving,
-                    fc.agent_ms, fc.expense_item_ms, fc.operations, fc.source,
+                    fc.agent_ms, fc.counterparty_id, fc.organization_id,
+                    fc.expense_item_ms, fc.operations, fc.source,
                     fc.expense_category_id,
                     fec.name AS expense_category_name,
                     cp.id   AS cp_id,

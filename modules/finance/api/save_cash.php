@@ -40,7 +40,7 @@ if ($momentTs === false) {
 }
 $momentDt = date('Y-m-d H:i:s', $momentTs);
 
-// Resolve agent_ms from cp_id
+// Локальний counterparty_id — джерело правди. id_ms — лише маппінг для МС-пушу.
 $agentMs = null;
 $cpName  = '';
 if ($cpId > 0) {
@@ -57,6 +57,7 @@ $data = array(
     'moment'          => $momentDt,
     'doc_number'      => $docNumber !== '' ? $docNumber : null,
     'sum'             => round($sum, 2),
+    'counterparty_id' => $cpId > 0 ? $cpId : null,
     'agent_ms'        => $agentMs,
     'payment_purpose' => $purpose !== '' ? $purpose : null,
     'description'     => $desc !== '' ? $desc : null,

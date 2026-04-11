@@ -889,7 +889,7 @@ var SC = {
             html += '<label>Код дії</label>'
                 + '<input type="text" class="sc-na-action" placeholder="напр. ship, call, confirm" value="'+(params.action||'')+'">'
                 + '<label style="margin-top:8px;display:block">Підпис кнопки</label>'
-                + '<input type="text" class="sc-na-label" placeholder="напр. Відправити, Зателефонувати" value="'+(params.label||'')+'">';
+                + '<input type="text" class="sc-na-label" placeholder="напр. Створити ТТН, Зателефонувати" value="'+(params.label||'')+'">';
         }
 
         if (action === 'wait') {

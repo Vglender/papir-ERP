@@ -58,6 +58,18 @@ return array(
         'source_class' => 'GmailSmtpService',
     ),
 
+    'client_portal' => array(
+        'name'        => 'Клієнтський портал',
+        'category'    => 'communications',
+        'icon'        => 'portal.svg',
+        'description' => 'Публічна сторінка замовлення для клієнта (перехід за коротким посиланням)',
+        'settings'    => array(
+            array('key' => 'portal_base_url',      'label' => 'Базовий URL',         'type' => 'text', 'secret' => false),
+            array('key' => 'telegram_contact_url', 'label' => 'Telegram для зв\'язку', 'type' => 'text', 'secret' => false),
+        ),
+        'source_class' => 'ClientPortalService',
+    ),
+
     'whatsapp' => array(
         'name'        => 'WhatsApp',
         'category'    => 'communications',
@@ -86,6 +98,37 @@ return array(
             array('key' => 'default_weight',         'label' => 'Вага (кг)',        'type' => 'number', 'secret' => false),
             array('key' => 'default_seats_amount',   'label' => 'К-сть місць',     'type' => 'number', 'secret' => false),
             array('key' => 'default_description',    'label' => 'Опис вантажу',    'type' => 'text',   'secret' => false),
+        ),
+    ),
+
+    'ukrposhta' => array(
+        'name'        => 'Укрпошта',
+        'category'    => 'delivery',
+        'icon'        => 'ukrposhta.svg',
+        'description' => 'ТТН, реєстри, відстеження посилок Укрпошти',
+        'custom_view' => '/modules/integrations/views/ukrposhta_settings.php',
+        'has_connections' => false, // single account — tokens stored in integration_settings
+        'settings'    => array(
+            // API tokens (secrets)
+            array('key' => 'ecom_token',                'label' => 'eCom Bearer',         'type' => 'text',   'secret' => true),
+            array('key' => 'user_token',                'label' => 'User Token',          'type' => 'text',   'secret' => true),
+            array('key' => 'tracking_token',            'label' => 'Tracking Bearer',     'type' => 'text',   'secret' => true),
+            // Default sender (Hlonder FOP — one account)
+            array('key' => 'default_sender_uuid',       'label' => 'Sender UUID',         'type' => 'select', 'secret' => false),
+            array('key' => 'default_client_uuid',       'label' => 'Client UUID',         'type' => 'text',   'secret' => false),
+            array('key' => 'default_sender_address_id', 'label' => 'Адреса відправки',    'type' => 'text',   'secret' => false),
+            array('key' => 'default_return_address_id', 'label' => 'Адреса повернень',    'type' => 'text',   'secret' => false),
+            // Shipment defaults
+            array('key' => 'default_shipment_type',     'label' => 'Тип (EXPRESS/STANDARD)', 'type' => 'select', 'secret' => false),
+            array('key' => 'default_delivery_type',     'label' => 'Тип доставки',        'type' => 'select', 'secret' => false),
+            array('key' => 'default_payer',             'label' => 'Платник',             'type' => 'select', 'secret' => false),
+            array('key' => 'default_weight',            'label' => 'Вага (кг)',           'type' => 'number', 'secret' => false),
+            array('key' => 'default_length',            'label' => 'Довжина (см)',        'type' => 'number', 'secret' => false),
+            array('key' => 'default_width',             'label' => 'Ширина (см)',         'type' => 'number', 'secret' => false),
+            array('key' => 'default_height',            'label' => 'Висота (см)',         'type' => 'number', 'secret' => false),
+            array('key' => 'default_description',       'label' => 'Опис вантажу',        'type' => 'text',   'secret' => false),
+            array('key' => 'on_fail_receive_type',      'label' => 'При неотриманні',     'type' => 'select', 'secret' => false),
+            array('key' => 'return_after_storage_days', 'label' => 'Днів зберігання',     'type' => 'number', 'secret' => false),
         ),
     ),
 
@@ -118,6 +161,18 @@ return array(
             array('key' => 'ms_finance_D_from', 'label' => 'Finance Delete ←','type' => 'toggle','secret' => false),
             array('key' => 'ms_finance_D_to',   'label' => 'Finance Delete →','type' => 'toggle','secret' => false),
         ),
+    ),
+
+    'liqpay' => array(
+        'name'        => 'LiqPay',
+        'category'    => 'finance',
+        'icon'        => 'liqpay.svg',
+        'description' => 'Онлайн-оплати через LiqPay: webhook, reports backfill, автоматичне створення cashin',
+        'has_connections' => true,
+        'settings'    => array(
+            array('key' => 'sandbox', 'label' => 'Sandbox-режим', 'type' => 'toggle', 'secret' => false),
+        ),
+        'note' => 'API-ключі (public + private) зберігаються в "Підключеннях" — по одному запису на merchant/сайт. Webhook URL: /liqpay/webhook/callback',
     ),
 
     'privatbank' => array(
@@ -224,6 +279,33 @@ return array(
     ),
 
     // ── Sites ────────────────────────────────────────────────────────────────
+    'prom' => array(
+        'name'        => 'Prom.ua',
+        'category'    => 'sites',
+        'icon'        => 'prom.svg',
+        'description' => 'Маркетплейс Prom.ua: замовлення, товари, клієнти, доставка',
+        'custom_view' => '/modules/integrations/views/prom_settings.php',
+        'settings'    => array(
+            array('key' => 'auth_token',                    'label' => 'API Token',                         'type' => 'text',   'secret' => true),
+            array('key' => 'default_order_status_on_accept','label' => 'Статус при прийнятті',              'type' => 'select', 'secret' => false),
+            array('key' => 'default_delivery_type',         'label' => 'Тип доставки для ТТН',             'type' => 'select', 'secret' => false),
+            array('key' => 'sync_interval_minutes',         'label' => 'Інтервал синхронізації (хв)',      'type' => 'number', 'secret' => false),
+            array('key' => 'auto_set_ttn',                  'label' => 'Авто-відправка ТТН',               'type' => 'toggle', 'secret' => false),
+        ),
+    ),
+
+    'order_import' => array(
+        'name'        => 'Імпорт замовлень',
+        'category'    => 'finance',
+        'icon'        => 'order_import.svg',
+        'description' => 'Дефолтні організації для імпорту замовлень: платник ПДВ / неплатник',
+        'custom_view' => '/modules/integrations/views/order_import_settings.php',
+        'settings'    => array(
+            array('key' => 'default_org_vat',   'label' => 'Організація — платник ПДВ',   'type' => 'select', 'secret' => false),
+            array('key' => 'default_org_novat', 'label' => 'Організація — неплатник ПДВ', 'type' => 'select', 'secret' => false),
+        ),
+    ),
+
     'site_off' => array(
         'name'        => 'OfficeTorg',
         'category'    => 'sites',

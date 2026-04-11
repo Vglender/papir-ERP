@@ -83,6 +83,18 @@ foreach ($body['events'] as $event) {
         continue;
     }
 
+    // Гранулярний guard для cashin (ПКО). Керується через UI:
+    // Інтеграції → МС → рядок "Каса — ПКО (накладенка)".
+    // За замовчуванням вхід з МС вимкнено — Papir є джерелом правди
+    // (створюються через TaskQueueRunner::doCreateCashin по "ТТН отримано").
+    if ($type === 'cashin') {
+        $cashinOp = ($action === 'CREATE') ? 'C' : (($action === 'UPDATE') ? 'U' : 'D');
+        if (!MsExchangeGuard::isAllowed('finance_cashin', $cashinOp, 'from')) {
+            mswhk_log('cashin from MS skipped by guard (action=' . $action . ')');
+            continue;
+        }
+    }
+
     $msId = '';
     $pos  = strrpos($href, '/');
     if ($pos !== false) {
@@ -161,13 +173,22 @@ function mswhk_upsert(array $doc, $type, array &$errors)
         $agentType = isset($agentDoc['meta']['type']) ? (string)$agentDoc['meta']['type'] : '';
     }
 
-    // Найти или создать контрагента (нужно и для cash — чтобы JOIN в репозитории работал)
+    // Знайти або створити локального контрагента (B1: при відсутності — створюємо на льоту).
+    // Локальний counterparty_id — джерело правди в обох таблицях finance_*.
     $cpId = mswhk_cp_resolve($agentMs, $agentDoc, 'mswhk_log');
 
     $orgMs = '';
+    $orgId = null;
     if (!empty($doc['organization']['meta']['href'])) {
         $p = strrpos($doc['organization']['meta']['href'], '/');
         $orgMs = ($p !== false) ? substr($doc['organization']['meta']['href'], $p + 1) : '';
+    }
+    if ($orgMs !== '') {
+        $rOrg = Database::fetchRow('Papir',
+            "SELECT id FROM organization WHERE id_ms = '" . Database::escape('Papir', $orgMs) . "' LIMIT 1");
+        if ($rOrg['ok'] && !empty($rOrg['row'])) {
+            $orgId = (int)$rOrg['row']['id'];
+        }
     }
 
     $expItemMs = null;
@@ -224,13 +245,15 @@ function mswhk_upsert(array $doc, $type, array &$errors)
         $existing = Database::fetchRow('Papir',
             "SELECT id FROM finance_cash WHERE id_ms = '" . Database::escape('Papir', $msId) . "' LIMIT 1"
         );
-        // finance_cash не имеет cp_id — контрагент ищется через JOIN по agent_ms
+        // Локальні FK — джерело правди в finance_cash (як і в finance_bank).
+        $data['counterparty_id'] = $cpId;
+        $data['organization_id'] = $orgId;
     } else {
         $table    = 'finance_bank';
         $existing = Database::fetchRow('Papir',
             "SELECT id FROM finance_bank WHERE id_ms = '" . Database::escape('Papir', $msId) . "' LIMIT 1"
         );
-        $data['cp_id'] = $cpId; // только finance_bank хранит cp_id
+        $data['cp_id'] = $cpId;
     }
 
     if ($existing['ok'] && !empty($existing['row'])) {

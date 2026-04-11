@@ -145,7 +145,12 @@ class TriggerEngine
             return $cnt > 0 ? '1' : '0';
         }
 
-        // order.is_paid → '1' якщо сума оплат > 0
+        // order.is_paid → '1' якщо:
+        //   (a) сума оплат у document_link > 0, АБО
+        //   (b) order.payment_status = 'paid' (ставиться напряму з LiqPayCallbackService), АБО
+        //   (c) є успішний LiqPay receipt (на випадок якщо payment_status ще не перезаписаний).
+        // LiqPay receipt — джерело правди для швидкого реагування сценаріїв,
+        // не чекаючи приходу грошей по банку (який може затриматись на 1-2 дні).
         if ($key === 'order.is_paid') {
             $ordId = isset($context['order_id']) ? (int)$context['order_id'] : 0;
             if (!$ordId) return '0';
@@ -155,7 +160,19 @@ class TriggerEngine
                  WHERE dl.from_type IN ('paymentin', 'cashin')
                    AND dl.to_type   = 'customerorder'
                    AND dl.to_id     = {$ordId}");
-            return ($r['ok'] && !empty($r['row']) && (float)$r['row']['total'] > 0) ? '1' : '0';
+            if ($r['ok'] && !empty($r['row']) && (float)$r['row']['total'] > 0) return '1';
+
+            // Перевіряємо payment_status (ставиться з LiqPayCallbackService напряму)
+            $r = Database::fetchRow('Papir',
+                "SELECT payment_status FROM customerorder WHERE id={$ordId} LIMIT 1");
+            if ($r['ok'] && !empty($r['row']) && $r['row']['payment_status'] === 'paid') return '1';
+
+            // Фолбек: успішний LiqPay receipt (на випадок race condition)
+            $r = Database::fetchRow('Papir',
+                "SELECT 1 AS ok FROM order_payment_receipt
+                 WHERE customerorder_id={$ordId} AND provider='liqpay' AND status='success'
+                 LIMIT 1");
+            return ($r['ok'] && !empty($r['row'])) ? '1' : '0';
         }
 
         // order.has_demand → '1' якщо є активне відвантаження

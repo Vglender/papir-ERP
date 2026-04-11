@@ -59,14 +59,48 @@ class OrderFinanceHelper
 
     /**
      * Визначити payment_status за сумою оплат і сумою замовлення.
+
+     *
+     * LiqPay-aware: якщо на замовленні є успішний LiqPay receipt — вважаємо
+     * його оплаченим навіть коли банківський paymentin ще не прийшов (sum_paid=0)
+     * або прийшов з нетто (на ~1.5% менше gross через комісію еквайрингу).
+     * Це потрібно, щоб сценарії реагували одразу після колбека LiqPay, а не
+     * через 1-2 дні коли банк зарахує гроші.
+     *
+     * Поріг толерантності: 3% (комісія LiqPay ~1.5-2.6% залежно від paytype).
      */
-    public static function resolvePaymentStatus($sumPaid, $sumTotal)
+    public static function resolvePaymentStatus($sumPaid, $sumTotal, $orderId = 0)
     {
         $sumPaid  = (float)$sumPaid;
         $sumTotal = (float)$sumTotal;
-        if ($sumPaid <= 0)                        return 'not_paid';
+
+        $hasLiqpay = ($orderId > 0) ? self::hasSuccessfulLiqpayReceipt((int)$orderId) : false;
+
+        if ($sumPaid <= 0) {
+            return $hasLiqpay ? 'paid' : 'not_paid';
+        }
         if ($sumPaid >= $sumTotal - 0.01 && $sumTotal > 0) return 'paid';
+        // LiqPay-толерантність: нетто з банку vs gross замовлення
+        if ($hasLiqpay && $sumTotal > 0 && $sumPaid >= $sumTotal * 0.97) {
+            return 'paid';
+        }
         return 'partially_paid';
+    }
+
+    /**
+     * Чи має замовлення успішний receipt від LiqPay (незалежно від document_link).
+     */
+    public static function hasSuccessfulLiqpayReceipt($orderId)
+    {
+        $orderId = (int)$orderId;
+        if (!$orderId) return false;
+        $r = \Database::fetchRow('Papir',
+            "SELECT 1 AS ok FROM order_payment_receipt
+             WHERE customerorder_id={$orderId}
+               AND provider='liqpay'
+               AND status='success'
+             LIMIT 1");
+        return ($r['ok'] && !empty($r['row']));
     }
 
     /**
@@ -109,7 +143,7 @@ class OrderFinanceHelper
         $sumShipped  = self::sumShipped($orderId);
         $sumReserved = self::sumReserved($orderId);
 
-        $paymentStatus  = self::resolvePaymentStatus($sumPaid, $sumTotal);
+        $paymentStatus  = self::resolvePaymentStatus($sumPaid, $sumTotal, $orderId);
         $shipmentStatus = self::resolveShipmentStatus($sumShipped, $sumReserved, $sumTotal);
 
         $data = array(
