@@ -1013,7 +1013,7 @@ document.addEventListener('click', function(e) {
             if (left < 8) left = 8;
             menu.classList.add('open');
             var spaceBelow = window.innerHeight - rect.bottom;
-            menu.style.top   = (spaceBelow < 140 ? (rect.top + window.scrollY - menu.offsetHeight - 4) : (rect.bottom + window.scrollY + 4)) + 'px';
+            menu.style.top   = (spaceBelow < 140 ? (rect.top - menu.offsetHeight - 4) : (rect.bottom + 4)) + 'px';
             menu.style.left  = left + 'px';
             menu.style.width = menuW + 'px';
         }
@@ -1214,6 +1214,7 @@ renderDocTotals();
 
         // Add to state
         var localId = 'n' + Date.now();
+        var defaultVat = getDefaultVatRate();
         var newItem = {
             _localId:          localId,
             id:                null,
@@ -1226,7 +1227,7 @@ renderDocTotals();
             quantity:          1,
             price:             parseFloat(product.price) || 0,
             discount_percent:  0,
-            vat_rate:          0,
+            vat_rate:          defaultVat,
             stock_quantity:    parseFloat(product.quantity) || 0,
             shipped_quantity:  0,
             reserved_quantity: 0,
@@ -1245,6 +1246,9 @@ renderDocTotals();
             tr.dataset.sumChanged = '0';
             tr.innerHTML = buildNewRowHtml(product);
             tbody.appendChild(tr);
+            // Виставити дефолтну ставку ПДВ з організації
+            var vSel = tr.querySelector('[data-field="vat_rate"]');
+            if (vSel) vSel.value = String(defaultVat);
             bindItemRow(tr);
             tr.scrollIntoView({block: 'nearest'});
             var qtyInp = tr.querySelector('[data-field="quantity"]');
@@ -1294,7 +1298,7 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
 
     function closeDd() { dd.style.display = 'none'; dd.innerHTML = ''; _list = []; }
 
-    function pick(id, name, phone) {
+    function pick(id, name, phone, type) {
         _picked = true;
         hidden.value = id;
         var display  = phone ? name + '  ·  ' + phone : name;
@@ -1304,7 +1308,7 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
         if (clear) clear.style.display = id ? '' : 'none';
         closeDd();
         markDirty();
-        if (onPick) onPick(id, name);
+        if (onPick) onPick(id, name, type || '');
     }
 
     function doSearch(q, delay) {
@@ -1329,7 +1333,7 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
                         var sub = '';
                         if (p.okpo)  sub += 'ЄДРПОУ: ' + esc(p.okpo);
                         if (p.phone) sub += (sub ? ' · ' : '') + esc(p.phone);
-                        return '<div class="cp-picker-opt" data-id="' + p.id + '" data-name="' + esc(p.name) + '" data-phone="' + esc(p.phone || '') + '">'
+                        return '<div class="cp-picker-opt" data-id="' + p.id + '" data-name="' + esc(p.name) + '" data-phone="' + esc(p.phone || '') + '" data-type="' + esc(p.type || '') + '">'
                             + '<div class="cp-picker-opt-name">' + esc(p.name)
                             + (sub ? '<div class="cp-picker-opt-sub">' + sub + '</div>' : '')
                             + '</div>'
@@ -1360,7 +1364,7 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
         var opt = e.target.closest('.cp-picker-opt[data-id]');
         if (!opt) return;
         e.preventDefault();
-        pick(opt.dataset.id, opt.dataset.name, opt.dataset.phone || '');
+        pick(opt.dataset.id, opt.dataset.name, opt.dataset.phone || '', opt.dataset.type || '');
     });
 
     inp.addEventListener('blur', function() {
@@ -1397,6 +1401,81 @@ function makeCpPicker(inputId, hiddenId, ddId, clearId, cpType, onPick) {
 
 /* ══ CONTACT PERSON PICKER (local list, linked contacts only) ══ */
 var _personContacts = _PAGE.initialContacts;
+
+/* ══ ORG DEFAULTS / VAT / PAYMENT METHOD ══ */
+var _orgDefaults = _PAGE.orgDefaults || {};
+var _currentCpType = ''; // 'company' | 'fop' | 'person' | ''
+
+function getCurrentOrgDefaults() {
+    var sel = document.getElementById('organization_id');
+    var orgId = sel ? parseInt(sel.value, 10) : 0;
+    if (!orgId || !_orgDefaults[orgId]) return null;
+    return _orgDefaults[orgId];
+}
+
+function applyPaymentByCpType() {
+    var d = getCurrentOrgDefaults();
+    if (!d) return;
+    var pmId = null;
+    if (_currentCpType === 'company' || _currentCpType === 'fop') {
+        pmId = d.pm_legal;
+    } else if (_currentCpType === 'person') {
+        pmId = d.pm_person;
+    } else {
+        // тип невідомий — фолбек на фізособу
+        pmId = d.pm_person;
+    }
+    if (!pmId) return;
+    var sel = document.getElementById('payment_method_id');
+    if (sel && String(sel.value) !== String(pmId)) {
+        sel.value = String(pmId);
+        markDirty();
+    }
+}
+
+function getDefaultVatRate() {
+    var d = getCurrentOrgDefaults();
+    return (d && d.is_vat_payer) ? 20 : 0;
+}
+
+function applyVatRateToAllItems() {
+    var rate = getDefaultVatRate();
+    var rows = document.querySelectorAll('#positionsTable tbody tr[data-item-row="1"]');
+    rows.forEach(function(tr) {
+        var vSel = tr.querySelector('[data-field="vat_rate"]');
+        if (vSel && String(vSel.value) !== String(rate)) {
+            vSel.value = String(rate);
+            // оновити state і перерахувати рядок
+            syncRowToState(tr);
+        }
+    });
+    renderDocTotals();
+}
+
+function applyOrgDefaults() {
+    var d = getCurrentOrgDefaults();
+    if (!d) return;
+    var storeSel = document.getElementById('store_id');
+    if (storeSel && d.store_id) {
+        storeSel.value = String(d.store_id);
+    }
+    var dmSel = document.getElementById('delivery_method_id');
+    if (dmSel && d.delivery_id) {
+        dmSel.value = String(d.delivery_id);
+    }
+    applyPaymentByCpType();
+    applyVatRateToAllItems();
+    markDirty();
+}
+
+// При зміні організації — перепідтягуємо всі дефолти (склад/доставка/оплата + ПДВ)
+(function () {
+    var orgSel = document.getElementById('organization_id');
+    if (!orgSel) return;
+    orgSel.addEventListener('change', function () {
+        applyOrgDefaults();
+    });
+}());
 
 function renderPersonDd(q) {
     var dd = document.getElementById('personPickerDd');
@@ -1442,6 +1521,10 @@ function renderPersonDd(q) {
     }
 
     inp.addEventListener('focus', function() {
+        if (_personContacts.length) renderPersonDd(inp.value.trim());
+    });
+
+    inp.addEventListener('click', function() {
         if (_personContacts.length) renderPersonDd(inp.value.trim());
     });
 
@@ -1516,15 +1599,34 @@ function loadContactsForCp(cpId) {
 // Initial sync on page load
 syncCpFieldWidth();
 
-makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', '', function(id) {
+makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', '', function(id, name, type) {
+    _currentCpType = type || '';
     loadContactsForCp(id);
     var cpLink = document.getElementById('cpCardLink');
     if (cpLink) {
         if (id) { cpLink.href = '/counterparties/view?id=' + id; cpLink.style.display = ''; }
         else { cpLink.style.display = 'none'; }
     }
+    // Авто-вибір способу оплати за типом контрагента
+    if (id) applyPaymentByCpType();
     // Підтягнути дані доставки з останнього замовлення контрагента
     if (_isNew && id) prefillShippingFromCp(id);
+
+    // Якщо обрали юрособу або physperson зі звʼязками — відкрити модалку пар
+    if (!id || !type) return;
+    if (type === 'company' || type === 'fop') {
+        if (window.openCpPairModal) window.openCpPairModal({ id: id, name: name, type: type });
+    } else if (type === 'person') {
+        // Перевірити чи в person є звʼязки з юрособами
+        fetch('/counterparties/api/get_related?counterparty_id=' + encodeURIComponent(id))
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (res.ok && res.companies && res.companies.length > 0) {
+                    if (window.openCpPairModal) window.openCpPairModal({ id: id, name: name, type: type });
+                }
+            })
+            .catch(function() {});
+    }
 });
 
 /* ══ QUICK CREATE COUNTERPARTY ══ */
@@ -1634,7 +1736,9 @@ makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', 
             inp.value    = phone ? name + '  ·  ' + phone : name;
             if (clear) clear.style.display = '';
             if (cpLink) { cpLink.href = '/counterparties/view?id=' + res.id; cpLink.style.display = ''; }
+            _currentCpType = type;
             loadContactsForCp(res.id);
+            applyPaymentByCpType();
             markDirty();
             hideModal();
             showToast('Контрагента «' + name + '» створено');
@@ -1644,6 +1748,285 @@ makeCpPicker('cpPickerInput', 'counterparty_id', 'cpPickerDd', 'cpPickerClear', 
             btnSave.textContent = 'Створити';
             errEl.textContent = 'Помилка з\'єднання';
             errEl.style.display = '';
+        });
+    });
+}());
+
+/* ══ COUNTERPARTY PAIR PICKER MODAL ══ */
+(function () {
+    var modal      = document.getElementById('cpPairModal');
+    var btnClose   = document.getElementById('cpPairModalClose');
+    var btnCancel  = document.getElementById('cpPairCancelBtn');
+    var btnApply   = document.getElementById('cpPairApplyBtn');
+    var titleEl    = document.getElementById('cpPairModalTitle');
+    var selfEl     = document.getElementById('cpPairSelf');
+    var listEl     = document.getElementById('cpPairList');
+    var errEl      = document.getElementById('cpPairError');
+    var addBlock   = document.getElementById('cpPairAddBlock');
+    var addToggle  = document.getElementById('cpPairAddToggle');
+    var addForm    = document.getElementById('cpPairAddForm');
+    var addParent  = document.getElementById('cpPairAddParentId');
+    var addLast    = document.getElementById('cpPairAddLast');
+    var addFirst   = document.getElementById('cpPairAddFirst');
+    var addMid     = document.getElementById('cpPairAddMid');
+    var addPhone   = document.getElementById('cpPairAddPhone');
+    var addPos     = document.getElementById('cpPairAddPos');
+    var addEmail   = document.getElementById('cpPairAddEmail');
+    var addSave    = document.getElementById('cpPairAddSaveBtn');
+    var addCancel  = document.getElementById('cpPairAddCancelBtn');
+    var addErr     = document.getElementById('cpPairAddError');
+
+    if (!modal) return;
+
+    // Стан модалки
+    var _self = null;       // {id, name, type}
+    var _pairs = [];        // [ {legalId, legalName, legalType, contactId, contactName, contactPhone, contactPosition} ]
+    var _selectedIdx = -1;
+
+    function escHtml(s) {
+        return String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function show()  { modal.style.display = 'flex'; }
+    function hide()  { modal.style.display = 'none'; }
+
+    function renderList() {
+        if (!_pairs.length) {
+            if (_self && _self.type === 'person') {
+                listEl.innerHTML = '<div style="padding:10px; color:var(--text-muted); font-size:12.5px;">'
+                    + 'У цієї фізособи немає звʼязків з юрособами. Натисніть «Застосувати», щоб використати її як контрагента.'
+                    + '</div>';
+            } else {
+                listEl.innerHTML = '<div style="padding:10px; color:var(--text-muted); font-size:12.5px;">'
+                    + 'Контактних осіб ще немає. Додайте нову нижче або натисніть «Застосувати», щоб використати юрособу без контакту.'
+                    + '</div>';
+            }
+            return;
+        }
+        var html = '';
+        _pairs.forEach(function(p, idx) {
+            var cls = (idx === _selectedIdx) ? ' cp-pair-row-sel' : '';
+            html += '<div class="cp-pair-row' + cls + '" data-idx="' + idx + '" '
+                  + 'style="display:flex; gap:10px; padding:10px 12px; border:1px solid '
+                  + (idx === _selectedIdx ? '#0d9488' : '#e5e7eb') + '; border-radius:8px; margin-bottom:6px; cursor:pointer; background:'
+                  + (idx === _selectedIdx ? '#f0fdfa' : '#fff') + ';">'
+                  + '<div style="flex:1; min-width:0;">'
+                  +   '<div style="font-size:13px; font-weight:600;">' + escHtml(p.legalName) + '</div>';
+            if (p.contactId) {
+                html += '<div style="font-size:12px; color:#64748b; margin-top:2px;">'
+                      + '👤 ' + escHtml(p.contactName)
+                      + (p.contactPosition ? ' · ' + escHtml(p.contactPosition) : '')
+                      + (p.contactPhone ? ' · ' + escHtml(p.contactPhone) : '')
+                      + '</div>';
+            } else {
+                html += '<div style="font-size:11px; color:#94a3b8; margin-top:2px;">без контактної особи</div>';
+            }
+            html += '</div></div>';
+        });
+        listEl.innerHTML = html;
+
+        listEl.querySelectorAll('.cp-pair-row').forEach(function(row) {
+            row.addEventListener('click', function() {
+                _selectedIdx = parseInt(row.dataset.idx, 10);
+                renderList();
+            });
+        });
+    }
+
+    /**
+     * Відкриває модалку для контрагента із пошуку.
+     * @param {object} cp — {id, name, type}
+     */
+    window.openCpPairModal = function (cp) {
+        _self = cp;
+        _pairs = [];
+        _selectedIdx = -1;
+        errEl.style.display = 'none';
+        addForm.style.display = 'none';
+        addErr.style.display = 'none';
+
+        titleEl.textContent = (cp.type === 'person') ? 'Виберіть юрособу' : 'Виберіть контактну особу';
+        selfEl.innerHTML = '<b>' + escHtml(cp.name) + '</b> '
+                         + '<span style="color:#94a3b8; font-size:11px;">(' + escHtml(cp.type) + ')</span>';
+        listEl.innerHTML = '<div style="padding:10px; color:var(--text-muted);">Завантаження…</div>';
+
+        // Для юросіб показуємо блок «+ Додати контактну особу»
+        if (cp.type === 'company' || cp.type === 'fop') {
+            addBlock.style.display = '';
+            addParent.value = String(cp.id);
+        } else {
+            addBlock.style.display = 'none';
+        }
+
+        show();
+
+        fetch('/counterparties/api/get_related?counterparty_id=' + encodeURIComponent(cp.id))
+            .then(function(r) { return r.json(); })
+            .then(function(res) {
+                if (!res.ok) {
+                    listEl.innerHTML = '<div style="padding:10px; color:#b91c1c;">' + escHtml(res.error || 'Помилка') + '</div>';
+                    return;
+                }
+                if (cp.type === 'company' || cp.type === 'fop') {
+                    (res.contacts || []).forEach(function(c) {
+                        _pairs.push({
+                            legalId:        cp.id,
+                            legalName:      cp.name,
+                            legalType:      cp.type,
+                            contactId:      c.id,
+                            contactName:    c.name,
+                            contactPhone:   c.phone || '',
+                            contactPosition: c.position || ''
+                        });
+                    });
+                    if (_pairs.length === 1) _selectedIdx = 0;
+                } else if (cp.type === 'person') {
+                    (res.companies || []).forEach(function(co) {
+                        _pairs.push({
+                            legalId:        co.id,
+                            legalName:      co.name,
+                            legalType:      co.type,
+                            contactId:      cp.id,
+                            contactName:    cp.name,
+                            contactPhone:   '',
+                            contactPosition: co.job_title || ''
+                        });
+                    });
+                    if (_pairs.length === 1) _selectedIdx = 0;
+                }
+                renderList();
+            })
+            .catch(function() {
+                listEl.innerHTML = '<div style="padding:10px; color:#b91c1c;">Помилка завантаження</div>';
+            });
+    };
+
+    function applySelection(legalId, legalName, legalType, contactId, contactName) {
+        var hidden  = document.getElementById('counterparty_id');
+        var inp     = document.getElementById('cpPickerInput');
+        var clear   = document.getElementById('cpPickerClear');
+        var cpLink  = document.getElementById('cpCardLink');
+
+        hidden.value = legalId;
+        inp.value    = legalName;
+        if (clear)  clear.style.display = '';
+        if (cpLink) { cpLink.href = '/counterparties/view?id=' + legalId; cpLink.style.display = ''; }
+
+        _currentCpType = legalType;
+        applyPaymentByCpType();
+
+        // Контактна особа
+        var personHidden = document.getElementById('contact_person_id');
+        var personInp    = document.getElementById('personPickerInput');
+        var personClear  = document.getElementById('personPickerClear');
+        var contactField = document.getElementById('contactPersonField');
+
+        loadContactsForCp(legalId); // підвантажить _personContacts
+        if (contactId) {
+            // Виставимо обрану особу одразу (loadContactsForCp перезапише _personContacts асинхронно — це ок)
+            if (personHidden) personHidden.value = String(contactId);
+            if (personInp)    personInp.value    = contactName || '';
+            if (personClear)  personClear.style.display = '';
+            if (contactField) contactField.style.display = '';
+        }
+
+        markDirty();
+        if (_isNew && legalId) prefillShippingFromCp(legalId);
+    }
+
+    btnApply.addEventListener('click', function () {
+        errEl.style.display = 'none';
+        if (!_self) return;
+
+        if (_pairs.length && _selectedIdx >= 0) {
+            var p = _pairs[_selectedIdx];
+            applySelection(p.legalId, p.legalName, p.legalType, p.contactId, p.contactName);
+        } else if (_pairs.length && _selectedIdx < 0) {
+            errEl.textContent = 'Оберіть пару зі списку';
+            errEl.style.display = '';
+            return;
+        } else {
+            // Без звʼязків — застосовуємо self як є
+            applySelection(_self.id, _self.name, _self.type, null, null);
+        }
+        hide();
+    });
+
+    btnClose.addEventListener('click', hide);
+    btnCancel.addEventListener('click', hide);
+    modal.addEventListener('click', function(e) { if (e.target === modal) hide(); });
+
+    // ── Inline add contact ────────────────────────────────────────────────
+    addToggle.addEventListener('click', function () {
+        addForm.style.display = (addForm.style.display === 'none') ? '' : 'none';
+        addErr.style.display = 'none';
+        if (addForm.style.display !== 'none') {
+            addLast.value = ''; addFirst.value = ''; addMid.value = '';
+            addPhone.value = ''; addPos.value = ''; addEmail.value = '';
+            setTimeout(function() { addLast.focus(); }, 50);
+        }
+    });
+
+    addCancel.addEventListener('click', function () {
+        addForm.style.display = 'none';
+        addErr.style.display = 'none';
+    });
+
+    addSave.addEventListener('click', function () {
+        addErr.style.display = 'none';
+        var ln = addLast.value.trim();
+        var fn = addFirst.value.trim();
+        if (!ln && !fn) {
+            addErr.textContent = 'Вкажіть прізвище або імʼя';
+            addErr.style.display = '';
+            return;
+        }
+        var body = 'parent_id=' + encodeURIComponent(addParent.value)
+                 + '&last_name='  + encodeURIComponent(ln)
+                 + '&first_name=' + encodeURIComponent(fn)
+                 + '&middle_name='+ encodeURIComponent(addMid.value.trim())
+                 + '&phone='      + encodeURIComponent(addPhone.value.trim())
+                 + '&email='      + encodeURIComponent(addEmail.value.trim())
+                 + '&position='   + encodeURIComponent(addPos.value.trim());
+
+        addSave.disabled = true;
+        addSave.textContent = 'Створюю…';
+
+        fetch('/counterparties/api/add_contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            addSave.disabled = false;
+            addSave.textContent = 'Створити';
+            if (!res.ok) {
+                addErr.textContent = res.error || 'Помилка';
+                addErr.style.display = '';
+                return;
+            }
+            // Додаємо нову пару у список і вибираємо її
+            _pairs.push({
+                legalId:        _self.id,
+                legalName:      _self.name,
+                legalType:      _self.type,
+                contactId:      res.contact.id,
+                contactName:    res.contact.name,
+                contactPhone:   res.contact.phone || '',
+                contactPosition:res.contact.position || ''
+            });
+            _selectedIdx = _pairs.length - 1;
+            renderList();
+            addForm.style.display = 'none';
+            showToast('Контакт додано');
+        })
+        .catch(function() {
+            addSave.disabled = false;
+            addSave.textContent = 'Створити';
+            addErr.textContent = 'Помилка зʼєднання';
+            addErr.style.display = '';
         });
     });
 }());

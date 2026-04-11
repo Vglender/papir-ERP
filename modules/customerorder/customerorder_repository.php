@@ -149,6 +149,20 @@ private function buildWhere($filters)
     if (!empty($filters['delivery_method_id'])) {
         $where[] = 'co.`delivery_method_id` = ' . (int)$filters['delivery_method_id'];
     }
+    if (!empty($filters['sales_channel'])) {
+        if (is_array($filters['sales_channel'])) {
+            $vals = array();
+            foreach ($filters['sales_channel'] as $v) {
+                $vals[] = "'" . Database::escape($this->dbName, $v) . "'";
+            }
+            if (!empty($vals)) {
+                $where[] = 'co.`sales_channel` IN (' . implode(',', $vals) . ')';
+            }
+        } else {
+            $sc = Database::escape($this->dbName, $filters['sales_channel']);
+            $where[] = "co.`sales_channel` = '{$sc}'";
+        }
+    }
 
     $needsTtnJoin = false;
     if (!empty($filters['has_ttn'])) {

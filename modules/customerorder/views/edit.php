@@ -925,6 +925,53 @@ require_once __DIR__ . '/../../shared/layout.php';
     </div>
 </div>
 
+<!-- ══ COUNTERPARTY PAIR PICKER MODAL (юр ↔ контактна особа) ══ -->
+<div class="modal-overlay" id="cpPairModal" style="display:none;">
+    <div class="modal-box" style="width:520px; max-width:98vw;">
+        <div class="modal-head">
+            <span id="cpPairModalTitle">Вибір контрагента</span>
+            <button class="modal-close" id="cpPairModalClose">&#x2715;</button>
+        </div>
+        <div class="modal-body" style="padding:16px; max-height:70vh; overflow-y:auto;">
+            <div id="cpPairSelf" style="font-size:13px; color:var(--text-muted); margin-bottom:12px;"></div>
+
+            <!-- Список пар -->
+            <div id="cpPairList"></div>
+
+            <!-- Inline-форма додавання нової контактної особи -->
+            <div id="cpPairAddBlock" style="margin-top:14px; display:none;">
+                <button type="button" class="btn btn-ghost btn-sm" id="cpPairAddToggle" style="font-size:12px;">+ Додати контактну особу</button>
+                <div id="cpPairAddForm" style="display:none; margin-top:10px; padding:12px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px;">
+                    <input type="hidden" id="cpPairAddParentId" value="">
+                    <div style="display:flex; gap:6px; margin-bottom:8px;">
+                        <input type="text" id="cpPairAddLast"   placeholder="Прізвище" style="flex:1; height:30px; font-size:12.5px; padding:0 8px; border:1px solid var(--border); border-radius:6px;">
+                        <input type="text" id="cpPairAddFirst"  placeholder="Імʼя"      style="flex:1; height:30px; font-size:12.5px; padding:0 8px; border:1px solid var(--border); border-radius:6px;">
+                    </div>
+                    <div style="display:flex; gap:6px; margin-bottom:8px;">
+                        <input type="text" id="cpPairAddMid"    placeholder="По батькові" style="flex:1; height:30px; font-size:12.5px; padding:0 8px; border:1px solid var(--border); border-radius:6px;">
+                        <input type="text" id="cpPairAddPhone"  placeholder="+380…"      style="flex:1; height:30px; font-size:12.5px; padding:0 8px; border:1px solid var(--border); border-radius:6px;">
+                    </div>
+                    <div style="display:flex; gap:6px; margin-bottom:8px;">
+                        <input type="text" id="cpPairAddPos"    placeholder="Посада"     style="flex:1; height:30px; font-size:12.5px; padding:0 8px; border:1px solid var(--border); border-radius:6px;">
+                        <input type="email" id="cpPairAddEmail" placeholder="Email"      style="flex:1; height:30px; font-size:12.5px; padding:0 8px; border:1px solid var(--border); border-radius:6px;">
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                        <button type="button" class="btn btn-primary btn-sm" id="cpPairAddSaveBtn">Створити</button>
+                        <button type="button" class="btn btn-ghost btn-sm" id="cpPairAddCancelBtn">Скасувати</button>
+                    </div>
+                    <div id="cpPairAddError" class="modal-error" style="display:none; margin-top:8px;"></div>
+                </div>
+            </div>
+
+            <div id="cpPairError" class="modal-error" style="display:none; margin-top:10px;"></div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-primary" id="cpPairApplyBtn">Застосувати</button>
+            <button type="button" class="btn" id="cpPairCancelBtn">Скасувати</button>
+        </div>
+    </div>
+</div>
+
 <!-- ══ TTN NP CREATE MODAL ══ -->
 <div class="modal-overlay" id="newTtnModal">
     <div class="modal-box" style="width:560px; max-width:98vw;">
@@ -991,6 +1038,7 @@ var _PAGE = {
     deliveryMethods:   <?= json_encode(array_map(function($dm) {
         return array('id' => (int)$dm['id'], 'code' => $dm['code'], 'name' => $dm['name_uk'], 'has_ttn' => (int)$dm['has_ttn']);
     }, $deliveryMethods)) ?>,
+    orgDefaults:       <?= json_encode($orgDefaultsMap) ?>,
     cpNameForLink:     <?= json_encode(!empty($counterpartyName) ? $counterpartyName : '', JSON_UNESCAPED_UNICODE) ?>,
     cpPhone:           <?= json_encode(!empty($counterpartyPhone) ? $counterpartyPhone : '', JSON_UNESCAPED_UNICODE) ?>,
     statusInlineStyles:<?= json_encode($_statusInlineStyles) ?>,
@@ -1125,6 +1173,7 @@ var _PAGE = {
     </div>
 </div>
 
+<script src="/modules/shared/np-ttn-create-modal.js?v=<?= filemtime(__DIR__ . '/../../shared/np-ttn-create-modal.js') ?>"></script>
 <script src="/modules/customerorder/js/customerorder-compose.js?v=<?= filemtime(__DIR__ . '/../js/customerorder-compose.js') ?>"></script>
 <?php endif; ?>
 

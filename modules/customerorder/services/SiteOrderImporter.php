@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/../../integrations/opencart2/SiteSyncService.php';
+require_once __DIR__ . '/OrderOrgResolver.php';
 
 class SiteOrderImporter
 {
@@ -48,8 +49,14 @@ class SiteOrderImporter
         foreach ($sites as $site) {
             $siteId   = (int)$site['site_id'];
             $siteCode = $site['code'];
+            $transport = isset($site['transport']) ? $site['transport'] : 'direct_db';
 
             $this->log("=== Site: {$site['name']} (id={$siteId}, code={$siteCode}) ===");
+
+            if ($transport !== 'direct_db' && $transport !== 'http_agent') {
+                $this->log("Skip — transport '{$transport}' not supported by importer");
+                continue;
+            }
 
             $lastOcId = $this->getLastImportedOcOrderId($siteCode);
             $this->log("Last imported OC order_id: {$lastOcId}");
@@ -212,18 +219,15 @@ class SiteOrderImporter
             mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff));
 
         // ── Resolve organization, bank account, VAT ────────────────────
-        $isCompany = ($edrpou !== '' && strlen($edrpou) >= 8);
+        // Дефолтні організації беруться з integration_settings (order_import).
+        // VAT-статус визначається за контрагентом / EDRPOU / маркером в коментарі.
+        $orgResolved = OrderOrgResolver::resolve($cpId, $edrpou, $comment);
+        $organizationId = $orgResolved['organization_id'];
+        $isCompany      = $orgResolved['is_vat'];
+        $vatRate        = $orgResolved['vat_rate'];
 
-        // Defaults for physical persons: ФОП Чумаченко + ПриватБанк
-        $organizationId = 6;        // ФОП Чумаченко Вікторія Вікторівна
-        $bankAccountId  = 3;        // ПриватБанк
-        $vatRate        = 0;
-
-        if ($isCompany) {
-            $organizationId = 8;    // ТОВ Архкор
-            $bankAccountId  = 4;    // УкрСибБанк
-            $vatRate        = 20;   // ПДВ 20%
-        }
+        // Bank account: ПриватБанк для фізосіб, УкрСибБанк для юросіб
+        $bankAccountId = $isCompany ? 4 : 3;
 
         // Sales channel: site code matching edit.php dropdown
         $salesChannel = $siteCode; // 'off' or 'mff'
@@ -365,10 +369,22 @@ class SiteOrderImporter
         Database::insert('Papir', 'customerorder_shipping', $shippingData);
 
         // ── LiqPay / payment receipts ───────────────────────────────────
+        $paidSum = 0.0;
         if (isset($ocOrder['payment_receipts']) && is_array($ocOrder['payment_receipts'])) {
             foreach ($ocOrder['payment_receipts'] as $receipt) {
                 $this->savePaymentReceipt($orderId, $siteId, $ocId, $receipt);
+                $rJson = isset($receipt['all_json_data']) ? $receipt['all_json_data'] : '';
+                $rData = is_string($rJson) ? json_decode($rJson, true) : $rJson;
+                if (is_array($rData) && isset($rData['status']) && $rData['status'] === 'success') {
+                    $paidSum += isset($rData['amount']) ? (float)$rData['amount'] : 0.0;
+                }
             }
+        }
+        if ($paidSum > 0 && $sumTotal > 0) {
+            $newPaymentStatus = ($paidSum + 0.01 >= $sumTotal) ? 'paid' : 'partially_paid';
+            Database::update('Papir', 'customerorder',
+                array('payment_status' => $newPaymentStatus),
+                array('id' => $orderId));
         }
 
         // ── Document history ────────────────────────────────────────────

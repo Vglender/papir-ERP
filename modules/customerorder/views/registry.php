@@ -31,6 +31,7 @@ $fUnread      = isset($_GET['has_unread']) ? $_GET['has_unread'] : '';
 $fTtn         = isset($_GET['has_ttn'])    ? $_GET['has_ttn']    : '';
 $fPmId        = isset($_GET['payment_method_id']) ? $_GET['payment_method_id'] : '';
 $fDmId        = isset($_GET['delivery_method_id']) ? $_GET['delivery_method_id'] : '';
+$fSalesCh     = isset($_GET['sales_channel']) ? $_GET['sales_channel'] : '';
 $fHideCancelled = isset($_GET['hide_cancelled']) ? $_GET['hide_cancelled'] : '1';
 $fHideDone      = isset($_GET['hide_done'])      ? $_GET['hide_done']      : '0';
 
@@ -40,6 +41,7 @@ if (!isset($filterActions))        $filterActions = array();
 if (!isset($filterCpName))         $filterCpName = '';
 if (!isset($filterPaymentMethods)) $filterPaymentMethods = array();
 if (!isset($filterDeliveryMethods)) $filterDeliveryMethods = array();
+if (!isset($filterSalesChannels)) $filterSalesChannels = array();
 
 require_once __DIR__ . '/../../shared/StatusColors.php';
 $_coMap = StatusColors::all('customerorder');
@@ -56,7 +58,7 @@ function co_url($extra = array()) {
     return '/customerorder' . ($qs ? '?' . $qs : '');
 }
 
-$hasAdvancedFilter = ($fPayment || $fShipment || $fOrgId || $fMgrId || $fCpId || $fSumFrom !== '' || $fSumTo !== '' || $fAction || $fUnread || $fTtn || $fPmId || $fDmId);
+$hasAdvancedFilter = ($fPayment || $fShipment || $fOrgId || $fMgrId || $fCpId || $fSumFrom !== '' || $fSumTo !== '' || $fAction || $fUnread || $fTtn || $fPmId || $fDmId || $fSalesCh);
 $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $dateTo || $search);
 ?>
 <style>
@@ -355,6 +357,7 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                     <label><input type="checkbox" data-filter="f-manager" checked> Менеджер</label>
                     <label><input type="checkbox" data-filter="f-action" checked> Дія</label>
                     <label><input type="checkbox" data-filter="f-unread" checked> Повідомлення</label>
+                    <label><input type="checkbox" data-filter="f-sales-channel" checked> Канал продажу</label>
                 </div>
             </div>
         </div>
@@ -505,6 +508,19 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
                             <option value="">— Всі —</option>
                             <option value="yes" <?= $fUnread === 'yes' ? 'selected' : '' ?>>Є непрочитані</option>
                             <option value="no" <?= $fUnread === 'no' ? 'selected' : '' ?>>Немає</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Row 3, Col 1 -->
+                <div class="co-adv-cell" data-fid="f-sales-channel">
+                    <span class="co-flabel">Канал продажу</span>
+                    <div class="co-fctrl">
+                        <select name="sales_channel" onchange="this.form.submit()">
+                            <option value="">— Всі —</option>
+                            <?php foreach ($filterSalesChannels as $sch): ?>
+                            <option value="<?= htmlspecialchars($sch['code'], ENT_QUOTES, 'UTF-8') ?>" <?= $fSalesCh === $sch['code'] ? 'selected' : '' ?>><?= htmlspecialchars($sch['name'], ENT_QUOTES, 'UTF-8') ?></option>
+                            <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
@@ -1114,6 +1130,8 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
     }
 
     // ── Context menu (per-row actions) ──
+    // Capture phase: TD has inline onclick="event.stopPropagation()" (to block row navigation),
+    // which would eat the click before it bubbles to document. Capture fires before bubble.
     document.addEventListener('click', function(e) {
         // Toggle context menu
         var toggler = e.target.closest('[data-act-toggle]');
@@ -1131,6 +1149,7 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
         // Delete button in context menu
         var delBtn = e.target.closest('[data-delete-order]');
         if (delBtn) {
+            e.stopPropagation();
             var orderId = parseInt(delBtn.dataset.deleteOrder);
             delBtn.closest('.co-act-dd').classList.remove('open');
             deleteOrders([orderId]);
@@ -1140,7 +1159,7 @@ $hasAnyFilter = ($hasAdvancedFilter || !empty($statusFilter) || $dateFrom || $da
         // Close all context menus and bulk dropdown on outside click
         document.querySelectorAll('.co-act-dd.open').forEach(function(d) { d.classList.remove('open'); });
         bulkDd.classList.remove('open');
-    });
+    }, true);
 }());
 </script>
 

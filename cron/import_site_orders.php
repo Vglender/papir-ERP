@@ -14,11 +14,9 @@ define('CRON_MODE', true);
 require_once __DIR__ . '/../modules/database/database.php';
 require_once __DIR__ . '/../modules/customerorder/services/SiteOrderImporter.php';
 
-// Load TriggerEngine if available
-$triggerPath = __DIR__ . '/../modules/triggers/TriggerEngine.php';
-if (file_exists($triggerPath)) {
-    require_once $triggerPath;
-}
+// TriggerEngine + ScenarioRepository — для fire('order_created') після INSERT
+require_once __DIR__ . '/../modules/counterparties/services/TriggerEngine.php';
+require_once __DIR__ . '/../modules/counterparties/repositories/ScenarioRepository.php';
 
 $start = microtime(true);
 

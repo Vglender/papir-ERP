@@ -30,6 +30,16 @@ $filterPaymentMethods = ($_rPm['ok'] && !empty($_rPm['rows'])) ? $_rPm['rows'] :
 $_rDm = Database::fetchAll('Papir', "SELECT id, code, name_uk FROM delivery_method WHERE status=1 ORDER BY sort_order");
 $filterDeliveryMethods = ($_rDm['ok'] && !empty($_rDm['rows'])) ? $_rDm['rows'] : array();
 
+// Канал продажу — must stay in sync with edit.php $salesChannels
+$filterSalesChannels = array(
+    array('code' => 'manual',      'name' => 'Ручне введення'),
+    array('code' => 'off',         'name' => 'Офісторг'),
+    array('code' => 'mff',         'name' => 'Меню Фолдер'),
+    array('code' => 'prom',        'name' => 'Пром UA'),
+    array('code' => 'marketplace', 'name' => 'Маркетплейс'),
+    array('code' => 'api',         'name' => 'API'),
+);
+
 // Resolve counterparty name if filtered by id
 $filterCpName = '';
 if (!empty($_GET['counterparty_id'])) {

@@ -92,20 +92,30 @@ foreach ($docs as $doc) {
     $linked++;
 }
 
-// If TTN was linked and order has next_action='ship', clear it
+// If TTN was linked: clear next_action='ship' and fire order_ttn_created scenarios.
+// ttn_np — повністю обробляється (сценарії + повідомлення клієнту).
+// ttn_up — TODO: коли підключимо Укрпошту, додати окремий fire.
 if ($linked > 0) {
-    $hasTtnLink = false;
+    $linkedTtnNpIds = array();
     foreach ($docs as $doc) {
-        if (isset($doc['type']) && in_array($doc['type'], array('ttn_np', 'ttn_up'))) {
-            $hasTtnLink = true;
-            break;
+        if (!isset($doc['type']) || !isset($doc['id'])) continue;
+        if ($doc['type'] === 'ttn_np') {
+            $linkedTtnNpIds[] = (int)$doc['id'];
         }
     }
-    if ($hasTtnLink) {
+
+    if (!empty($linkedTtnNpIds)) {
+        // Clear "ship" next_action
         Database::query('Papir',
             "UPDATE customerorder
              SET next_action = NULL, next_action_label = NULL, updated_at = NOW()
              WHERE id = {$orderId} AND next_action = 'ship'");
+
+        // Fire order_ttn_created для кожної прив'язаної НП ТТН
+        require_once __DIR__ . '/../../novaposhta/services/TtnService.php';
+        foreach ($linkedTtnNpIds as $ttnId) {
+            \Papir\Crm\TtnService::fireOrderTtnCreated($orderId, $ttnId);
+        }
     }
 }
 

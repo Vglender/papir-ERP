@@ -19,6 +19,7 @@ if (!flock($_lockFp, LOCK_EX | LOCK_NB)) { echo date('[H:i:s] ') . 'Already runn
 
 require_once __DIR__ . '/../modules/database/database.php';
 require_once __DIR__ . '/../modules/customerorder/services/OrderFinanceHelper.php';
+require_once __DIR__ . '/../modules/customerorder/services/OrderOrgResolver.php';
 
 $dryRun    = in_array('--dry-run', $argv);
 $logFile   = '/tmp/sync_ms_orders.log';
@@ -168,6 +169,11 @@ while (true) {
 
         $orgMs      = trim((string)$row['organization']);
         $orgId      = ($orgMs !== '' && isset($orgMap[$orgMs])) ? $orgMap[$orgMs] : null;
+        // Fallback: визначаємо за VAT-статусом контрагента / маркером в описі
+        if ($orgId === null) {
+            $resolved = OrderOrgResolver::resolve($cpId, '', (string)$row['description']);
+            if (!empty($resolved['organization_id'])) $orgId = (int)$resolved['organization_id'];
+        }
         $orgIdSql   = $orgId ? $orgId : 'NULL';
 
         $ownerMs    = trim((string)$row['owner']);

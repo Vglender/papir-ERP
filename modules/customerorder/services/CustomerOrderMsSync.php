@@ -63,6 +63,17 @@ class CustomerOrderMsSync
         }
         $order = $r['row'];
 
+        // Если у контрагента нет id_ms — создать его в МС
+        if (!empty($order['counterparty_id']) && empty($order['cp_ms'])) {
+            $cpResult = $this->ensureCounterpartyInMs((int)$order['counterparty_id']);
+            if ($cpResult['ok']) {
+                $order['cp_ms'] = $cpResult['id_ms'];
+            } else {
+                $this->markError($orderId, 'Counterparty push failed: ' . $cpResult['error']);
+                return array('ok' => false, 'error' => 'Counterparty push failed: ' . $cpResult['error']);
+            }
+        }
+
         // Загрузить позиции (с product_papir.id_ms как fallback)
         $ri = Database::fetchAll('Papir',
             "SELECT ci.*,
@@ -200,6 +211,88 @@ class CustomerOrderMsSync
         }
 
         return array('ok' => true, 'data' => $data);
+    }
+
+    /**
+     * Создать контрагента в МС если его ещё нет, вернуть id_ms.
+     */
+    private function ensureCounterpartyInMs($counterpartyId)
+    {
+        // Проверить ещё раз — может уже появился id_ms
+        $r = Database::fetchRow('Papir',
+            "SELECT c.id, c.name, c.type, c.id_ms,
+                    cp.last_name, cp.first_name, cp.middle_name, cp.phone, cp.email,
+                    cc.short_name, cc.okpo, cc.inn, cc.phone AS company_phone, cc.email AS company_email
+             FROM counterparty c
+             LEFT JOIN counterparty_person cp ON cp.counterparty_id = c.id
+             LEFT JOIN counterparty_company cc ON cc.counterparty_id = c.id
+             WHERE c.id = {$counterpartyId}
+             LIMIT 1");
+
+        if (!$r['ok'] || empty($r['row'])) {
+            return array('ok' => false, 'error' => 'Counterparty not found: ' . $counterpartyId);
+        }
+        $cp = $r['row'];
+
+        // Уже есть id_ms
+        if (!empty($cp['id_ms'])) {
+            return array('ok' => true, 'id_ms' => $cp['id_ms']);
+        }
+
+        // Собрать payload для МС
+        $data = array(
+            'name' => $cp['name'],
+        );
+
+        if ($cp['type'] === 'company' || $cp['type'] === 'fop') {
+            $data['companyType'] = ($cp['type'] === 'fop') ? 'individual' : 'legal';
+            if (!empty($cp['inn'])) {
+                $data['inn'] = $cp['inn'];
+            }
+            if (!empty($cp['okpo'])) {
+                $data['okpo'] = $cp['okpo'];
+            }
+            $phone = !empty($cp['company_phone']) ? $cp['company_phone'] : null;
+            $email = !empty($cp['company_email']) ? $cp['company_email'] : null;
+        } else {
+            $data['companyType'] = 'individual';
+            if (!empty($cp['last_name'])) {
+                $data['lastName'] = $cp['last_name'];
+            }
+            if (!empty($cp['first_name'])) {
+                $data['firstName'] = $cp['first_name'];
+            }
+            if (!empty($cp['middle_name'])) {
+                $data['middleName'] = $cp['middle_name'];
+            }
+            $phone = !empty($cp['phone']) ? $cp['phone'] : null;
+            $email = !empty($cp['email']) ? $cp['email'] : null;
+        }
+
+        if ($phone) {
+            $data['phone'] = $phone;
+        }
+        if ($email) {
+            $data['email'] = $email;
+        }
+
+        $entityBase = $this->ms->getEntityBaseUrl();
+        $result = $this->ms->querySend($entityBase . 'counterparty', $data, 'POST');
+        $result = json_decode(json_encode($result), true);
+
+        if (empty($result) || !empty($result['errors'])) {
+            return array('ok' => false, 'error' => $this->extractMsError($result));
+        }
+
+        $msId = !empty($result['id']) ? (string)$result['id'] : null;
+        if (!$msId) {
+            return array('ok' => false, 'error' => 'No id returned from MS counterparty create');
+        }
+
+        // Сохранить id_ms в counterparty
+        Database::update('Papir', 'counterparty', array('id_ms' => $msId), array('id' => $counterpartyId));
+
+        return array('ok' => true, 'id_ms' => $msId);
     }
 
     private function markError($orderId, $errorMsg)

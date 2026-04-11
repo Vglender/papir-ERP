@@ -20,6 +20,27 @@ class CustomerOrderService
         $this->repository = $repository;
     }
 
+    /**
+     * Дефолтна ставка ПДВ для нових позицій замовлення.
+     * Береться з organization.is_vat_payer: 20% якщо платник, 0% якщо ні.
+     * Якщо замовлення/організацію не знайдено — повертає 20 (legacy fallback).
+     */
+    protected function getOrderVatDefault($orderId)
+    {
+        $orderId = (int)$orderId;
+        if ($orderId <= 0) return 20;
+        $r = Database::fetchRow('Papir',
+            "SELECT o.is_vat_payer
+               FROM customerorder co
+          LEFT JOIN organization o ON o.id = co.organization_id
+              WHERE co.id = {$orderId}
+              LIMIT 1");
+        if (!$r['ok'] || empty($r['row']) || $r['row']['is_vat_payer'] === null) {
+            return 20;
+        }
+        return ((int)$r['row']['is_vat_payer'] === 1) ? 20 : 0;
+    }
+
     public function getList($filters = array(), $sort = array(), $page = 1, $limit = 50)
     {
         $rows = $this->repository->getList($filters, $sort, $page, $limit);
@@ -294,6 +315,9 @@ class CustomerOrderService
 
 	public function addItem($orderId, $item, $employeeId = null)
 	{
+		// Дефолтна ставка ПДВ для замовлення = is_vat_payer організації
+		$orgVat = $this->getOrderVatDefault($orderId);
+
 		if (!empty($item['product_id'])) {
 			$productResult = $this->repository->getProductById((int)$item['product_id']);
 
@@ -314,7 +338,7 @@ class CustomerOrderService
 
 				$item['vat_rate'] = isset($item['vat_rate']) && $item['vat_rate'] !== ''
 					? (float)$item['vat_rate']
-					: ((isset($product['vat']) && $product['vat'] !== null && $product['vat'] !== '') ? (float)$product['vat'] : 20);
+					: ((isset($product['vat']) && $product['vat'] !== null && $product['vat'] !== '') ? (float)$product['vat'] : $orgVat);
 
 				$item['stock_quantity'] = isset($product['quantity']) ? (float)$product['quantity'] : 0;
 				$item['reserved_stock_quantity'] = 0;
@@ -328,7 +352,7 @@ class CustomerOrderService
 		}
 
 		if (!isset($item['vat_rate']) || $item['vat_rate'] === '') {
-			$item['vat_rate'] = 20;
+			$item['vat_rate'] = $orgVat;
 		}
 
 		$item = $this->prepareItemData($item);
@@ -567,6 +591,8 @@ class CustomerOrderService
         try {
             $update = $this->repository->update($orderId, array(
                 'status' => $status,
+                'next_action' => null,
+                'next_action_label' => null,
                 'updated_at' => date('Y-m-d H:i:s'),
             ));
 

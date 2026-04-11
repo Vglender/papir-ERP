@@ -4,6 +4,7 @@
 require_once __DIR__ . '/customerorder_bootstrap.php';
 require_once __DIR__ . '/customerorder_helpers.php'; // Исправлено! добавил /
 require_once __DIR__ . '/../shared/StatusColors.php';
+require_once __DIR__ . '/../auth/AuthService.php';
 
 $repository = new CustomerOrderRepository();
 $service = new CustomerOrderService($repository);
@@ -11,28 +12,71 @@ $controller = new CustomerOrderController($service);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
+// ── Загружаем справочник організацій + всі їх дефолти ─────────────────────
+// Потрібно тут (а не нижче), бо для нового замовлення треба підтягти
+// дефолти з організації за замовчуванням.
+$rOrgs = Database::fetchAll('Papir',
+    "SELECT id, name, is_default, is_vat_payer,
+            default_store_id, default_delivery_method_id,
+            default_payment_method_id_legal, default_payment_method_id_person
+       FROM organization
+      WHERE status = 1
+      ORDER BY is_default DESC, name ASC");
+$organizations = $rOrgs['ok'] ? $rOrgs['rows'] : array();
+
+// Мапа дефолтів для JS: { orgId: { vat, store, delivery, pm_legal, pm_person } }
+$orgDefaultsMap = array();
+$defaultOrg = null;
+foreach ($organizations as $o) {
+    $orgDefaultsMap[(int)$o['id']] = array(
+        'is_vat_payer' => (int)$o['is_vat_payer'],
+        'store_id'     => $o['default_store_id']                 ? (int)$o['default_store_id']                 : null,
+        'delivery_id'  => $o['default_delivery_method_id']       ? (int)$o['default_delivery_method_id']       : null,
+        'pm_legal'     => $o['default_payment_method_id_legal']  ? (int)$o['default_payment_method_id_legal']  : null,
+        'pm_person'    => $o['default_payment_method_id_person'] ? (int)$o['default_payment_method_id_person'] : null,
+    );
+    if (!empty($o['is_default']) && $defaultOrg === null) {
+        $defaultOrg = $o;
+    }
+}
+
 if ($id > 0) {
     $result = $controller->edit($id);
 } else {
+    // Поточний користувач → менеджер
+    $currentUser   = \Papir\Crm\AuthService::getCurrentUser();
+    $currentEmpId  = ($currentUser && !empty($currentUser['employee_id']))
+        ? (int)$currentUser['employee_id'] : null;
+
+    $newOrder = array(
+        'status'          => 'draft',
+        'payment_status'  => 'not_paid',
+        'shipment_status' => 'not_shipped',
+        'applicable'      => 1,
+        'currency_code'   => 'UAH',
+        'sales_channel'   => 'manual',
+    );
+    if ($currentEmpId) {
+        $newOrder['manager_employee_id'] = $currentEmpId;
+    }
+    if ($defaultOrg) {
+        $defId = (int)$defaultOrg['id'];
+        $newOrder['organization_id']   = $defId;
+        $d = $orgDefaultsMap[$defId];
+        if ($d['store_id'])    $newOrder['store_id']           = $d['store_id'];
+        if ($d['delivery_id']) $newOrder['delivery_method_id'] = $d['delivery_id'];
+        // Без обраного контрагента вважаємо за фізособу — підставляємо pm_person
+        if ($d['pm_person'])   $newOrder['payment_method_id']  = $d['pm_person'];
+    }
+
     $result = array(
         'ok' => true,
-        'order' => array(
-            'status' => 'draft',
-            'payment_status' => 'not_paid',
-            'shipment_status' => 'not_shipped',
-            'applicable' => 1,
-            'currency_code' => 'UAH',
-            'sales_channel' => 'manual',
-        ),
+        'order' => $newOrder,
         'items' => array(),
         'attributes' => array(),
         'history' => array(),
     );
 }
-
-// Загружаем справочники
-$organizations = Database::fetchAll('Papir', "SELECT `id`, `name` FROM `organization` WHERE `status` = 1 ORDER BY `name` ASC");
-$organizations = $organizations['ok'] ? $organizations['rows'] : array();
 
 $stores = Database::fetchAll('Papir', "SELECT `id`, `name` FROM `store` WHERE `status` = 1 ORDER BY `name` ASC");
 $stores = $stores['ok'] ? $stores['rows'] : array();
