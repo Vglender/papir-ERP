@@ -691,7 +691,7 @@ function handleProductSeo($body) {
         }
     }
 
-    if (isset($body['seo_urls']) && is_array($body['seo_urls'])) {
+    if (!empty($body['seo_urls']) && is_array($body['seo_urls'])) {
         _deleteSeoUrls('product_id', $productId);
         _saveSeoUrls('product_id', $productId, $body['seo_urls']);
     }

@@ -177,8 +177,10 @@ class SiteSyncTransportDirectDb
             }
         }
 
-        $this->deleteSeoUrls('product_id', $productId);
-        $this->saveSeoUrls('product_id', $productId, $seoUrls);
+        if (!empty($seoUrls)) {
+            $this->deleteSeoUrls('product_id', $productId);
+            $this->saveSeoUrls('product_id', $productId, $seoUrls);
+        }
 
         return array('ok' => true, 'product_id' => $productId);
     }

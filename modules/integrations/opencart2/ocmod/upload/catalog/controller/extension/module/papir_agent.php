@@ -131,7 +131,7 @@ class ControllerExtensionModulePapirAgent extends Controller {
     private function doProductSeo(){
         $b=$this->body();$pid=intval($this->req($b,'product_id'));if(!$pid)return;
         if(isset($b['descriptions'])){foreach($b['descriptions'] as $d){$li=intval($d['language_id']);$s=array();foreach(array('name','description','short_description','meta_title','meta_description','meta_keyword','meta_h1') as $c){if(isset($d[$c]))$s[]="`{$c}`=".$this->e($d[$c]);}if(!empty($s))$this->q("UPDATE ".$this->t('product_description')." SET ".implode(',',$s)." WHERE product_id={$pid} AND language_id={$li}");}}
-        if(isset($b['seo_urls'])){$this->seoDel('product_id',$pid);$this->seoSave('product_id',$pid,$b['seo_urls']);}
+        if(!empty($b['seo_urls'])){$this->seoDel('product_id',$pid);$this->seoSave('product_id',$pid,$b['seo_urls']);}
         $this->j(array('ok'=>true,'product_id'=>$pid));
     }
 
