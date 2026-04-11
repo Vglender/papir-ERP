@@ -132,11 +132,14 @@ class Router
 		'/counterparties/panel'                   => '/modules/counterparties/panel.php',
 		'/counterparties/chat-popup'              => '/modules/counterparties/views/chat_popup.php',
 		'/counterparties/api/save_counterparty'   => '/modules/counterparties/api/save_counterparty.php',
+		'/counterparties/api/find_or_create_contact' => '/modules/counterparties/api/find_or_create_contact.php',
 		'/counterparties/api/save_group'          => '/modules/counterparties/api/save_group.php',
 		'/counterparties/api/save_relation'       => '/modules/counterparties/api/save_relation.php',
 		'/counterparties/api/delete_relation'     => '/modules/counterparties/api/delete_relation.php',
 		'/counterparties/api/search'              => '/modules/counterparties/api/search.php',
 		'/counterparties/api/get_contacts'        => '/modules/counterparties/api/get_contacts.php',
+		'/counterparties/api/get_related'         => '/modules/counterparties/api/get_related.php',
+		'/counterparties/api/add_contact'         => '/modules/counterparties/api/add_contact.php',
 		'/counterparties/api/add_activity'        => '/modules/counterparties/api/add_activity.php',
 		'/counterparties/api/get_messages'        => '/modules/counterparties/api/get_messages.php',
 		'/counterparties/api/send_message'        => '/modules/counterparties/api/send_message.php',
@@ -178,6 +181,7 @@ class Router
 		'/counterparties/api/merge_preview'          => '/modules/counterparties/api/merge_preview.php',
 		'/counterparties/dedup'                      => '/modules/counterparties/dedup.php',
 		'/counterparties/api/find_dedup_groups'      => '/modules/counterparties/api/find_dedup_groups.php',
+		'/counterparties/api/find_dedup_for'         => '/modules/counterparties/api/find_dedup_for.php',
 		'/counterparties/api/merge_dedup'            => '/modules/counterparties/api/merge_dedup.php',
 		'/counterparties/api/create_from_lead'       => '/modules/counterparties/api/create_from_lead.php',
 		'/counterparties/api/discard_lead'           => '/modules/counterparties/api/discard_lead.php',
@@ -271,6 +275,7 @@ class Router
 		'/novaposhta/api/search_city'         => '/modules/novaposhta/api/search_city.php',
 		'/novaposhta/api/search_warehouse'    => '/modules/novaposhta/api/search_warehouse.php',
 		'/novaposhta/api/search_street'       => '/modules/novaposhta/api/search_street.php',
+		'/novaposhta/api/search_counterparty' => '/modules/novaposhta/api/search_counterparty.php',
 		'/novaposhta/api/create_scansheet'    => '/modules/novaposhta/api/create_scansheet.php',
 		'/novaposhta/api/get_scansheats'      => '/modules/novaposhta/api/get_scansheats.php',
 		'/novaposhta/api/sync_scansheats'     => '/modules/novaposhta/api/sync_scansheats.php',
@@ -409,6 +414,12 @@ class Router
 		$pathWithoutHtml = preg_replace('/\.html$/', '', $path);
 		if (array_key_exists($pathWithoutHtml, $this->routes)) {
 			return $this->routes[$pathWithoutHtml];
+		}
+
+		// Client portal short URL: /p/{short_code}
+		if (preg_match('#^/p/([A-Za-z0-9]{4,16})$#', $path, $m)) {
+			$_GET['c'] = $m[1];
+			return '/modules/client_portal/short.php';
 		}
 
 		return null;
