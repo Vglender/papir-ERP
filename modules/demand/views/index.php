@@ -172,6 +172,7 @@ $syncColors = array(
     box-shadow:0 4px 16px rgba(0,0,0,.12); min-width:160px; padding:4px 0;
 }
 .dm-act-dd.open { display:block; }
+.dm-act-dd.flip-up { top:auto; bottom:100%; }
 .dm-act-dd button {
     display:flex; align-items:center; gap:6px; width:100%;
     padding:7px 12px; border:none; background:none; cursor:pointer;
@@ -848,9 +849,19 @@ $syncColors = array(
             e.stopPropagation();
             var dd = toggler.nextElementSibling;
             document.querySelectorAll('.dm-act-dd.open').forEach(function(d) {
-                if (d !== dd) d.classList.remove('open');
+                if (d !== dd) { d.classList.remove('open'); d.classList.remove('flip-up'); }
             });
             dd.classList.toggle('open');
+            if (dd.classList.contains('open')) {
+                // Flip upward when dropdown would be clipped by .crm-table overflow:hidden
+                // (e.g. last row — including single-row filter results).
+                var tr = toggler.closest('tr');
+                var tbody = tr ? tr.parentElement : null;
+                var ddRect = dd.getBoundingClientRect();
+                var tblRect = tbody ? tbody.closest('table').getBoundingClientRect() : null;
+                var overflowsBottom = tblRect && (ddRect.bottom > tblRect.bottom - 2);
+                dd.classList.toggle('flip-up', !!overflowsBottom);
+            }
         });
     });
 
@@ -865,7 +876,10 @@ $syncColors = array(
 
     // Close context menus and bulk dropdown on outside click
     document.addEventListener('click', function() {
-        document.querySelectorAll('.dm-act-dd.open').forEach(function(d) { d.classList.remove('open'); });
+        document.querySelectorAll('.dm-act-dd.open').forEach(function(d) {
+            d.classList.remove('open');
+            d.classList.remove('flip-up');
+        });
         bulkDd.classList.remove('open');
     });
 }());

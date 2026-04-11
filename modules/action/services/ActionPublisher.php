@@ -52,8 +52,12 @@ class ActionPublisher
             }
         }
 
-        $dateStart = date('Y-m-d H:i:s');
-        $dateEnd   = date('Y-m-d', strtotime('+1 days')) . ' 00:00:00';
+        // oc_product_special.date_end — колонка типу DATE, OC порівнює з NOW(),
+        // тож DATE кастується до 00:00:00. Щоб акції були активні ВЕСЬ поточний
+        // день (включно до 23:59), date_end має бути ≥ завтра. Беремо +2 дні —
+        // це дає запас для будь-якого часу запуску крону/ручного update_site.
+        $dateStart = date('Y-m-d');
+        $dateEnd   = date('Y-m-d', strtotime('+2 days'));
 
         $publishedIds = array();
 

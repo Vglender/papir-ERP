@@ -36,6 +36,7 @@ $whitelist = array(
     'cron_track_ttn'          => array('label' => 'run: track_ttn',          'exec' => 'nohup php /var/www/papir/cron/track_ttn.php > /tmp/track_ttn.log 2>&1 & echo "Started PID $!"'),
     'cron_sync_warehouses'    => array('label' => 'run: np_sync_warehouses', 'exec' => 'nohup php /var/www/papir/scripts/np_sync_warehouses.php > /tmp/np_sync_warehouses.log 2>&1 & echo "Started PID $!"'),
     'cron_sync_streets'       => array('label' => 'run: np_sync_streets',    'exec' => 'nohup php /var/www/papir/scripts/np_sync_streets.php > /tmp/np_sync_streets.log 2>&1 & echo "Started PID $!"'),
+    'cron_fire_manual_orders' => array('label' => 'run: fire_manual_orders', 'exec' => 'nohup php /var/www/papir/cron/fire_manual_orders.php > /tmp/fire_manual_orders.log 2>&1 & echo "Started PID $!"'),
 );
 
 if (!array_key_exists($cmd, $whitelist)) {

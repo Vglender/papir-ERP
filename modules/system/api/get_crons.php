@@ -93,6 +93,14 @@ $knownCrons = array(
         'log_file'    => '/tmp/np_sync_streets.log',
         'max_silence' => 44640, // 31 день
     ),
+    array(
+        'name'        => 'Fire order_created для ручних заказів',
+        'script'      => '/var/www/papir/cron/fire_manual_orders.php',
+        'schedule'    => '*/5 * * * *',
+        'label'       => 'Кожні 5 хв',
+        'log_file'    => '/var/log/papir/fire_manual_orders.log',
+        'max_silence' => 15,
+    ),
 );
 
 // ── Визначити активність по часу останнього запуску ───────────────────────────

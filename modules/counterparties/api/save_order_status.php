@@ -38,6 +38,8 @@ if ($status !== null) {
         exit;
     }
     $data['status'] = $status;
+    $data['next_action'] = null;
+    $data['next_action_label'] = null;
 }
 
 if ($description !== null) {
