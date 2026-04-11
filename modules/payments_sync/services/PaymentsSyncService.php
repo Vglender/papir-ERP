@@ -31,6 +31,7 @@ class PaymentsSyncService
     public function sync($dateFrom)
     {
         $rawPayments = $this->collector->collect($dateFrom);
+        $rawPayments = $this->applyLiqpaySplit($rawPayments);
 
         $result = [
             'date_from' => $dateFrom,
@@ -243,6 +244,27 @@ class PaymentsSyncService
         return $this->collector->collect($dateFrom);
     }
 
+    /**
+     * Фаза 2 LiqPay: розщепити кожну LIQPAY-стрічку на gross paymentin + commission paymentout.
+     * Працює на сирих рядках ДО dup-check, щоб обидві нові стрічки проходили filterNotExistingInDb.
+     * Якщо модуль liqpay вимкнений або receipt не знайдено — рядок залишається без змін.
+     */
+    protected function applyLiqpaySplit(array $rawPayments)
+    {
+        if (empty($rawPayments)) return $rawPayments;
+
+        // Guard: якщо LiqPay-модуль неактивний — не чіпаємо рядки
+        if (class_exists('AppRegistry') && !\AppRegistry::isActive('liqpay')) {
+            return $rawPayments;
+        }
+
+        $splitterPath = __DIR__ . '/../../liqpay/services/BankLiqpaySplitter.php';
+        if (!file_exists($splitterPath)) return $rawPayments;
+        require_once $splitterPath;
+
+        return \BankLiqpaySplitter::splitRows($rawPayments);
+    }
+
     public function prepareOnly($dateFrom)
     {
         $rawPayments = $this->collector->collect($dateFrom);
@@ -296,6 +318,7 @@ class PaymentsSyncService
 	public function syncDetailed($dateFrom, $realSend = false)
 {
     $rawPayments = $this->collector->collect($dateFrom);
+    $rawPayments = $this->applyLiqpaySplit($rawPayments);
 
     $report = [
         'date_from' => $dateFrom,
@@ -705,10 +728,16 @@ class PaymentsSyncService
 			}
 		}
 
+		// Локальний FK на counterparty — джерело правди (CLAUDE.md:Local IDs).
+		// Поки що пишуть лише LiqPay splitter (через payment['cp_id']).
+		// Для інших bank-sync шляхів cp_id лишається null — окрема задача.
+		$cpId = isset($payment['cp_id']) ? (int)$payment['cp_id'] : null;
+
 		$insertResult = Database::insert('Papir', 'finance_bank', array(
 			'direction'           => $direction,
 			'moment'              => $moment,
 			'sum'                 => $sum,
+			'cp_id'               => $cpId,
 			'agent_ms'            => $agentMs,
 			'organization_ms'     => $orgMs,
 			'is_moving'           => $isMoving,
