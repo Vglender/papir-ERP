@@ -21,6 +21,14 @@ $_publicPaths = array(
     '/customerorder/webhook/',    // prefix
     '/demand/webhook/',           // prefix
     '/novaposhta/api/scan_for_registry',
+    '/p/',                           // prefix — клієнтський портал (короткий URL)
+    '/client_portal/view',           // публічна сторінка замовлення
+    '/client_portal/lookup',         // публічна форма пошуку замовлення
+    '/client_portal/requisites',     // публічні реквізити
+    '/client_portal/invoice',        // публічний PDF-рахунок
+    '/client_portal/delivery_note',  // публічна PDF-накладна з печаткою
+    '/client_portal/api/photos',     // публічні фото товарів (token-gated)
+    '/client_portal/api/lookup',     // публічний пошук замовлення за номером+телефоном
 );
 $_requestPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
 $_requestPath = rtrim($_requestPath, '/') ?: '/';
