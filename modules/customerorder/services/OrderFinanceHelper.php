@@ -59,15 +59,16 @@ class OrderFinanceHelper
 
     /**
      * Визначити payment_status за сумою оплат і сумою замовлення.
-
+     *
+     * Універсальна толерантність: max(5 грн, 0.5%) для будь-яких джерел оплати.
+     * Покриває комісії банку, округлення кур'єрських служб (накладений платіж),
+     * мікродонеплати клієнтів. Залишок піде у модуль взаєморозрахунків,
+     * нічого не «втрачається».
      *
      * LiqPay-aware: якщо на замовленні є успішний LiqPay receipt — вважаємо
-     * його оплаченим навіть коли банківський paymentin ще не прийшов (sum_paid=0)
-     * або прийшов з нетто (на ~1.5% менше gross через комісію еквайрингу).
+     * його оплаченим навіть коли банківський paymentin ще не прийшов (sum_paid=0).
      * Це потрібно, щоб сценарії реагували одразу після колбека LiqPay, а не
      * через 1-2 дні коли банк зарахує гроші.
-     *
-     * Поріг толерантності: 3% (комісія LiqPay ~1.5-2.6% залежно від paytype).
      */
     public static function resolvePaymentStatus($sumPaid, $sumTotal, $orderId = 0)
     {
@@ -79,11 +80,12 @@ class OrderFinanceHelper
         if ($sumPaid <= 0) {
             return $hasLiqpay ? 'paid' : 'not_paid';
         }
-        if ($sumPaid >= $sumTotal - 0.01 && $sumTotal > 0) return 'paid';
-        // LiqPay-толерантність: нетто з банку vs gross замовлення
-        if ($hasLiqpay && $sumTotal > 0 && $sumPaid >= $sumTotal * 0.97) {
-            return 'paid';
+
+        if ($sumTotal > 0) {
+            $tolerance = max(5.00, $sumTotal * 0.005);
+            if ($sumPaid >= $sumTotal - $tolerance) return 'paid';
         }
+
         return 'partially_paid';
     }
 
