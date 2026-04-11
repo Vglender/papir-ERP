@@ -125,6 +125,11 @@ var ChatHub = {
     } else {
       url = '/counterparties/api/get_messages?id=' + chatId + '&channel=' + this.activeCh;
     }
+    var applyResp = function(d) {
+      if (!d.ok) return;
+      self.renderMessages(d.messages);
+      if (d.unread_by_channel) self.updateChannelDots(d.unread_by_channel);
+    };
     // Для Viber: сначала поллируем Alpha SMS за новыми ответами
     if (this.activeCh === 'viber' && chatId) {
       var pollUrl = this.kind === 'lead'
@@ -133,20 +138,14 @@ var ChatHub = {
       fetch(pollUrl)
         .then(function(r){ return r.json(); })
         .then(function() {
-          fetch(url)
-            .then(function(r){ return r.json(); })
-            .then(function(d) { if (d.ok) self.renderMessages(d.messages); });
+          fetch(url).then(function(r){ return r.json(); }).then(applyResp);
         })
         .catch(function() {
-          fetch(url)
-            .then(function(r){ return r.json(); })
-            .then(function(d) { if (d.ok) self.renderMessages(d.messages); });
+          fetch(url).then(function(r){ return r.json(); }).then(applyResp);
         });
       return;
     }
-    fetch(url)
-      .then(function(r){ return r.json(); })
-      .then(function(d) { if (d.ok) self.renderMessages(d.messages); });
+    fetch(url).then(function(r){ return r.json(); }).then(applyResp);
   },
 
   isImageUrl: function(url) {

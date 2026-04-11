@@ -47,6 +47,27 @@ if ($leadId > 0) {
     }
 }
 
+// Unread counts per channel (computed AFTER markRead, so active tab drops to 0)
+$unreadByChannel = array('viber' => 0, 'sms' => 0, 'email' => 0, 'telegram' => 0, 'note' => 0);
+if ($leadId > 0) {
+    $unreadRaw = Database::fetchAll('Papir',
+        "SELECT channel, COUNT(*) AS cnt FROM cp_messages
+         WHERE lead_id = {$leadId} AND direction = 'in' AND read_at IS NULL
+         GROUP BY channel");
+} else {
+    $unreadRaw = Database::fetchAll('Papir',
+        "SELECT channel, COUNT(*) AS cnt FROM cp_messages
+         WHERE counterparty_id = {$id} AND direction = 'in' AND read_at IS NULL
+         GROUP BY channel");
+}
+if ($unreadRaw['ok']) {
+    foreach ($unreadRaw['rows'] as $row) {
+        if (isset($unreadByChannel[$row['channel']])) {
+            $unreadByChannel[$row['channel']] = (int)$row['cnt'];
+        }
+    }
+}
+
 // Format for JS
 $result = array();
 foreach ($messages as $msg) {
@@ -68,4 +89,4 @@ foreach ($messages as $msg) {
     );
 }
 
-echo json_encode(array('ok' => true, 'messages' => $result));
+echo json_encode(array('ok' => true, 'messages' => $result, 'unread_by_channel' => $unreadByChannel));

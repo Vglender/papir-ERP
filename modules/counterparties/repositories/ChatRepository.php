@@ -24,14 +24,27 @@ class ChatRepository
         return $r['ok'] ? $r['rows'] : array();
     }
 
+    // Technical "operator" для автоматичних повідомлень сценаріїв.
+    // employee id=5 (Робот Василь) — UI бачитиме як відправника.
+    const AUTO_OPERATOR_NAME = 'Робот Василь';
+
     public function saveMessage($data)
     {
-        $cid = (int)$data['counterparty_id'];
+        $cid     = (int)$data['counterparty_id'];
+        $isAuto  = !empty($data['is_auto']) ? 1 : 0;
+
+        // Для auto-повідомлень: якщо operator_name не передано явно — підставляємо
+        // технічного "робота", щоб у UI чату оператор бачив автора.
+        $operatorName = isset($data['operator_name']) && $data['operator_name'] !== ''
+            ? $data['operator_name']
+            : ($isAuto ? self::AUTO_OPERATOR_NAME : null);
+
         $row = array(
             'counterparty_id' => $cid,
             'channel'         => $data['channel'],
             'direction'       => isset($data['direction'])       ? $data['direction']       : 'out',
-            'operator_name'   => isset($data['operator_name'])   ? $data['operator_name']   : null,
+            'operator_name'   => $operatorName,
+            'is_auto'         => $isAuto,
             'status'          => isset($data['status'])          ? $data['status']          : 'sent',
             'phone'           => isset($data['phone'])           ? $data['phone']           : null,
             'email_addr'      => isset($data['email_addr'])      ? $data['email_addr']      : null,
@@ -156,6 +169,22 @@ class ChatRepository
                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(cc.phone,'+',''),' ',''),'-',''),'(',''),')','') LIKE '%{$last9}'
                 OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(cp.phone,'+',''),' ',''),'-',''),'(',''),')','') LIKE '%{$last9}'
                )
+             LIMIT 1");
+        return ($r['ok'] && $r['row']) ? (int)$r['row']['id'] : 0;
+    }
+
+    // Find counterparty by email (case-insensitive)
+    public function findCounterpartyByEmail($email)
+    {
+        $email = trim((string)$email);
+        if ($email === '') return 0;
+        $esc = Database::escape('Papir', mb_strtolower($email, 'UTF-8'));
+        $r = Database::fetchRow('Papir',
+            "SELECT c.id FROM counterparty c
+             LEFT JOIN counterparty_company cc ON cc.counterparty_id = c.id
+             LEFT JOIN counterparty_person  cp ON cp.counterparty_id = c.id
+             WHERE c.status = 1
+               AND (LOWER(cc.email) = '{$esc}' OR LOWER(cp.email) = '{$esc}')
              LIMIT 1");
         return ($r['ok'] && $r['row']) ? (int)$r['row']['id'] : 0;
     }

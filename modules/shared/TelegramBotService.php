@@ -38,6 +38,29 @@ class TelegramBotService
     }
 
     /**
+     * Send HTML-formatted message. Supported tags: <b>, <i>, <u>, <s>, <a>,
+     * <code>, <pre>. Caller is responsible for escaping user content with
+     * htmlspecialchars() before injecting into tags.
+     *
+     * @param bool $disablePreview  якщо true — ховає автогенероване link preview
+     * @return array ['ok'=>bool, 'error'=>string|null]
+     */
+    public static function sendMessageHtml($chatId, $html, $disablePreview = true)
+    {
+        $data = array(
+            'chat_id'    => (string)$chatId,
+            'text'       => $html,
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => $disablePreview ? true : false,
+        );
+        $result = self::call('sendMessage', $data);
+        if ($result['ok']) {
+            return array('ok' => true);
+        }
+        return array('ok' => false, 'error' => isset($result['description']) ? $result['description'] : 'Telegram error');
+    }
+
+    /**
      * Send photo to a chat_id. Caption is optional.
      * If non-image file, falls back to sendMessage with just the caption/text.
      * @return array ['ok'=>bool, 'error'=>string|null]

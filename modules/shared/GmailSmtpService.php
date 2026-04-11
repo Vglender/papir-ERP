@@ -30,13 +30,15 @@ class GmailSmtpService
      * @param string      $toEmail
      * @param string      $toName
      * @param string      $subject
-     * @param string      $bodyText        Plain text body
+     * @param string      $bodyText        Body (plain text за замовч.; HTML якщо $isHtml=true)
      * @param string|null $attachmentPath  Absolute local path to file (optional)
      * @param string|null $attachmentName  Original filename shown to recipient (optional)
+     * @param bool        $isHtml          Якщо true — Content-Type: text/html
      * @return array ['ok'=>bool, 'error'=>string]
      */
     public static function send($toEmail, $toName, $subject, $bodyText,
-                                $attachmentPath = null, $attachmentName = null)
+                                $attachmentPath = null, $attachmentName = null,
+                                $isHtml = false)
     {
         $toEmail = trim($toEmail);
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
@@ -119,6 +121,7 @@ class GmailSmtpService
         $subjFmt = self::encodeHeader($subject);
 
         $hasAttachment = $attachmentPath && file_exists($attachmentPath);
+        $bodyCt        = $isHtml ? 'text/html' : 'text/plain';
 
         if ($hasAttachment) {
             $boundary = '----=_Part_' . md5(uniqid('', true));
@@ -134,9 +137,9 @@ class GmailSmtpService
             $msg .= "MIME-Version: 1.0\r\n";
             $msg .= "Content-Type: multipart/mixed; boundary=\"{$boundary}\"\r\n";
             $msg .= "\r\n";
-            // Text part
+            // Body part
             $msg .= "--{$boundary}\r\n";
-            $msg .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $msg .= "Content-Type: {$bodyCt}; charset=UTF-8\r\n";
             $msg .= "Content-Transfer-Encoding: base64\r\n";
             $msg .= "\r\n";
             $msg .= chunk_split(base64_encode($bodyText), 76, "\r\n");
@@ -156,7 +159,7 @@ class GmailSmtpService
             $msg .= "To: {$toFmt}\r\n";
             $msg .= "Subject: {$subjFmt}\r\n";
             $msg .= "MIME-Version: 1.0\r\n";
-            $msg .= "Content-Type: text/plain; charset=UTF-8\r\n";
+            $msg .= "Content-Type: {$bodyCt}; charset=UTF-8\r\n";
             $msg .= "Content-Transfer-Encoding: base64\r\n";
             $msg .= "\r\n";
             $msg .= chunk_split(base64_encode($bodyText), 76, "\r\n");
