@@ -165,9 +165,14 @@ if (isset($_GET['new']) && $_GET['new'] == '1' && !$selOrg):
     panel.innerHTML = <?php
         ob_start();
         $selOrg = array('id'=>0,'name'=>'','short_name'=>'','alias'=>'','code'=>'','okpo'=>'',
-                        'inn'=>'','vat_number'=>'','legal_address'=>'','actual_address'=>'',
+                        'inn'=>'','vat_number'=>'','is_vat_payer'=>0,
+                        'legal_address'=>'','actual_address'=>'',
                         'director_name'=>'','director_title'=>'','phone'=>'','email'=>'',
                         'website'=>'','description'=>'','status'=>1,
+                        'is_default'=>0,
+                        'default_store_id'=>null,'default_delivery_method_id'=>null,
+                        'default_payment_method_id_legal'=>null,
+                        'default_payment_method_id_person'=>null,
                         'logo_path'=>null,'stamp_path'=>null,'signature_path'=>null,
                         'bank_accounts'=>array());
         include __DIR__ . '/organizations_panel.php';

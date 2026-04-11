@@ -99,9 +99,72 @@ $bankAccounts = isset($o['bank_accounts']) ? $o['bank_accounts'] : array();
                     <option value="0" <?php echo !$o['status'] ? 'selected' : ''; ?>>Неактивна</option>
                 </select>
             </div>
+            <div class="org-form-row" style="display:flex;align-items:flex-end">
+                <label style="font-size:13px;cursor:pointer;font-weight:500;color:#1e293b;margin-bottom:8px">
+                    <input type="checkbox" name="is_vat_payer" value="1"
+                           <?php echo !empty($o['is_vat_payer']) ? 'checked' : ''; ?>>
+                    Платник ПДВ
+                </label>
+            </div>
         </div>
 
-        <div class="org-form-row">
+        <div style="margin-top:10px;padding:12px;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px">
+            <div style="font-size:11px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">
+                Дефолти для нових замовлень
+            </div>
+            <div class="org-form-2col">
+                <div class="org-form-row">
+                    <label>Склад за замовчуванням</label>
+                    <select name="default_store_id">
+                        <option value="">— Не задано —</option>
+                        <?php foreach ($stores as $s): ?>
+                        <option value="<?php echo (int)$s['id']; ?>"
+                            <?php echo ((int)(isset($o['default_store_id']) ? $o['default_store_id'] : 0) === (int)$s['id']) ? 'selected' : ''; ?>>
+                            <?php echo ViewHelper::h($s['name']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="org-form-row">
+                    <label>Спосіб доставки</label>
+                    <select name="default_delivery_method_id">
+                        <option value="">— Не задано —</option>
+                        <?php foreach ($deliveryMethods as $d): ?>
+                        <option value="<?php echo (int)$d['id']; ?>"
+                            <?php echo ((int)(isset($o['default_delivery_method_id']) ? $o['default_delivery_method_id'] : 0) === (int)$d['id']) ? 'selected' : ''; ?>>
+                            <?php echo ViewHelper::h($d['name_uk']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="org-form-row">
+                    <label>Оплата (юрособа)</label>
+                    <select name="default_payment_method_id_legal">
+                        <option value="">— Не задано —</option>
+                        <?php foreach ($paymentMethods as $p): ?>
+                        <option value="<?php echo (int)$p['id']; ?>"
+                            <?php echo ((int)(isset($o['default_payment_method_id_legal']) ? $o['default_payment_method_id_legal'] : 0) === (int)$p['id']) ? 'selected' : ''; ?>>
+                            <?php echo ViewHelper::h($p['name_uk']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="org-form-row">
+                    <label>Оплата (фізособа)</label>
+                    <select name="default_payment_method_id_person">
+                        <option value="">— Не задано —</option>
+                        <?php foreach ($paymentMethods as $p): ?>
+                        <option value="<?php echo (int)$p['id']; ?>"
+                            <?php echo ((int)(isset($o['default_payment_method_id_person']) ? $o['default_payment_method_id_person'] : 0) === (int)$p['id']) ? 'selected' : ''; ?>>
+                            <?php echo ViewHelper::h($p['name_uk']); ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="org-form-row" style="margin-top:14px">
             <label>Примітка</label>
             <textarea name="description" rows="2"><?php echo ViewHelper::h($o['description']); ?></textarea>
         </div>

@@ -60,6 +60,11 @@ class OrganizationRepository
             'website'        => isset($data['website'])        ? trim($data['website'])        : null,
             'description'    => isset($data['description'])   ? trim($data['description'])    : null,
             'status'         => isset($data['status'])        ? (int)$data['status']           : 1,
+            'is_vat_payer'   => !empty($data['is_vat_payer']) ? 1 : 0,
+            'default_store_id'                 => !empty($data['default_store_id'])                 ? (int)$data['default_store_id']                 : null,
+            'default_delivery_method_id'       => !empty($data['default_delivery_method_id'])       ? (int)$data['default_delivery_method_id']       : null,
+            'default_payment_method_id_legal'  => !empty($data['default_payment_method_id_legal'])  ? (int)$data['default_payment_method_id_legal']  : null,
+            'default_payment_method_id_person' => !empty($data['default_payment_method_id_person']) ? (int)$data['default_payment_method_id_person'] : null,
         );
 
         // Nullable string fields — store null instead of empty string
