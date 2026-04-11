@@ -1066,12 +1066,22 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
 
 <!-- ══ Modal: new counterparty ═══════════════════════════════════════════════ -->
 <div class="modal-overlay" id="wsNewModal" style="display:none" onclick="if(event.target===this)WS.closeNew()">
-  <div class="modal-box" style="max-width:400px">
+  <div class="modal-box" style="max-width:440px">
     <div class="modal-head">
-      <span>Новий контрагент</span>
+      <span id="wsNewModalTitle">Новий контрагент</span>
       <button class="modal-close" onclick="WS.closeNew()">×</button>
     </div>
-    <div class="modal-body">
+
+    <!-- Tabs -->
+    <div class="ws-new-tabs" style="display:flex;gap:4px;padding:0 16px;border-bottom:1px solid #e5e7eb">
+      <button type="button" class="ws-new-tab active" data-tab="create" onclick="WS.switchNewTab('create')"
+              style="background:none;border:none;border-bottom:2px solid #7c3aed;color:#7c3aed;font-weight:600;padding:10px 14px;cursor:pointer;margin-bottom:-1px">Створити</button>
+      <button type="button" class="ws-new-tab" data-tab="send" onclick="WS.switchNewTab('send')"
+              style="background:none;border:none;border-bottom:2px solid transparent;color:#6b7280;font-weight:600;padding:10px 14px;cursor:pointer;margin-bottom:-1px">Написати</button>
+    </div>
+
+    <!-- Tab: Create counterparty (existing form) -->
+    <div class="modal-body" id="wsNewTabCreate">
       <div class="form-row">
         <label>Тип</label>
         <select id="wsNewType" style="width:100%">
@@ -1094,9 +1104,43 @@ $wsPaymentMethods = ($rPMs['ok'] && !empty($rPMs['rows'])) ? $rPMs['rows'] : arr
       </div>
       <div class="modal-error" id="wsNewErr" style="display:none"></div>
     </div>
+
+    <!-- Tab: Quick send message -->
+    <div class="modal-body" id="wsNewTabSend" style="display:none">
+      <div class="form-row">
+        <label>Канал</label>
+        <div id="wsQsChannels" style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="ws-qs-ch active" data-ch="viber"    onclick="WS.qsSetChannel('viber')"    style="flex:1;min-width:70px;padding:8px;border:1.5px solid #7c3aed;background:#f5f3ff;color:#7c3aed;border-radius:8px;cursor:pointer;font-weight:600">Viber</button>
+          <button type="button" class="ws-qs-ch"        data-ch="sms"      onclick="WS.qsSetChannel('sms')"      style="flex:1;min-width:70px;padding:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;border-radius:8px;cursor:pointer;font-weight:600">SMS</button>
+          <button type="button" class="ws-qs-ch"        data-ch="telegram" onclick="WS.qsSetChannel('telegram')" style="flex:1;min-width:70px;padding:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;border-radius:8px;cursor:pointer;font-weight:600">Telegram</button>
+          <button type="button" class="ws-qs-ch"        data-ch="email"    onclick="WS.qsSetChannel('email')"    style="flex:1;min-width:70px;padding:8px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;border-radius:8px;cursor:pointer;font-weight:600">Email</button>
+        </div>
+      </div>
+      <div class="form-row" id="wsQsPhoneRow">
+        <label>Телефон <span style="color:#ef4444">*</span></label>
+        <input type="text" id="wsQsPhone" style="width:100%" placeholder="+38 067 123 45 67">
+      </div>
+      <div class="form-row" id="wsQsEmailRow" style="display:none">
+        <label>Email <span style="color:#ef4444">*</span></label>
+        <input type="text" id="wsQsEmail" style="width:100%" placeholder="name@company.com">
+      </div>
+      <div class="form-row" id="wsQsSubjectRow" style="display:none">
+        <label>Тема</label>
+        <input type="text" id="wsQsSubject" style="width:100%" placeholder="Повідомлення від Papir CRM" value="Повідомлення від Papir CRM">
+      </div>
+      <div class="form-row">
+        <label>Текст <span style="color:#ef4444">*</span></label>
+        <textarea id="wsQsBody" style="width:100%;min-height:110px;resize:vertical" placeholder="Напишіть повідомлення..."></textarea>
+      </div>
+      <div style="font-size:12px;color:#6b7280;margin-top:-4px">
+        💡 Якщо контрагент з таким номером/email уже існує — повідомлення додасться у його чат. Інакше створиться новий контакт.
+      </div>
+      <div class="modal-error" id="wsQsErr" style="display:none;margin-top:8px"></div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="WS.closeNew()">Скасувати</button>
-      <button class="btn btn-primary" onclick="WS.createNew()">Створити</button>
+      <button class="btn btn-primary" id="wsNewPrimaryBtn" onclick="WS.createNew()">Створити</button>
     </div>
   </div>
 </div>
@@ -4659,13 +4703,134 @@ var WS = {
   removeAttach:       function()       { ChatHub.removeAttach(); },
 
   // ── New counterparty modal ─────────────────────────────────────────────────
-  openNew: function() {
+  openNew: function(tab) {
     document.getElementById('wsNewName').value  = '';
     document.getElementById('wsNewPhone').value = '';
     document.getElementById('wsNewEmail').value = '';
     document.getElementById('wsNewErr').style.display = 'none';
+
+    document.getElementById('wsQsPhone').value   = '';
+    document.getElementById('wsQsEmail').value   = '';
+    document.getElementById('wsQsBody').value    = '';
+    document.getElementById('wsQsSubject').value = 'Повідомлення від Papir CRM';
+    document.getElementById('wsQsErr').style.display = 'none';
+    this.qsChannel = 'viber';
+    this.qsSetChannel('viber');
+
+    this.switchNewTab(tab || 'create');
     document.getElementById('wsNewModal').style.display = 'flex';
-    setTimeout(function(){ document.getElementById('wsNewName').focus(); }, 50);
+    var self = this;
+    setTimeout(function(){
+      var focusEl = (tab === 'send')
+        ? document.getElementById('wsQsPhone')
+        : document.getElementById('wsNewName');
+      if (focusEl) focusEl.focus();
+    }, 50);
+  },
+
+  switchNewTab: function(tab) {
+    var tabs = document.querySelectorAll('#wsNewModal .ws-new-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      var isActive = tabs[i].getAttribute('data-tab') === tab;
+      tabs[i].classList.toggle('active', isActive);
+      tabs[i].style.borderBottomColor = isActive ? '#7c3aed' : 'transparent';
+      tabs[i].style.color              = isActive ? '#7c3aed' : '#6b7280';
+    }
+    var isSend = (tab === 'send');
+    document.getElementById('wsNewTabCreate').style.display = isSend ? 'none' : '';
+    document.getElementById('wsNewTabSend').style.display   = isSend ? ''     : 'none';
+
+    var primary = document.getElementById('wsNewPrimaryBtn');
+    var title   = document.getElementById('wsNewModalTitle');
+    if (isSend) {
+      primary.textContent = 'Надіслати';
+      primary.setAttribute('onclick', 'WS.quickSend()');
+      title.textContent = 'Нове повідомлення';
+    } else {
+      primary.textContent = 'Створити';
+      primary.setAttribute('onclick', 'WS.createNew()');
+      title.textContent = 'Новий контрагент';
+    }
+  },
+
+  qsChannel: 'viber',
+  qsSetChannel: function(ch) {
+    this.qsChannel = ch;
+    var btns = document.querySelectorAll('#wsQsChannels .ws-qs-ch');
+    for (var i = 0; i < btns.length; i++) {
+      var isActive = btns[i].getAttribute('data-ch') === ch;
+      btns[i].classList.toggle('active', isActive);
+      btns[i].style.borderColor = isActive ? '#7c3aed' : '#e5e7eb';
+      btns[i].style.background  = isActive ? '#f5f3ff' : '#fff';
+      btns[i].style.color       = isActive ? '#7c3aed' : '#6b7280';
+    }
+    var isEmail = (ch === 'email');
+    document.getElementById('wsQsPhoneRow').style.display   = isEmail ? 'none' : '';
+    document.getElementById('wsQsEmailRow').style.display   = isEmail ? ''     : 'none';
+    document.getElementById('wsQsSubjectRow').style.display = isEmail ? ''     : 'none';
+  },
+
+  quickSend: function() {
+    var self    = this;
+    var channel = this.qsChannel;
+    var phone   = document.getElementById('wsQsPhone').value.trim();
+    var email   = document.getElementById('wsQsEmail').value.trim();
+    var subject = document.getElementById('wsQsSubject').value.trim();
+    var body    = document.getElementById('wsQsBody').value.trim();
+    var err     = document.getElementById('wsQsErr');
+
+    err.style.display = 'none';
+    if (channel === 'email') {
+      if (!email) { err.textContent = 'Вкажіть email'; err.style.display = 'block'; return; }
+    } else {
+      if (!phone) { err.textContent = 'Вкажіть телефон'; err.style.display = 'block'; return; }
+    }
+    if (!body) { err.textContent = 'Напишіть текст повідомлення'; err.style.display = 'block'; return; }
+
+    var btn = document.getElementById('wsNewPrimaryBtn');
+    btn.disabled = true;
+    var origLabel = btn.textContent;
+    btn.textContent = 'Надсилається...';
+
+    // Step 1: find-or-create counterparty by phone/email
+    var fd1 = new FormData();
+    if (phone) fd1.append('phone', phone);
+    if (email) fd1.append('email', email);
+    fetch('/counterparties/api/find_or_create_contact', { method: 'POST', body: fd1 })
+      .then(function(r){ return r.json(); })
+      .then(function(d) {
+        if (!d.ok) throw new Error(d.error || 'Помилка створення контрагента');
+
+        // Step 2: send the message via existing send_message endpoint
+        var fd2 = new FormData();
+        fd2.append('id', d.id);
+        fd2.append('channel', channel);
+        fd2.append('body', body);
+        if (channel === 'email') fd2.append('subject', subject || 'Повідомлення від Papir CRM');
+        return fetch('/counterparties/api/send_message', { method: 'POST', body: fd2 })
+          .then(function(r){ return r.json(); })
+          .then(function(sd) {
+            if (!sd.ok) throw new Error(sd.error || 'Помилка надсилання');
+            return { cpId: d.id, created: !!d.created };
+          });
+      })
+      .then(function(res) {
+        self.closeNew();
+        showToast(res.created ? 'Контакт створено, повідомлення надіслано' : 'Повідомлення надіслано');
+        self.loadInbox();
+        // Open chat panel on the used channel so operator sees the thread
+        if (typeof ChatModal !== 'undefined' && ChatModal.open) {
+          ChatModal.open(res.cpId, channel);
+        }
+      })
+      .catch(function(e) {
+        err.textContent = e.message || 'Помилка';
+        err.style.display = 'block';
+      })
+      .then(function() {
+        btn.disabled = false;
+        btn.textContent = origLabel;
+      });
   },
 
   closeNew: function() {

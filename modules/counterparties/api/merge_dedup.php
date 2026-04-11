@@ -3,9 +3,9 @@
  * POST /counterparties/api/merge_dedup
  *
  * Зливає один або більше "джерел" в цільовий контрагент.
- *   - Переносить повідомлення (cp_messages)
- *   - Переносить замовлення (customerorder)
- *   - Оновлює ліди, що були злиті з джерелами
+ *   - Переносить повідомлення, замовлення, відвантаження, повернення,
+ *     закупівлі, постачання, договори, активності, файли, задачі,
+ *     командні повідомлення, ліди, зв'язки з НП
  *   - Переносить пропущені контактні поля (phone, email, telegram) з джерел у ціль
  *   - Деактивує джерела (status = 0)
  *
@@ -56,19 +56,89 @@ Database::query('Papir',
      SET counterparty_id = {$targetId}
      WHERE counterparty_id IN ({$sourcesSql})");
 
-// ── 2. Move orders ────────────────────────────────────────────────────────────
+// ── 2. Move orders + related ─────────────────────────────────────────────────
 Database::query('Papir',
     "UPDATE customerorder
      SET counterparty_id = {$targetId}
      WHERE counterparty_id IN ({$sourcesSql})");
 
-// ── 3. Update merged leads ────────────────────────────────────────────────────
+Database::query('Papir',
+    "UPDATE customerorder_party
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE customerorder_shipping
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+// ── 3. Move demands, returns, purchases, supplies ────────────────────────────
+Database::query('Papir',
+    "UPDATE demand
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE salesreturn
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE purchaseorder
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE supply
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+// ── 4. Move contracts ────────────────────────────────────────────────────────
+Database::query('Papir',
+    "UPDATE contract
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+// ── 5. Move activities, files, tasks ─────────────────────────────────────────
+Database::query('Papir',
+    "UPDATE counterparty_activity
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE counterparty_files
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE cp_tasks
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+Database::query('Papir',
+    "UPDATE cp_task_queue
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+// ── 6. Move team messages ────────────────────────────────────────────────────
+Database::query('Papir',
+    "UPDATE team_messages
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+// ── 7. Move Nova Poshta links ────────────────────────────────────────────────
+Database::query('Papir',
+    "UPDATE Counterparties_np
+     SET counterparty_id = {$targetId}
+     WHERE counterparty_id IN ({$sourcesSql})");
+
+// ── 8. Update merged leads ───────────────────────────────────────────────────
 Database::query('Papir',
     "UPDATE leads
      SET counterparty_id = {$targetId}
      WHERE counterparty_id IN ({$sourcesSql})");
 
-// ── 4. Copy missing contact data from sources to target ───────────────────────
+// ── 9. Copy missing contact data from sources to target ──────────────────────
 
 // Load target's existing contacts
 $tPersonR  = Database::fetchRow('Papir',
@@ -136,7 +206,7 @@ foreach ($sourceIds as $srcId) {
     }
 }
 
-// ── 5. Deactivate sources ─────────────────────────────────────────────────────
+// ── 10. Deactivate sources ────────────────────────────────────────────────────
 Database::query('Papir',
     "UPDATE counterparty SET status = 0 WHERE id IN ({$sourcesSql})");
 

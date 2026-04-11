@@ -226,12 +226,62 @@
     margin: 0;
     font-size: 16px;
     font-weight: 700;
-    flex: 1;
 }
+.dedup-search-wrap { flex: 1; }
+.dedup-search-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 360px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    z-index: 100;
+}
+.dedup-search-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+}
+.dedup-search-item:hover { background: #eff6ff; }
+.dedup-search-item-name { font-weight: 600; color: #111827; }
+.dedup-search-item-meta { font-size: 11px; color: #6b7280; margin-top: 2px; }
+.dedup-search-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: #1d4ed8;
+    margin-left: 8px;
+}
+.dedup-search-info button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #6b7280;
+    padding: 0 2px;
+    line-height: 1;
+}
+.dedup-search-info button:hover { color: #ef4444; }
 </style>
 
 <div class="dedup-toolbar">
     <h1>Дедуплікація контрагентів</h1>
+    <div class="dedup-search-wrap" style="position:relative;margin-left:12px;">
+        <input type="text" id="dedupSearchInput" class="input input-sm" style="width:280px"
+               placeholder="Пошук контрагента для перевірки…"
+               autocomplete="off">
+        <div id="dedupSearchDrop" class="dedup-search-dropdown" style="display:none"></div>
+    </div>
     <button class="btn btn-ghost btn-sm" onclick="DEDUP.reload()">↺ Оновити</button>
     <a href="/counterparties" class="btn btn-ghost btn-sm">← Реєстр</a>
 </div>
@@ -327,6 +377,7 @@ var DEDUP = (function () {
     function init() {
         _loadSkipped();
         _fetchGroups(0);
+        _initSearch();
         // Infinite scroll: load more when list bottom is near visible
         var listBody = document.getElementById('dedupListBody');
         listBody.addEventListener('scroll', function() {
@@ -839,6 +890,124 @@ var DEDUP = (function () {
         return map[type] || 'badge badge-gray';
     }
 
+    // ── Search for specific counterparty ─────────────────────────────────────
+
+    var _searchTimer = null;
+
+    function _initSearch() {
+        var input = document.getElementById('dedupSearchInput');
+        var drop  = document.getElementById('dedupSearchDrop');
+
+        input.addEventListener('input', function() {
+            clearTimeout(_searchTimer);
+            var q = input.value.trim();
+            if (q.length < 2) { drop.style.display = 'none'; return; }
+            _searchTimer = setTimeout(function() { _doSearch(q); }, 250);
+        });
+
+        input.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { drop.style.display = 'none'; }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !drop.contains(e.target)) {
+                drop.style.display = 'none';
+            }
+        });
+    }
+
+    function _doSearch(q) {
+        var drop = document.getElementById('dedupSearchDrop');
+        fetch('/counterparties/api/search?q=' + encodeURIComponent(q))
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok || !d.items || d.items.length === 0) {
+                    drop.innerHTML = '<div class="dedup-search-item" style="color:#9ca3af;cursor:default">Нічого не знайдено</div>';
+                    drop.style.display = 'block';
+                    return;
+                }
+                var html = '';
+                d.items.forEach(function(item) {
+                    var meta = [];
+                    if (item.phone) meta.push('📞 ' + item.phone);
+                    if (item.email) meta.push('✉ ' + item.email);
+                    if (item.okpo)  meta.push('ЄДРПОУ: ' + item.okpo);
+                    html += '<div class="dedup-search-item" onclick="DEDUP.searchFor(' + item.id + ',\'' + _esc(item.name).replace(/'/g, "\\'") + '\')">'
+                          + '<div class="dedup-search-item-name">' + _esc(item.name) + ' <span style="font-weight:400;color:#9ca3af">(' + _esc(item.type_label) + ')</span></div>'
+                          + (meta.length ? '<div class="dedup-search-item-meta">' + meta.join(' · ') + '</div>' : '')
+                          + '</div>';
+                });
+                drop.innerHTML = html;
+                drop.style.display = 'block';
+            });
+    }
+
+    function searchFor(cpId, cpName) {
+        document.getElementById('dedupSearchDrop').style.display = 'none';
+        document.getElementById('dedupSearchInput').value = '';
+
+        // Show loading state
+        document.getElementById('dedupListBody').innerHTML = '<div class="dedup-loading">Шукаю дублікати для «' + _esc(cpName) + '»…</div>';
+        document.getElementById('dedupStat').textContent = 'Пошук…';
+        document.getElementById('dedupDetailBody').innerHTML = '<div class="dedup-empty">Завантаження…</div>';
+        document.getElementById('dedupActions').style.display = 'none';
+        state.activeIdx = -1;
+
+        fetch('/counterparties/api/find_dedup_for?id=' + cpId)
+            .then(function(r) { return r.json(); })
+            .then(function(d) {
+                if (!d.ok) { _showErr(d.error || 'Помилка'); return; }
+
+                if (!d.groups || d.groups.length === 0 || d.groups[0].members.length < 2) {
+                    // No duplicates found — show info with "back" button
+                    document.getElementById('dedupStat').textContent = 'Пошук по контрагенту';
+                    document.getElementById('dedupListBody').innerHTML =
+                        '<div style="padding:14px;text-align:center">'
+                        + '<div style="color:#16a34a;font-size:14px;font-weight:600;margin-bottom:8px">✓ Дублікатів не знайдено</div>'
+                        + '<div style="color:#6b7280;font-size:12px;margin-bottom:12px">Для «' + _esc(cpName) + '» немає збігів по телефону, email чи ЄДРПОУ</div>'
+                        + '<button class="btn btn-ghost btn-sm" onclick="DEDUP.reload()">← До всіх дублікатів</button>'
+                        + '</div>';
+                    document.getElementById('dedupDetailBody').innerHTML = '<div class="dedup-empty">Дублікатів немає</div>';
+                    return;
+                }
+
+                // Show results — replace group list with search result
+                var g = d.groups[0];
+                state.groups    = [g];
+                state.total     = 1;
+                state.loadedOffset = 1;
+                state.activeIdx = 0;
+                state.excluded  = {};
+                state.targetId  = g.members[0].id;
+
+                document.getElementById('dedupStat').innerHTML =
+                    'Результат пошуку для «' + _esc(cpName) + '» '
+                    + '<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 8px;margin-left:6px" onclick="DEDUP.reload()">← Всі</button>';
+
+                // Render list with single group
+                var names = g.members.slice(0, 3).map(function(m) {
+                    return m.name.length > 22 ? m.name.substring(0, 20) + '…' : m.name;
+                }).join(', ');
+                var badges = '';
+                g.match_types.forEach(function(t) {
+                    var label = t === 'phone' ? '📞 Тел.' : (t === 'email' ? '✉ Email' : '🔢 ЄДРПОУ');
+                    badges += '<span class="dedup-badge dedup-badge-' + t + '">' + label + '</span>';
+                });
+                badges += '<span class="dedup-badge dedup-badge-count">' + g.members.length + ' записи</span>';
+
+                document.getElementById('dedupListBody').innerHTML =
+                    '<div class="dedup-group-card active" onclick="DEDUP.selectGroup(0)">'
+                    + '<div class="dedup-group-names">' + _esc(names) + '</div>'
+                    + '<div class="dedup-group-meta">' + badges + '</div>'
+                    + '</div>';
+
+                _renderDetail();
+            })
+            .catch(function(e) {
+                _showErr('Мережева помилка: ' + e.message);
+            });
+    }
+
     // Public API
     return {
         init:               init,
@@ -850,6 +1019,7 @@ var DEDUP = (function () {
         skipGroup:          skipGroup,
         openRelationModal:  openRelationModal,
         doCreateRelation:   doCreateRelation,
+        searchFor:          searchFor,
     };
 }());
 
